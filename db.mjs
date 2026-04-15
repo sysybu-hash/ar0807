@@ -65,10 +65,14 @@ async function migrate() {
       about_text TEXT DEFAULT '',
       logo_data TEXT,
       stamp_data TEXT,
+      use_blank_template BOOLEAN NOT NULL DEFAULT FALSE,
+      blank_template_data TEXT,
       access_code TEXT DEFAULT '',
       updated_at TIMESTAMPTZ DEFAULT now()
     );
   `);
+  await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS use_blank_template BOOLEAN NOT NULL DEFAULT FALSE;`);
+  await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS blank_template_data TEXT;`);
   await q(`
     INSERT INTO inspector_settings (id, name, whatsapp, access_code)
     VALUES (1, 'אברהם רובינשטיין - חשמלאי מוסמך', '+972587600807', '1234')
@@ -145,6 +149,8 @@ export async function getSettings() {
     aboutText: row.about_text ?? "",
     logoData: row.logo_data ?? null,
     stampData: row.stamp_data ?? null,
+    useBlankTemplate: !!row.use_blank_template,
+    blankTemplateData: row.blank_template_data ?? null,
     accessCode: row.access_code ?? "",
     updatedAt: row.updated_at ?? null,
   };
@@ -161,7 +167,9 @@ export async function saveSettings(payload) {
       about_text = $6,
       logo_data = $7,
       stamp_data = $8,
-      access_code = $9,
+      use_blank_template = $9,
+      blank_template_data = $10,
+      access_code = $11,
       updated_at = now()
     WHERE id = 1`,
     [
@@ -173,6 +181,8 @@ export async function saveSettings(payload) {
       payload.aboutText ?? "",
       payload.logoData ?? null,
       payload.stampData ?? null,
+      !!payload.useBlankTemplate,
+      payload.blankTemplateData ?? null,
       payload.accessCode ?? "",
     ]
   );

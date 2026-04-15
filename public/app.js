@@ -11,6 +11,8 @@ let settings = {
     "אברהם רובינשטיין - חשמלאי מוסמך.\nמתמחה בבדיקות תקינות, תיעוד פרויקטים וניהול מלא של מסמכים פיננסיים ומקצועיים.",
   logoData: null,
   stampData: null,
+  useBlankTemplate: false,
+  blankTemplateData: null,
   accessCode: "1234",
 };
 
@@ -399,8 +401,7 @@ function printDoc(doc) {
   const when = fmtDate(doc.updatedAt || doc.createdAt || new Date().toISOString());
   const title = doc.docType === "portable" ? "אישור צרכנים מטלטלים" : "אישור תקינות מתקן";
   const photosHtml = (doc.photos || []).map((p) => `<img src="${p.data}" style="width:140px;height:100px;object-fit:cover;border:1px solid #ddd;border-radius:6px">`).join("");
-  const html = `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><script src="https://cdn.tailwindcss.com"><\/script></head><body>
-  <div class="max-w-[210mm] mx-auto p-8">
+  const standardLayout = `<div class="max-w-[210mm] mx-auto p-8">
     <div class="flex justify-between items-start border-b-4 border-blue-700 pb-4 mb-6">
       <div class="flex items-start gap-4">
         ${settings.logoData ? `<img src="${settings.logoData}" style="max-height:70px">` : ""}
@@ -429,7 +430,40 @@ function printDoc(doc) {
         <div class="border-t pt-1 text-sm">חתימה וחותמת</div>
       </div>
     </div>
-  </div>
+  </div>`;
+  const blankLayout = `
+    <div class="blank-sheet">
+      ${settings.blankTemplateData ? `<img src="${settings.blankTemplateData}" class="blank-bg" alt="">` : ""}
+      <div class="blank-content">
+        <div class="grid grid-cols-2 gap-2 text-sm border rounded p-3 bg-white/90 mb-4">
+          <div><b>סוג מסמך:</b> ${title}</div>
+          <div><b>תאריך:</b> ${escapeHtml(when)}</div>
+          <div><b>שם מתקן:</b> ${escapeHtml(doc.facilityName)}</div>
+          <div><b>כתובת:</b> ${escapeHtml(doc.address || "")}</div>
+          <div><b>גודל חיבור:</b> ${escapeHtml(doc.connectionSize || "")}</div>
+          <div><b>הארקה:</b> ${escapeHtml(doc.groundingValue || "")}</div>
+          <div><b>בידוד:</b> ${escapeHtml(doc.insulation || "")}</div>
+          <div><b>בודק:</b> ${escapeHtml(settings.name || "")}</div>
+        </div>
+        <div class="mb-4 bg-white/90 border rounded p-2 min-h-[40px] whitespace-pre-wrap"><b>הערות:</b> ${escapeHtml(doc.notes || "")}</div>
+        ${photosHtml ? `<div class="mb-4 flex gap-2 flex-wrap">${photosHtml}</div>` : ""}
+        <div class="flex justify-between items-end mt-8">
+          <div>${settings.stampData ? `<img src="${settings.stampData}" style="max-width:110px;max-height:90px">` : ""}</div>
+          <div class="text-center">
+            ${doc.signatureData ? `<img src="${doc.signatureData}" style="height:80px">` : `<div style="height:80px"></div>`}
+            <div class="border-t pt-1 text-sm">חתימה וחותמת</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  const html = `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><script src="https://cdn.tailwindcss.com"><\/script>
+  <style>
+    .blank-sheet{position:relative;max-width:210mm;min-height:287mm;margin:0 auto;padding:12mm}
+    .blank-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+    .blank-content{position:relative;z-index:1}
+  </style>
+  </head><body>
+  ${settings.useBlankTemplate ? blankLayout : standardLayout}
   <script>window.onload=()=>{window.print()};<\/script></body></html>`;
   const w = window.open("", "_blank");
   w.document.write(html);
@@ -606,6 +640,7 @@ async function loadSettings() {
   $("setWhatsapp").value = settings.whatsapp || "";
   $("setAccessCode").value = settings.accessCode || "";
   $("setAboutText").value = settings.aboutText || "";
+  $("setUseBlankTemplate").checked = !!settings.useBlankTemplate;
 }
 
 async function bindSettingsForm() {
@@ -619,6 +654,11 @@ async function bindSettingsForm() {
     if (!f) return;
     settings.stampData = await readImageFile(f);
   });
+  $("setBlankTemplateInput").addEventListener("change", async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    settings.blankTemplateData = await readImageFile(f);
+  });
   $("saveSettingsBtn").onclick = async () => {
     try {
       settings.name = $("setName").value.trim();
@@ -628,6 +668,7 @@ async function bindSettingsForm() {
       settings.whatsapp = $("setWhatsapp").value.trim();
       settings.accessCode = $("setAccessCode").value.trim();
       settings.aboutText = $("setAboutText").value.trim();
+      settings.useBlankTemplate = $("setUseBlankTemplate").checked;
       settings = await api("/api/settings", { method: "PUT", body: settings });
       renderHomeFromSettings();
       showMsg("settingsMsg", "הגדרות נשמרו בהצלחה", true);
@@ -645,6 +686,14 @@ function setupExport() {
 
 function setupPwaInstall() {
   const installBtn = $("pwaInstallBtn");
+  const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+  if (isStandalone) installBtn.classList.add("hidden");
+
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    installBtn.classList.add("hidden");
+  });
+
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
     deferredInstallPrompt = event;
@@ -663,7 +712,9 @@ function setupPwaInstall() {
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
+      navigator.serviceWorker.register("/sw.js").then((reg) => {
+        reg.update().catch(() => {});
+      }).catch(() => {});
     });
   }
 }

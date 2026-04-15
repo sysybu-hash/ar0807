@@ -75,10 +75,10 @@
             <span class="hero-chip">ייצוא מיידי לרו"ח</span>
           </div>
         </div>
-        <div class="hero-gallery">
-          <img src="https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=1000&q=80" alt="ארון חשמל תעשייתי מסודר עם מפסקים ותיוג" />
-          <img src="https://images.unsplash.com/photo-1581093196277-9f608bb3de8f?auto=format&fit=crop&w=1000&q=80" alt="בדיקת לוח חשמל עם ציוד מדידה מקצועי" />
-          <img src="https://images.unsplash.com/photo-1621905252472-e8a8e4f8d7db?auto=format&fit=crop&w=1000&q=80" alt="ארון בקרה עם תיעוד חיבורים תקני" />
+        <div class="hero-gallery" aria-label="גלריית פרויקטים בארונות חשמל">
+          <img src="/images/cabinet-1.svg" alt="ארון חשמל תעשייתי עם מיתוג מעגלים" loading="lazy" />
+          <img src="/images/cabinet-2.svg" alt="בדיקות איכות ובטיחות בלוח חשמל" loading="lazy" />
+          <img src="/images/cabinet-3.svg" alt="תיעוד חכם של תחזוקת ארונות חשמל" loading="lazy" />
         </div>
       </div>
       <div class="grid md:grid-cols-3 gap-4 mt-8">
@@ -220,6 +220,17 @@
             <div class="md:col-span-2"><label class="lbl">אודות</label><textarea id="setAboutText" class="inp" rows="4"></textarea></div>
             <div><label class="lbl">לוגו</label><input id="setLogoInput" type="file" accept="image/*" class="inp" /></div>
             <div><label class="lbl">חותמת</label><input id="setStampInput" type="file" accept="image/*" class="inp" /></div>
+            <div class="md:col-span-2">
+              <label class="inline-flex items-center gap-2">
+                <input id="setUseBlankTemplate" type="checkbox" />
+                <span>הדפסה על דף בלאנק (ללא כותרת מובנית)</span>
+              </label>
+              <p class="text-xs text-slate-600 mt-1">כאשר פעיל, ההדפסה מותאמת לטופס מוכן מראש או לרקע בלנק.</p>
+            </div>
+            <div class="md:col-span-2">
+              <label class="lbl">תמונת בלנק להדפסה (אופציונלי)</label>
+              <input id="setBlankTemplateInput" type="file" accept="image/*" class="inp" />
+            </div>
             <div class="md:col-span-2 flex gap-2 flex-wrap">
               <button id="saveSettingsBtn" class="btn-primary" type="button">שמור הגדרות</button>
               <button id="logoutBtn" class="btn-secondary" type="button">התנתקות</button>
