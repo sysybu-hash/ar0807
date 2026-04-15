@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>אברהם רובינשטיין - חשמלאי מוסמך</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="bg-slate-100 text-slate-900">
+  <aside id="drawer" class="drawer hidden">
+    <div class="drawer-inner">
+      <button id="drawerClose" class="drawer-close" type="button">✕</button>
+      <h2 class="text-xl font-bold mb-6">תפריט</h2>
+      <nav class="space-y-2">
+        <button class="drawer-link" data-section="home">דף הבית</button>
+        <button class="drawer-link" data-section="about">אודות</button>
+        <button class="drawer-link" data-section="contact">צור קשר</button>
+        <button class="drawer-link" data-section="portal">כניסה לאזור אישי</button>
+      </nav>
+    </div>
+  </aside>
+
+  <header class="site-header">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+      <button id="drawerOpen" class="menu-btn" type="button">☰ תפריט</button>
+      <div class="text-left">
+        <h1 id="heroInspectorName" class="text-xl md:text-2xl font-bold"></h1>
+        <p class="text-sm text-blue-100">ניהול פרויקטים, מסמכים, חשבוניות והצעות מחיר</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-8">
+    <section id="section-home" class="app-card">
+      <div class="grid lg:grid-cols-2 gap-6 items-center">
+        <div>
+          <h2 class="text-3xl font-bold text-slate-900 mb-3">מערכת ניהול מלאה לחשמלאי מוסמך</h2>
+          <p class="text-slate-700 leading-relaxed mb-4">
+            פלטפורמה אחת לניהול כולל: תיעוד פרויקטים, הנפקת מסמכים מקצועיים, חשבוניות עם מספר הקצאה,
+            הצעות מחיר וייצוא דוחות לרו"ח.
+          </p>
+          <div class="flex flex-wrap gap-3">
+            <button class="btn-primary" data-go-portal type="button">כניסה לאזור אישי</button>
+            <a id="whatsappTopLink" class="btn-secondary" href="#" target="_blank" rel="noopener">שליחת הודעת WhatsApp</a>
+          </div>
+        </div>
+        <div class="rounded-2xl bg-slate-50 p-5 border border-slate-200">
+          <h3 class="font-bold text-lg mb-3">מה כלול במערכת</h3>
+          <ul class="list-disc pr-6 text-slate-700 space-y-1">
+            <li>אישור תקינות מתקן חשמל</li>
+            <li>אישור צרכנים מטלטלים</li>
+            <li>ניהול פרויקטים עם גלריית תמונות</li>
+            <li>חשבוניות עם מספר הקצאה (תואם 01/2026)</li>
+            <li>הצעות מחיר והמרה לחשבונית</li>
+            <li>ייצוא דוחות CSV לרו"ח</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="section-about" class="app-card hidden">
+      <h2 class="section-title">אודות</h2>
+      <p id="aboutText" class="text-slate-700 leading-relaxed whitespace-pre-wrap"></p>
+    </section>
+
+    <section id="section-contact" class="app-card hidden">
+      <h2 class="section-title">צור קשר</h2>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="box">
+          <p><strong>שם:</strong> <span id="contactName"></span></p>
+          <p><strong>טלפון:</strong> <span id="contactPhone"></span></p>
+          <p><strong>דוא"ל:</strong> <span id="contactEmail"></span></p>
+        </div>
+        <div class="box">
+          <p class="mb-2">לפניות מהירות:</p>
+          <a id="whatsappLink" href="#" target="_blank" rel="noopener" class="btn-primary inline-block">פתיחת שיחה ב-WhatsApp</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="section-portal" class="app-card hidden">
+      <div id="portalGate">
+        <h2 class="section-title">כניסה לאזור אישי</h2>
+        <p class="text-sm text-slate-600 mb-4">הכנס קוד גישה כדי לפתוח את אזור הניהול.</p>
+        <div class="max-w-sm space-y-3">
+          <input id="accessCodeInput" type="password" class="inp" placeholder="קוד גישה" />
+          <button id="accessLoginBtn" type="button" class="btn-primary w-full">כניסה</button>
+          <p id="accessMsg" class="msg"></p>
+        </div>
+      </div>
+
+      <div id="portalArea" class="hidden space-y-6">
+        <div class="flex flex-wrap gap-2 border-b pb-3">
+          <button class="portal-tab active" data-portal-tab="dashboard" type="button">דאשבורד</button>
+          <button class="portal-tab" data-portal-tab="projects" type="button">ניהול פרויקטים</button>
+          <button class="portal-tab" data-portal-tab="documents" type="button">מסמכים</button>
+          <button class="portal-tab" data-portal-tab="invoices" type="button">חשבוניות</button>
+          <button class="portal-tab" data-portal-tab="quotes" type="button">הצעות מחיר</button>
+          <button class="portal-tab" data-portal-tab="exports" type="button">ייצוא לרו"ח</button>
+          <button class="portal-tab" data-portal-tab="settings" type="button">הגדרות</button>
+        </div>
+
+        <div id="portal-dashboard" class="portal-panel">
+          <h3 class="font-bold text-lg mb-3">סקירה מהירה</h3>
+          <div class="grid md:grid-cols-4 gap-3">
+            <div class="stat"><span id="statProjects">0</span><small>פרויקטים</small></div>
+            <div class="stat"><span id="statDocs">0</span><small>מסמכים</small></div>
+            <div class="stat"><span id="statInvoices">0</span><small>חשבוניות</small></div>
+            <div class="stat"><span id="statQuotes">0</span><small>הצעות מחיר</small></div>
+          </div>
+        </div>
+
+        <div id="portal-projects" class="portal-panel hidden">
+          <h3 class="font-bold text-lg mb-3">הקמה וניהול פרויקטים</h3>
+          <form id="projectForm" class="grid md:grid-cols-2 gap-3 mb-4">
+            <input type="hidden" id="projectId" />
+            <div><label class="lbl">שם פרויקט *</label><input id="projectTitle" class="inp" /></div>
+            <div><label class="lbl">לקוח</label><input id="projectClient" class="inp" /></div>
+            <div><label class="lbl">כתובת</label><input id="projectAddress" class="inp" /></div>
+            <div><label class="lbl">סטטוס</label><select id="projectStatus" class="inp"><option value="planned">בתכנון</option><option value="active">בביצוע</option><option value="done">הושלם</option></select></div>
+            <div><label class="lbl">תאריך התחלה</label><input id="projectStarted" type="date" class="inp" /></div>
+            <div><label class="lbl">תאריך סיום</label><input id="projectCompleted" type="date" class="inp" /></div>
+            <div class="md:col-span-2"><label class="lbl">תיאור</label><textarea id="projectDescription" class="inp" rows="3"></textarea></div>
+            <div class="md:col-span-2"><label class="lbl">גלריית תמונות פרויקט</label><input id="projectPhotosInput" class="inp" type="file" accept="image/*" multiple /></div>
+            <div class="md:col-span-2 flex flex-wrap gap-2">
+              <button type="button" id="saveProjectBtn" class="btn-primary">שמירת פרויקט</button>
+              <button type="button" id="newProjectBtn" class="btn-secondary">פרויקט חדש</button>
+            </div>
+          </form>
+          <div id="projectPhotoPreview" class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4"></div>
+          <div class="table-wrap"><table class="table"><thead><tr><th>פרויקט</th><th>לקוח</th><th>סטטוס</th><th>עודכן</th><th>פעולות</th></tr></thead><tbody id="projectsTable"></tbody></table></div>
+        </div>
+
+        <div id="portal-documents" class="portal-panel hidden">
+          <h3 class="font-bold text-lg mb-3">מערכת הנפקת מסמכים</h3>
+          <form id="docForm" class="grid md:grid-cols-2 gap-3 mb-4">
+            <input type="hidden" id="docId" />
+            <div><label class="lbl">סוג מסמך</label><select id="docType" class="inp"><option value="installation">אישור תקינות מתקן</option><option value="portable">אישור צרכנים מטלטלים</option></select></div>
+            <div><label class="lbl">שם מתקן / אתר *</label><input id="docFacilityName" class="inp" /></div>
+            <div><label class="lbl">כתובת</label><input id="docAddress" class="inp" /></div>
+            <div><label class="lbl">גודל חיבור</label><input id="docConnection" class="inp" /></div>
+            <div><label class="lbl">שיטת הגנה / הארקה</label><input id="docGrounding" class="inp" /></div>
+            <div><label class="lbl">בידוד</label><input id="docInsulation" class="inp" /></div>
+            <div class="md:col-span-2"><label class="lbl">הערות</label><textarea id="docNotes" class="inp" rows="3"></textarea></div>
+            <div class="md:col-span-2"><label class="lbl">תמונות</label><input id="docPhotosInput" class="inp" type="file" accept="image/*" multiple /></div>
+          </form>
+          <div id="docPhotosPreview" class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4"></div>
+          <div class="mb-4">
+            <label class="lbl">חתימה</label>
+            <div class="relative max-w-xl">
+              <canvas id="docSignaturePad" class="sig w-full h-40"></canvas>
+              <button id="docClearSig" type="button" class="sig-clear">נקה חתימה</button>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <button id="saveDocBtn" type="button" class="btn-primary">שמירת מסמך</button>
+            <button id="printDocBtn" type="button" class="btn-secondary">הדפסה / PDF</button>
+            <button id="newDocBtn" type="button" class="btn-secondary">מסמך חדש</button>
+          </div>
+          <div class="table-wrap"><table class="table"><thead><tr><th>סוג</th><th>שם מתקן</th><th>כתובת</th><th>עודכן</th><th>פעולות</th></tr></thead><tbody id="docsTable"></tbody></table></div>
+        </div>
+
+        <div id="portal-invoices" class="portal-panel hidden">
+          <h3 class="font-bold text-lg mb-3">הנפקת חשבוניות (כולל מס' הקצאה, מעודכן 01/2026)</h3>
+          <div id="invoiceFormWrap"></div>
+          <div class="table-wrap mt-4"><table class="table"><thead><tr><th>מספר</th><th>הקצאה</th><th>לקוח</th><th>סה"כ</th><th>סטטוס</th><th>פעולות</th></tr></thead><tbody id="invoicesTable"></tbody></table></div>
+        </div>
+
+        <div id="portal-quotes" class="portal-panel hidden">
+          <h3 class="font-bold text-lg mb-3">מערכת הנפקת הצעות מחיר</h3>
+          <div id="quoteFormWrap"></div>
+          <div class="table-wrap mt-4"><table class="table"><thead><tr><th>מספר</th><th>לקוח</th><th>סה"כ</th><th>סטטוס</th><th>פעולות</th></tr></thead><tbody id="quotesTable"></tbody></table></div>
+        </div>
+
+        <div id="portal-exports" class="portal-panel hidden">
+          <h3 class="font-bold text-lg mb-2">ייצוא דוחות לרו"ח</h3>
+          <p class="text-sm text-slate-600 mb-4">הפקת CSV מרכז של חשבוניות והצעות מחיר לשימוש מיידי במשרד הנהלת חשבונות.</p>
+          <button id="exportAccountantBtn" class="btn-primary" type="button">ייצוא קובץ accountant-export.csv</button>
+        </div>
+
+        <div id="portal-settings" class="portal-panel hidden">
+          <h3 class="font-bold text-lg mb-3">הגדרות אזור אישי</h3>
+          <form id="settingsForm" class="grid md:grid-cols-2 gap-3">
+            <div><label class="lbl">שם החשמלאי</label><input id="setName" class="inp" /></div>
+            <div><label class="lbl">מספר רישיון</label><input id="setLicense" class="inp" /></div>
+            <div><label class="lbl">טלפון</label><input id="setPhone" class="inp" /></div>
+            <div><label class="lbl">דוא"ל</label><input id="setEmail" class="inp" /></div>
+            <div><label class="lbl">WhatsApp (ניתן לשינוי)</label><input id="setWhatsapp" class="inp" /></div>
+            <div><label class="lbl">קוד כניסה לאזור אישי</label><input id="setAccessCode" class="inp" /></div>
+            <div class="md:col-span-2"><label class="lbl">אודות</label><textarea id="setAboutText" class="inp" rows="4"></textarea></div>
+            <div><label class="lbl">לוגו</label><input id="setLogoInput" type="file" accept="image/*" class="inp" /></div>
+            <div><label class="lbl">חותמת</label><input id="setStampInput" type="file" accept="image/*" class="inp" /></div>
+            <div class="md:col-span-2 flex gap-2 flex-wrap">
+              <button id="saveSettingsBtn" class="btn-primary" type="button">שמור הגדרות</button>
+              <button id="logoutBtn" class="btn-secondary" type="button">התנתקות</button>
+            </div>
+          </form>
+          <p id="settingsMsg" class="msg"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
