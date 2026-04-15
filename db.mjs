@@ -67,12 +67,18 @@ async function migrate() {
       stamp_data TEXT,
       use_blank_template BOOLEAN NOT NULL DEFAULT FALSE,
       blank_template_data TEXT,
+      blank_offset_x_mm NUMERIC(8,2) NOT NULL DEFAULT 0,
+      blank_offset_y_mm NUMERIC(8,2) NOT NULL DEFAULT 0,
+      blank_scale NUMERIC(8,3) NOT NULL DEFAULT 1,
       access_code TEXT DEFAULT '',
       updated_at TIMESTAMPTZ DEFAULT now()
     );
   `);
   await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS use_blank_template BOOLEAN NOT NULL DEFAULT FALSE;`);
   await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS blank_template_data TEXT;`);
+  await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS blank_offset_x_mm NUMERIC(8,2) NOT NULL DEFAULT 0;`);
+  await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS blank_offset_y_mm NUMERIC(8,2) NOT NULL DEFAULT 0;`);
+  await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS blank_scale NUMERIC(8,3) NOT NULL DEFAULT 1;`);
   await q(`
     INSERT INTO inspector_settings (id, name, whatsapp, access_code)
     VALUES (1, 'אברהם רובינשטיין - חשמלאי מוסמך', '+972587600807', '1234')
@@ -151,6 +157,9 @@ export async function getSettings() {
     stampData: row.stamp_data ?? null,
     useBlankTemplate: !!row.use_blank_template,
     blankTemplateData: row.blank_template_data ?? null,
+    blankOffsetXmm: Number(row.blank_offset_x_mm || 0),
+    blankOffsetYmm: Number(row.blank_offset_y_mm || 0),
+    blankScale: Number(row.blank_scale || 1),
     accessCode: row.access_code ?? "",
     updatedAt: row.updated_at ?? null,
   };
@@ -169,7 +178,10 @@ export async function saveSettings(payload) {
       stamp_data = $8,
       use_blank_template = $9,
       blank_template_data = $10,
-      access_code = $11,
+      blank_offset_x_mm = $11,
+      blank_offset_y_mm = $12,
+      blank_scale = $13,
+      access_code = $14,
       updated_at = now()
     WHERE id = 1`,
     [
@@ -183,6 +195,9 @@ export async function saveSettings(payload) {
       payload.stampData ?? null,
       !!payload.useBlankTemplate,
       payload.blankTemplateData ?? null,
+      Number(payload.blankOffsetXmm || 0),
+      Number(payload.blankOffsetYmm || 0),
+      Number(payload.blankScale || 1),
       payload.accessCode ?? "",
     ]
   );

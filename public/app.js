@@ -13,6 +13,9 @@ let settings = {
   stampData: null,
   useBlankTemplate: false,
   blankTemplateData: null,
+  blankOffsetXmm: 0,
+  blankOffsetYmm: 0,
+  blankScale: 1,
   accessCode: "1234",
 };
 
@@ -459,7 +462,7 @@ function printDoc(doc) {
   const html = `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><script src="https://cdn.tailwindcss.com"><\/script>
   <style>
     .blank-sheet{position:relative;max-width:210mm;min-height:287mm;margin:0 auto;padding:12mm}
-    .blank-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+    .blank-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;transform:translate(${Number(settings.blankOffsetXmm || 0)}mm, ${Number(settings.blankOffsetYmm || 0)}mm) scale(${Math.min(1.2, Math.max(0.8, Number(settings.blankScale || 1)))});transform-origin:top right}
     .blank-content{position:relative;z-index:1}
   </style>
   </head><body>
@@ -641,6 +644,9 @@ async function loadSettings() {
   $("setAccessCode").value = settings.accessCode || "";
   $("setAboutText").value = settings.aboutText || "";
   $("setUseBlankTemplate").checked = !!settings.useBlankTemplate;
+  $("setBlankOffsetX").value = String(Number(settings.blankOffsetXmm || 0));
+  $("setBlankOffsetY").value = String(Number(settings.blankOffsetYmm || 0));
+  $("setBlankScale").value = String(Number(settings.blankScale || 1));
 }
 
 async function bindSettingsForm() {
@@ -669,6 +675,9 @@ async function bindSettingsForm() {
       settings.accessCode = $("setAccessCode").value.trim();
       settings.aboutText = $("setAboutText").value.trim();
       settings.useBlankTemplate = $("setUseBlankTemplate").checked;
+      settings.blankOffsetXmm = Number($("setBlankOffsetX").value || 0);
+      settings.blankOffsetYmm = Number($("setBlankOffsetY").value || 0);
+      settings.blankScale = Number($("setBlankScale").value || 1);
       settings = await api("/api/settings", { method: "PUT", body: settings });
       renderHomeFromSettings();
       showMsg("settingsMsg", "הגדרות נשמרו בהצלחה", true);
