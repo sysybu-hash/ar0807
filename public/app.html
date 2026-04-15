@@ -109,11 +109,11 @@
       <div id="portalGate">
         <h2 class="section-title">כניסה לאזור אישי</h2>
         <p class="text-sm text-slate-600 mb-4">הכנס קוד גישה כדי לפתוח את אזור הניהול.</p>
-        <div class="max-w-sm space-y-3">
-          <input id="accessCodeInput" type="password" class="inp" placeholder="קוד גישה" />
-          <button id="accessLoginBtn" type="button" class="btn-primary w-full">כניסה</button>
+        <form id="portalLoginForm" class="max-w-sm space-y-3" autocomplete="on">
+          <input id="accessCodeInput" name="accessCode" type="password" class="inp" placeholder="קוד גישה" autocomplete="current-password" />
+          <button id="accessLoginBtn" type="submit" class="btn-primary w-full">כניסה</button>
           <p id="accessMsg" class="msg"></p>
-        </div>
+        </form>
       </div>
 
       <div id="portalArea" class="hidden space-y-6">

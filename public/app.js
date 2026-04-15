@@ -68,6 +68,93 @@ function $(id) {
   return document.getElementById(id);
 }
 
+function setInputValue(id, value) {
+  const el = $(id);
+  if (!el) return;
+  el.value = value ?? "";
+}
+
+function setChecked(id, checked) {
+  const el = $(id);
+  if (!el) return;
+  el.checked = !!checked;
+}
+
+function inputTrim(id) {
+  const el = $(id);
+  if (!el) return "";
+  return String(el.value || "").trim();
+}
+
+function inputRaw(id) {
+  const el = $(id);
+  if (!el) return "";
+  return String(el.value || "");
+}
+
+function openPrintableHtml(html) {
+  const w = window.open("", "_blank");
+  if (w) {
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    return;
+  }
+  printHtmlInHiddenIframe(html);
+}
+
+function printHtmlInHiddenIframe(html) {
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("title", "הדפסה");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  iframe.style.opacity = "0";
+  iframe.style.pointerEvents = "none";
+  document.body.appendChild(iframe);
+  const doc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (!doc) {
+    iframe.remove();
+    alert("לא ניתן להכין תצוגת הדפסה. נסה שוב או השתמש בדפדפן אחר.");
+    return;
+  }
+  doc.open();
+  doc.write(html);
+  doc.close();
+  const cleanup = () => {
+    try {
+      iframe.remove();
+    } catch {
+      /* ignore */
+    }
+  };
+  const runPrint = () => {
+    try {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    } catch {
+      /* ignore */
+    }
+    setTimeout(cleanup, 500);
+  };
+  if (iframe.contentDocument?.readyState === "complete") setTimeout(runPrint, 50);
+  else iframe.onload = () => setTimeout(runPrint, 50);
+}
+
+function triggerFileDownload(url) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.rel = "noopener";
+  a.target = "_blank";
+  a.download = "";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
 function escapeHtml(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
@@ -134,16 +221,20 @@ async function readImageFile(file) {
 }
 
 function setSection(section) {
-  ["home", "about", "contact", "portal"].forEach((s) =>
-    $(`section-${s}`).classList.toggle("hidden", s !== section)
-  );
+  ["home", "about", "contact", "portal"].forEach((s) => {
+    const el = $(`section-${s}`);
+    if (el) el.classList.toggle("hidden", s !== section);
+  });
 }
 
 function setupDrawer() {
   const drawer = $("drawer");
+  const openBtn = $("drawerOpen");
+  const closeBtn = $("drawerClose");
+  if (!drawer || !openBtn || !closeBtn) return;
   const closeDrawer = () => drawer.classList.add("hidden");
-  $("drawerOpen").onclick = () => drawer.classList.remove("hidden");
-  $("drawerClose").onclick = closeDrawer;
+  openBtn.onclick = () => drawer.classList.remove("hidden");
+  closeBtn.onclick = closeDrawer;
   drawer.addEventListener("click", (ev) => {
     if (ev.target === drawer) closeDrawer();
   });
@@ -156,7 +247,9 @@ function setupDrawer() {
       closeDrawer();
     };
   });
-  document.querySelector("[data-go-portal]").onclick = () => setSection("portal");
+  document.querySelectorAll("[data-go-portal]").forEach((btn) => {
+    btn.onclick = () => setSection("portal");
+  });
 }
 
 function setupHomeShowcase() {
@@ -250,6 +343,7 @@ function applyAccessPrefs(prefs) {
 function setupAccessibilityToolbar() {
   const toggle = $("accessToggle");
   const panel = $("accessPanel");
+  if (!toggle || !panel) return;
   const prefs = readAccessPrefs();
   applyAccessPrefs(prefs);
 
@@ -288,9 +382,12 @@ function setWizardStepByIndex(index) {
   document.querySelectorAll(".portal-panel").forEach((panel) => {
     panel.classList.toggle("hidden", panel.id !== `portal-${name}`);
   });
-  $("wizardStepLabel").textContent = `שלב ${wizardIndex + 1} מתוך ${WIZARD_STEPS.length}`;
-  $("wizardPrevBtn").disabled = wizardIndex === 0;
-  $("wizardNextBtn").textContent = wizardIndex === WIZARD_STEPS.length - 1 ? "סיום" : "הבא";
+  const stepLabel = $("wizardStepLabel");
+  if (stepLabel) stepLabel.textContent = `שלב ${wizardIndex + 1} מתוך ${WIZARD_STEPS.length}`;
+  const prev = $("wizardPrevBtn");
+  if (prev) prev.disabled = wizardIndex === 0;
+  const next = $("wizardNextBtn");
+  if (next) next.textContent = wizardIndex === WIZARD_STEPS.length - 1 ? "סיום" : "הבא";
 }
 
 function setupPortalWizard() {
@@ -300,27 +397,34 @@ function setupPortalWizard() {
       if (target >= 0) setWizardStepByIndex(target);
     };
   });
-  $("wizardPrevBtn").onclick = () => setWizardStepByIndex(wizardIndex - 1);
-  $("wizardNextBtn").onclick = () => setWizardStepByIndex(wizardIndex + 1);
+  const prev = $("wizardPrevBtn");
+  const next = $("wizardNextBtn");
+  if (prev) prev.onclick = () => setWizardStepByIndex(wizardIndex - 1);
+  if (next) next.onclick = () => setWizardStepByIndex(wizardIndex + 1);
   setWizardStepByIndex(0);
 }
 
 function ensurePortalOpen() {
-  $("portalGate").classList.add("hidden");
-  $("portalArea").classList.remove("hidden");
+  const gate = $("portalGate");
+  const area = $("portalArea");
+  if (gate) gate.classList.add("hidden");
+  if (area) area.classList.remove("hidden");
   isPortalOpen = true;
 }
 
 function logoutPortal() {
   isPortalOpen = false;
-  $("portalGate").classList.remove("hidden");
-  $("portalArea").classList.add("hidden");
-  $("accessCodeInput").value = "";
+  const gate = $("portalGate");
+  const area = $("portalArea");
+  if (gate) gate.classList.remove("hidden");
+  if (area) area.classList.add("hidden");
+  setInputValue("accessCodeInput", "");
 }
 
 function setupPortalAuth() {
-  $("accessLoginBtn").onclick = () => {
-    const userCode = $("accessCodeInput").value.trim();
+  const tryLogin = () => {
+    const input = $("accessCodeInput");
+    const userCode = (input?.value || "").trim();
     const expected = String(settings.accessCode || "1234").trim();
     if (!expected || userCode === expected) {
       showMsg("accessMsg", "כניסה בוצעה בהצלחה.", true);
@@ -330,11 +434,25 @@ function setupPortalAuth() {
       showMsg("accessMsg", "קוד שגוי.", false);
     }
   };
-  $("logoutBtn").onclick = logoutPortal;
+
+  const form = $("portalLoginForm");
+  if (form) {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      tryLogin();
+    });
+  }
+
+  const loginBtn = $("accessLoginBtn");
+  if (loginBtn) loginBtn.onclick = tryLogin;
+
+  const logoutBtn = $("logoutBtn");
+  if (logoutBtn) logoutBtn.onclick = logoutPortal;
 }
 
 function renderThumbGrid(containerId, list, onDelete) {
   const box = $(containerId);
+  if (!box) return;
   box.innerHTML = "";
   list.forEach((p, i) => {
     const d = document.createElement("div");
@@ -353,7 +471,9 @@ function renderProjectPhotos() {
 }
 
 function bindProjectForm() {
-  $("projectPhotosInput").addEventListener("change", async (e) => {
+  const photosInput = $("projectPhotosInput");
+  if (!photosInput) return;
+  photosInput.addEventListener("change", async (e) => {
     for (const f of Array.from(e.target.files || [])) {
       if (!f.type.startsWith("image/")) continue;
       projectPhotos.push({ name: f.name, data: await readImageFile(f) });
@@ -362,36 +482,38 @@ function bindProjectForm() {
     renderProjectPhotos();
   });
 
-  $("newProjectBtn").onclick = () => fillProjectForm(null);
-  $("saveProjectBtn").onclick = saveProject;
+  const newBtn = $("newProjectBtn");
+  const saveBtn = $("saveProjectBtn");
+  if (newBtn) newBtn.onclick = () => fillProjectForm(null);
+  if (saveBtn) saveBtn.onclick = saveProject;
 }
 
 function fillProjectForm(project) {
-  $("projectId").value = project ? String(project.id) : "";
-  $("projectTitle").value = project?.title || "";
-  $("projectClient").value = project?.clientName || "";
-  $("projectAddress").value = project?.address || "";
-  $("projectStatus").value = project?.status || "planned";
-  $("projectStarted").value = project?.startedOn || "";
-  $("projectCompleted").value = project?.completedOn || "";
-  $("projectDescription").value = project?.description || "";
+  setInputValue("projectId", project ? String(project.id) : "");
+  setInputValue("projectTitle", project?.title || "");
+  setInputValue("projectClient", project?.clientName || "");
+  setInputValue("projectAddress", project?.address || "");
+  setInputValue("projectStatus", project?.status || "planned");
+  setInputValue("projectStarted", project?.startedOn || "");
+  setInputValue("projectCompleted", project?.completedOn || "");
+  setInputValue("projectDescription", project?.description || "");
   projectPhotos = project?.photos ? project.photos.slice() : [];
   renderProjectPhotos();
 }
 
 async function saveProject() {
   const payload = {
-    title: $("projectTitle").value.trim(),
-    clientName: $("projectClient").value.trim(),
-    address: $("projectAddress").value.trim(),
-    status: $("projectStatus").value,
-    startedOn: $("projectStarted").value,
-    completedOn: $("projectCompleted").value,
-    description: $("projectDescription").value.trim(),
+    title: inputTrim("projectTitle"),
+    clientName: inputTrim("projectClient"),
+    address: inputTrim("projectAddress"),
+    status: inputRaw("projectStatus"),
+    startedOn: inputRaw("projectStarted"),
+    completedOn: inputRaw("projectCompleted"),
+    description: inputTrim("projectDescription"),
     photos: projectPhotos,
   };
   if (!payload.title) return alert("יש להזין שם פרויקט.");
-  const id = $("projectId").value.trim();
+  const id = inputTrim("projectId");
   if (id) await api(`/api/projects/${id}`, { method: "PUT", body: payload });
   else await api("/api/projects", { method: "POST", body: payload });
   fillProjectForm(null);
@@ -401,6 +523,7 @@ async function saveProject() {
 async function loadProjects() {
   projectCache = await api("/api/projects");
   const tbody = $("projectsTable");
+  if (!tbody) return;
   tbody.innerHTML = "";
   projectCache.forEach((row) => {
     const tr = document.createElement("tr");
@@ -425,10 +548,14 @@ async function loadProjects() {
 
 function initDocSignature() {
   const canvas = $("docSignaturePad");
+  if (!canvas || typeof SignaturePad === "undefined") {
+    docSignaturePad = null;
+    return;
+  }
   docSignaturePad = new SignaturePad(canvas, { minWidth: 0.6, maxWidth: 2.2, penColor: "#0f172a" });
   const resize = () => {
     const ratio = Math.max(window.devicePixelRatio || 1, 1);
-    const w = canvas.parentElement.clientWidth;
+    const w = canvas.parentElement?.clientWidth || canvas.clientWidth || 300;
     canvas.width = w * ratio;
     canvas.height = 160 * ratio;
     canvas.getContext("2d").scale(ratio, ratio);
@@ -436,21 +563,28 @@ function initDocSignature() {
   };
   resize();
   window.addEventListener("resize", resize);
-  $("docClearSig").onclick = () => docSignaturePad.clear();
+  const clearBtn = $("docClearSig");
+  if (clearBtn) clearBtn.onclick = () => docSignaturePad?.clear();
 }
 
 async function bindDocForm() {
-  $("docPhotosInput").addEventListener("change", async (e) => {
-    for (const f of Array.from(e.target.files || [])) {
-      if (!f.type.startsWith("image/")) continue;
-      docPhotos.push({ name: f.name, data: await readImageFile(f) });
-    }
-    e.target.value = "";
-    renderDocPhotos();
-  });
-  $("newDocBtn").onclick = () => fillDocForm(null);
-  $("saveDocBtn").onclick = saveDoc;
-  $("printDocBtn").onclick = printCurrentDoc;
+  const photosInput = $("docPhotosInput");
+  if (photosInput) {
+    photosInput.addEventListener("change", async (e) => {
+      for (const f of Array.from(e.target.files || [])) {
+        if (!f.type.startsWith("image/")) continue;
+        docPhotos.push({ name: f.name, data: await readImageFile(f) });
+      }
+      e.target.value = "";
+      renderDocPhotos();
+    });
+  }
+  const newBtn = $("newDocBtn");
+  const saveBtn = $("saveDocBtn");
+  const printBtn = $("printDocBtn");
+  if (newBtn) newBtn.onclick = () => fillDocForm(null);
+  if (saveBtn) saveBtn.onclick = saveDoc;
+  if (printBtn) printBtn.onclick = printCurrentDoc;
 }
 
 function renderDocPhotos() {
@@ -461,43 +595,46 @@ function renderDocPhotos() {
 }
 
 function fillDocForm(doc) {
-  $("docId").value = doc ? String(doc.id) : "";
-  $("docType").value = doc?.docType || "installation";
-  $("docFacilityName").value = doc?.facilityName || "";
-  $("docAddress").value = doc?.address || "";
-  $("docConnection").value = doc?.connectionSize || "";
-  $("docGrounding").value = doc?.groundingValue || "";
-  $("docInsulation").value = doc?.insulation || "";
-  $("docNotes").value = doc?.notes || "";
+  setInputValue("docId", doc ? String(doc.id) : "");
+  setInputValue("docType", doc?.docType || "installation");
+  setInputValue("docFacilityName", doc?.facilityName || "");
+  setInputValue("docAddress", doc?.address || "");
+  setInputValue("docConnection", doc?.connectionSize || "");
+  setInputValue("docGrounding", doc?.groundingValue || "");
+  setInputValue("docInsulation", doc?.insulation || "");
+  setInputValue("docNotes", doc?.notes || "");
   docPhotos = doc?.photos ? doc.photos.slice() : [];
   renderDocPhotos();
-  docSignaturePad.clear();
-  if (doc?.signatureData) docSignaturePad.fromDataURL(doc.signatureData);
+  if (docSignaturePad) {
+    docSignaturePad.clear();
+    if (doc?.signatureData) docSignaturePad.fromDataURL(doc.signatureData);
+  }
 }
 
 function buildDocPayload() {
   return {
-    docType: $("docType").value,
-    facilityName: $("docFacilityName").value.trim(),
-    address: $("docAddress").value.trim(),
-    connectionSize: $("docConnection").value.trim(),
-    groundingValue: $("docGrounding").value.trim(),
-    insulation: $("docInsulation").value.trim(),
-    notes: $("docNotes").value.trim(),
+    docType: inputRaw("docType"),
+    facilityName: inputTrim("docFacilityName"),
+    address: inputTrim("docAddress"),
+    connectionSize: inputTrim("docConnection"),
+    groundingValue: inputTrim("docGrounding"),
+    insulation: inputTrim("docInsulation"),
+    notes: inputTrim("docNotes"),
     photos: docPhotos,
     extra: {},
-    signatureData: docSignaturePad.isEmpty() ? null : docSignaturePad.toDataURL("image/png"),
+    signatureData:
+      docSignaturePad && !docSignaturePad.isEmpty() ? docSignaturePad.toDataURL("image/png") : null,
   };
 }
 
 async function saveDoc() {
   const payload = buildDocPayload();
   if (!payload.facilityName) return alert("שם מתקן הוא שדה חובה.");
-  const id = $("docId").value.trim();
+  const id = inputTrim("docId");
   if (id) await api(`/api/certificates/${id}`, { method: "PUT", body: payload });
   else {
     const created = await api("/api/certificates", { method: "POST", body: payload });
-    $("docId").value = String(created.id);
+    setInputValue("docId", String(created.id));
   }
   await loadDocs();
   refreshDashboardStats();
@@ -571,13 +708,11 @@ function printDoc(doc) {
   </head><body>
   ${settings.useBlankTemplate ? blankLayout : standardLayout}
   <script>window.onload=()=>{window.print()};<\/script></body></html>`;
-  const w = window.open("", "_blank");
-  w.document.write(html);
-  w.document.close();
+  openPrintableHtml(html);
 }
 
 async function printCurrentDoc() {
-  const id = $("docId").value.trim();
+  const id = inputTrim("docId");
   if (id) {
     const doc = await api(`/api/certificates/${id}`);
     printDoc(doc);
@@ -589,6 +724,7 @@ async function printCurrentDoc() {
 async function loadDocs() {
   docsCache = await api("/api/certificates");
   const tbody = $("docsTable");
+  if (!tbody) return;
   tbody.innerHTML = "";
   docsCache.forEach((row) => {
     const tr = document.createElement("tr");
@@ -616,6 +752,7 @@ async function loadDocs() {
 
 function renderFinancialForm(type) {
   const wrap = type === "invoice" ? $("invoiceFormWrap") : $("quoteFormWrap");
+  if (!wrap) return;
   const prefix = type === "invoice" ? "inv" : "quo";
   const allocationField = type === "invoice" ? `<div><label class="lbl">מספר הקצאה (רשות המיסים)</label><input id="${prefix}Allocation" class="inp"></div>` : "";
   wrap.innerHTML = `
@@ -638,46 +775,48 @@ function renderFinancialForm(type) {
       </div>
     </form>`;
 
-  $(`${prefix}SaveBtn`).onclick = () => saveFinancialDoc(type);
-  $(`${prefix}NewBtn`).onclick = () => fillFinancialForm(type, null);
+  const saveBtn = $(`${prefix}SaveBtn`);
+  const newBtn = $(`${prefix}NewBtn`);
+  if (saveBtn) saveBtn.onclick = () => saveFinancialDoc(type);
+  if (newBtn) newBtn.onclick = () => fillFinancialForm(type, null);
 }
 
 function fillFinancialForm(type, doc) {
   const p = type === "invoice" ? "inv" : "quo";
-  $(`${p}Id`).value = doc ? String(doc.id) : "";
-  $(`${p}No`).value = doc?.docNo || "";
-  if (type === "invoice") $(`${p}Allocation`).value = doc?.allocationNo || "";
-  $(`${p}IssueDate`).value = doc?.issueDate || "";
-  $(`${p}DueDate`).value = doc?.dueDate || "";
-  $(`${p}CustomerName`).value = doc?.customerName || "";
-  $(`${p}CustomerId`).value = doc?.customerId || "";
-  $(`${p}CustomerAddress`).value = doc?.customerAddress || "";
-  $(`${p}Subtotal`).value = doc?.subtotal ?? "";
-  $(`${p}TaxRate`).value = doc?.taxRate ?? 18;
-  $(`${p}Status`).value = doc?.status || "";
-  $(`${p}Notes`).value = doc?.notes || "";
+  setInputValue(`${p}Id`, doc ? String(doc.id) : "");
+  setInputValue(`${p}No`, doc?.docNo || "");
+  if (type === "invoice") setInputValue(`${p}Allocation`, doc?.allocationNo || "");
+  setInputValue(`${p}IssueDate`, doc?.issueDate || "");
+  setInputValue(`${p}DueDate`, doc?.dueDate || "");
+  setInputValue(`${p}CustomerName`, doc?.customerName || "");
+  setInputValue(`${p}CustomerId`, doc?.customerId || "");
+  setInputValue(`${p}CustomerAddress`, doc?.customerAddress || "");
+  setInputValue(`${p}Subtotal`, doc?.subtotal ?? "");
+  setInputValue(`${p}TaxRate`, doc?.taxRate ?? 18);
+  setInputValue(`${p}Status`, doc?.status || "");
+  setInputValue(`${p}Notes`, doc?.notes || "");
 }
 
 function collectFinancialPayload(type) {
   const p = type === "invoice" ? "inv" : "quo";
-  const subtotal = Number($(`${p}Subtotal`).value || 0);
-  const taxRate = Number($(`${p}TaxRate`).value || 0);
+  const subtotal = Number(inputRaw(`${p}Subtotal`) || 0);
+  const taxRate = Number(inputRaw(`${p}TaxRate`) || 0);
   const taxAmount = subtotal * taxRate / 100;
   return {
     type,
-    docNo: $(`${p}No`).value.trim(),
-    allocationNo: type === "invoice" ? $(`${p}Allocation`).value.trim() : "",
-    issueDate: $(`${p}IssueDate`).value,
-    dueDate: $(`${p}DueDate`).value,
-    customerName: $(`${p}CustomerName`).value.trim(),
-    customerId: $(`${p}CustomerId`).value.trim(),
-    customerAddress: $(`${p}CustomerAddress`).value.trim(),
+    docNo: inputTrim(`${p}No`),
+    allocationNo: type === "invoice" ? inputTrim(`${p}Allocation`) : "",
+    issueDate: inputRaw(`${p}IssueDate`),
+    dueDate: inputRaw(`${p}DueDate`),
+    customerName: inputTrim(`${p}CustomerName`),
+    customerId: inputTrim(`${p}CustomerId`),
+    customerAddress: inputTrim(`${p}CustomerAddress`),
     subtotal,
     taxRate,
     taxAmount,
     totalAmount: subtotal + taxAmount,
-    status: $(`${p}Status`).value.trim(),
-    notes: $(`${p}Notes`).value.trim(),
+    status: inputTrim(`${p}Status`),
+    notes: inputTrim(`${p}Notes`),
     items: [],
   };
 }
@@ -686,7 +825,7 @@ async function saveFinancialDoc(type) {
   const payload = collectFinancialPayload(type);
   if (!payload.customerName) return alert("שם לקוח הוא שדה חובה.");
   const p = type === "invoice" ? "inv" : "quo";
-  const id = $(`${p}Id`).value.trim();
+  const id = inputTrim(`${p}Id`);
   if (id) await api(`/api/financial-docs/${id}`, { method: "PUT", body: payload });
   else await api("/api/financial-docs", { method: "POST", body: payload });
   fillFinancialForm(type, null);
@@ -700,6 +839,7 @@ async function loadFinancial(type) {
   if (type === "invoice") invoicesCache = rows;
   else quotesCache = rows;
   const tbody = $(tableId);
+  if (!tbody) return;
   tbody.innerHTML = "";
   rows.forEach((row) => {
     const tr = document.createElement("tr");
@@ -730,116 +870,132 @@ async function refreshPortalData() {
 }
 
 function refreshDashboardStats() {
-  $("statProjects").textContent = String(projectCache.length);
-  $("statDocs").textContent = String(docsCache.length);
-  $("statInvoices").textContent = String(invoicesCache.length);
-  $("statQuotes").textContent = String(quotesCache.length);
+  const sp = $("statProjects");
+  const sd = $("statDocs");
+  const si = $("statInvoices");
+  const sq = $("statQuotes");
+  if (sp) sp.textContent = String(projectCache.length);
+  if (sd) sd.textContent = String(docsCache.length);
+  if (si) si.textContent = String(invoicesCache.length);
+  if (sq) sq.textContent = String(quotesCache.length);
 }
 
 async function loadSettings() {
   settings = await api("/api/settings");
   renderHomeFromSettings();
-  $("setName").value = settings.name || "";
-  $("setLicense").value = settings.licenseNo || "";
-  $("setPhone").value = settings.phone || "";
-  $("setEmail").value = settings.email || "";
-  $("setWhatsapp").value = settings.whatsapp || "";
-  $("setAccessCode").value = settings.accessCode || "";
-  $("setAboutText").value = settings.aboutText || "";
+  setInputValue("setName", settings.name || "");
+  setInputValue("setLicense", settings.licenseNo || "");
+  setInputValue("setPhone", settings.phone || "");
+  setInputValue("setEmail", settings.email || "");
+  setInputValue("setWhatsapp", settings.whatsapp || "");
+  setInputValue("setAccessCode", settings.accessCode || "");
+  setInputValue("setAboutText", settings.aboutText || "");
   const hc = { ...DEFAULT_HOME_CONTENT, ...(settings.homeContent || {}) };
-  $("setHomeKicker").value = hc.kicker;
-  $("setHomeTitle").value = hc.title;
-  $("setHomeSubtitle").value = hc.subtitle;
-  $("setHomePrimaryCta").value = hc.primaryCta;
-  $("setHomeWhatsappCta").value = hc.whatsappCta;
-  $("setHomeChip1").value = hc.chip1;
-  $("setHomeChip2").value = hc.chip2;
-  $("setHomeChip3").value = hc.chip3;
-  $("setHomeTrustTitle1").value = hc.trustTitle1;
-  $("setHomeTrustText1").value = hc.trustText1;
-  $("setHomeTrustTitle2").value = hc.trustTitle2;
-  $("setHomeTrustText2").value = hc.trustText2;
-  $("setHomeTrustTitle3").value = hc.trustTitle3;
-  $("setHomeTrustText3").value = hc.trustText3;
-  $("setHomeFeatureTitle1").value = hc.featureTitle1;
-  $("setHomeFeatureText1").value = hc.featureText1;
-  $("setHomeFeatureTitle2").value = hc.featureTitle2;
-  $("setHomeFeatureText2").value = hc.featureText2;
-  $("setHomeFeatureTitle3").value = hc.featureTitle3;
-  $("setHomeFeatureText3").value = hc.featureText3;
-  $("setHomeProcessTitle").value = hc.processTitle;
-  $("setHomeStep1").value = hc.step1;
-  $("setHomeStep2").value = hc.step2;
-  $("setHomeStep3").value = hc.step3;
-  $("setHomeStep4").value = hc.step4;
-  $("setHomeGalleryLabel1").value = hc.galleryLabel1;
-  $("setHomeGalleryLabel2").value = hc.galleryLabel2;
-  $("setHomeGalleryLabel3").value = hc.galleryLabel3;
-  $("setUseBlankTemplate").checked = !!settings.useBlankTemplate;
-  $("setBlankOffsetX").value = String(Number(settings.blankOffsetXmm || 0));
-  $("setBlankOffsetY").value = String(Number(settings.blankOffsetYmm || 0));
-  $("setBlankScale").value = String(Number(settings.blankScale || 1));
+  setInputValue("setHomeKicker", hc.kicker);
+  setInputValue("setHomeTitle", hc.title);
+  setInputValue("setHomeSubtitle", hc.subtitle);
+  setInputValue("setHomePrimaryCta", hc.primaryCta);
+  setInputValue("setHomeWhatsappCta", hc.whatsappCta);
+  setInputValue("setHomeChip1", hc.chip1);
+  setInputValue("setHomeChip2", hc.chip2);
+  setInputValue("setHomeChip3", hc.chip3);
+  setInputValue("setHomeTrustTitle1", hc.trustTitle1);
+  setInputValue("setHomeTrustText1", hc.trustText1);
+  setInputValue("setHomeTrustTitle2", hc.trustTitle2);
+  setInputValue("setHomeTrustText2", hc.trustText2);
+  setInputValue("setHomeTrustTitle3", hc.trustTitle3);
+  setInputValue("setHomeTrustText3", hc.trustText3);
+  setInputValue("setHomeFeatureTitle1", hc.featureTitle1);
+  setInputValue("setHomeFeatureText1", hc.featureText1);
+  setInputValue("setHomeFeatureTitle2", hc.featureTitle2);
+  setInputValue("setHomeFeatureText2", hc.featureText2);
+  setInputValue("setHomeFeatureTitle3", hc.featureTitle3);
+  setInputValue("setHomeFeatureText3", hc.featureText3);
+  setInputValue("setHomeProcessTitle", hc.processTitle);
+  setInputValue("setHomeStep1", hc.step1);
+  setInputValue("setHomeStep2", hc.step2);
+  setInputValue("setHomeStep3", hc.step3);
+  setInputValue("setHomeStep4", hc.step4);
+  setInputValue("setHomeGalleryLabel1", hc.galleryLabel1);
+  setInputValue("setHomeGalleryLabel2", hc.galleryLabel2);
+  setInputValue("setHomeGalleryLabel3", hc.galleryLabel3);
+  setChecked("setUseBlankTemplate", !!settings.useBlankTemplate);
+  setInputValue("setBlankOffsetX", String(Number(settings.blankOffsetXmm || 0)));
+  setInputValue("setBlankOffsetY", String(Number(settings.blankOffsetYmm || 0)));
+  setInputValue("setBlankScale", String(Number(settings.blankScale || 1)));
 }
 
 async function bindSettingsForm() {
-  $("setLogoInput").addEventListener("change", async (e) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    settings.logoData = await readImageFile(f);
-  });
-  $("setStampInput").addEventListener("change", async (e) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    settings.stampData = await readImageFile(f);
-  });
-  $("setBlankTemplateInput").addEventListener("change", async (e) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    settings.blankTemplateData = await readImageFile(f);
-  });
-  $("saveSettingsBtn").onclick = async () => {
+  const logoIn = $("setLogoInput");
+  if (logoIn) {
+    logoIn.addEventListener("change", async (e) => {
+      const f = e.target.files?.[0];
+      if (!f) return;
+      settings.logoData = await readImageFile(f);
+    });
+  }
+  const stampIn = $("setStampInput");
+  if (stampIn) {
+    stampIn.addEventListener("change", async (e) => {
+      const f = e.target.files?.[0];
+      if (!f) return;
+      settings.stampData = await readImageFile(f);
+    });
+  }
+  const blankIn = $("setBlankTemplateInput");
+  if (blankIn) {
+    blankIn.addEventListener("change", async (e) => {
+      const f = e.target.files?.[0];
+      if (!f) return;
+      settings.blankTemplateData = await readImageFile(f);
+    });
+  }
+  const saveBtn = $("saveSettingsBtn");
+  if (!saveBtn) return;
+  saveBtn.onclick = async () => {
     try {
-      settings.name = $("setName").value.trim();
-      settings.licenseNo = $("setLicense").value.trim();
-      settings.phone = $("setPhone").value.trim();
-      settings.email = $("setEmail").value.trim();
-      settings.whatsapp = $("setWhatsapp").value.trim();
-      settings.accessCode = $("setAccessCode").value.trim();
-      settings.aboutText = $("setAboutText").value.trim();
+      settings.name = inputTrim("setName");
+      settings.licenseNo = inputTrim("setLicense");
+      settings.phone = inputTrim("setPhone");
+      settings.email = inputTrim("setEmail");
+      settings.whatsapp = inputTrim("setWhatsapp");
+      settings.accessCode = inputTrim("setAccessCode");
+      settings.aboutText = inputTrim("setAboutText");
       settings.homeContent = {
-        kicker: $("setHomeKicker").value.trim(),
-        title: $("setHomeTitle").value.trim(),
-        subtitle: $("setHomeSubtitle").value.trim(),
-        primaryCta: $("setHomePrimaryCta").value.trim(),
-        whatsappCta: $("setHomeWhatsappCta").value.trim(),
-        chip1: $("setHomeChip1").value.trim(),
-        chip2: $("setHomeChip2").value.trim(),
-        chip3: $("setHomeChip3").value.trim(),
-        trustTitle1: $("setHomeTrustTitle1").value.trim(),
-        trustText1: $("setHomeTrustText1").value.trim(),
-        trustTitle2: $("setHomeTrustTitle2").value.trim(),
-        trustText2: $("setHomeTrustText2").value.trim(),
-        trustTitle3: $("setHomeTrustTitle3").value.trim(),
-        trustText3: $("setHomeTrustText3").value.trim(),
-        featureTitle1: $("setHomeFeatureTitle1").value.trim(),
-        featureText1: $("setHomeFeatureText1").value.trim(),
-        featureTitle2: $("setHomeFeatureTitle2").value.trim(),
-        featureText2: $("setHomeFeatureText2").value.trim(),
-        featureTitle3: $("setHomeFeatureTitle3").value.trim(),
-        featureText3: $("setHomeFeatureText3").value.trim(),
-        processTitle: $("setHomeProcessTitle").value.trim(),
-        step1: $("setHomeStep1").value.trim(),
-        step2: $("setHomeStep2").value.trim(),
-        step3: $("setHomeStep3").value.trim(),
-        step4: $("setHomeStep4").value.trim(),
-        galleryLabel1: $("setHomeGalleryLabel1").value.trim(),
-        galleryLabel2: $("setHomeGalleryLabel2").value.trim(),
-        galleryLabel3: $("setHomeGalleryLabel3").value.trim(),
+        kicker: inputTrim("setHomeKicker"),
+        title: inputTrim("setHomeTitle"),
+        subtitle: inputTrim("setHomeSubtitle"),
+        primaryCta: inputTrim("setHomePrimaryCta"),
+        whatsappCta: inputTrim("setHomeWhatsappCta"),
+        chip1: inputTrim("setHomeChip1"),
+        chip2: inputTrim("setHomeChip2"),
+        chip3: inputTrim("setHomeChip3"),
+        trustTitle1: inputTrim("setHomeTrustTitle1"),
+        trustText1: inputTrim("setHomeTrustText1"),
+        trustTitle2: inputTrim("setHomeTrustTitle2"),
+        trustText2: inputTrim("setHomeTrustText2"),
+        trustTitle3: inputTrim("setHomeTrustTitle3"),
+        trustText3: inputTrim("setHomeTrustText3"),
+        featureTitle1: inputTrim("setHomeFeatureTitle1"),
+        featureText1: inputTrim("setHomeFeatureText1"),
+        featureTitle2: inputTrim("setHomeFeatureTitle2"),
+        featureText2: inputTrim("setHomeFeatureText2"),
+        featureTitle3: inputTrim("setHomeFeatureTitle3"),
+        featureText3: inputTrim("setHomeFeatureText3"),
+        processTitle: inputTrim("setHomeProcessTitle"),
+        step1: inputTrim("setHomeStep1"),
+        step2: inputTrim("setHomeStep2"),
+        step3: inputTrim("setHomeStep3"),
+        step4: inputTrim("setHomeStep4"),
+        galleryLabel1: inputTrim("setHomeGalleryLabel1"),
+        galleryLabel2: inputTrim("setHomeGalleryLabel2"),
+        galleryLabel3: inputTrim("setHomeGalleryLabel3"),
       };
-      settings.useBlankTemplate = $("setUseBlankTemplate").checked;
-      settings.blankOffsetXmm = Number($("setBlankOffsetX").value || 0);
-      settings.blankOffsetYmm = Number($("setBlankOffsetY").value || 0);
-      settings.blankScale = Number($("setBlankScale").value || 1);
+      const blankTpl = $("setUseBlankTemplate");
+      settings.useBlankTemplate = !!blankTpl?.checked;
+      settings.blankOffsetXmm = Number(inputRaw("setBlankOffsetX") || 0);
+      settings.blankOffsetYmm = Number(inputRaw("setBlankOffsetY") || 0);
+      settings.blankScale = Number(inputRaw("setBlankScale") || 1);
       settings = await api("/api/settings", { method: "PUT", body: settings });
       renderHomeFromSettings();
       showMsg("settingsMsg", "הגדרות נשמרו בהצלחה", true);
@@ -850,13 +1006,16 @@ async function bindSettingsForm() {
 }
 
 function setupExport() {
-  $("exportAccountantBtn").onclick = () => {
-    window.open("/api/exports/accountant.csv", "_blank");
+  const btn = $("exportAccountantBtn");
+  if (!btn) return;
+  btn.onclick = () => {
+    triggerFileDownload("/api/exports/accountant.csv");
   };
 }
 
 function setupPwaInstall() {
   const installBtn = $("pwaInstallBtn");
+  if (!installBtn) return;
   const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
   if (isStandalone) installBtn.classList.add("hidden");
 
