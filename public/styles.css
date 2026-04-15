@@ -157,18 +157,31 @@ body select:focus-visible {
   grid-template-columns: 1fr 0.9fr;
 }
 
-.simple-gallery {
-  grid-template-columns: 1fr;
+/* גלריית הבית — שלוש תמונות, רספונסיבית (3 / 2 / 1 עמודות) */
+.home-hero-gallery {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
 }
 
-.simple-gallery .gallery-card {
-  cursor: default;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+.home-hero-gallery .gallery-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
 }
 
-.simple-gallery .gallery-card:hover {
-  transform: none;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+.home-hero-gallery .gallery-card img {
+  flex: 1;
+  min-height: 140px;
+  height: clamp(140px, 22vw, 200px);
+  object-fit: cover;
+}
+
+button.gallery-card {
+  font: inherit;
+  color: inherit;
+  text-align: right;
+  width: 100%;
+  padding: 0;
 }
 
 .hero-kicker {
@@ -743,6 +756,13 @@ body.grayscale {
   .hero-gallery {
     grid-template-columns: 1fr 1fr;
   }
+  .home-hero-gallery .gallery-card:nth-child(3) {
+    grid-column: 1 / -1;
+    max-width: 100%;
+  }
+  .home-hero-gallery .gallery-card img {
+    height: clamp(150px, 38vw, 220px);
+  }
   .gallery-card.large {
     grid-column: span 2;
     grid-row: span 1;
@@ -780,6 +800,12 @@ body.grayscale {
   }
   .site-header .text-left p {
     display: none;
+  }
+  .hero-gallery.home-hero-gallery {
+    grid-template-columns: 1fr;
+  }
+  .home-hero-gallery .gallery-card:nth-child(3) {
+    grid-column: auto;
   }
 }
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = "ecs-pwa-v3";
+const CACHE_NAME = "ecs-pwa-v4";
 const CORE_ASSETS = [
   "/",
   "/app.html",
