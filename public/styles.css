@@ -512,6 +512,25 @@ body select:focus-visible {
   padding: 0.75rem;
 }
 
+.advanced-home-content summary {
+  cursor: pointer;
+  font-weight: 800;
+  color: #1e3a8a;
+  list-style: none;
+}
+
+.advanced-home-content summary::-webkit-details-marker {
+  display: none;
+}
+
+.advanced-home-content summary::before {
+  content: "▸ ";
+}
+
+.advanced-home-content[open] summary::before {
+  content: "▾ ";
+}
+
 .stat {
   border: 1px solid #dbeafe;
   background: #eff6ff;

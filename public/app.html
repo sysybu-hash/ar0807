@@ -254,8 +254,9 @@
             <div><label class="lbl">קוד כניסה עובד</label><input id="setWorkerAccessCode" class="inp" /></div>
             <div class="md:col-span-2"><label class="lbl">אודות</label><textarea id="setAboutText" class="inp" rows="4"></textarea></div>
             <div class="md:col-span-2 wizard-config-block">
-              <h4 class="font-bold text-blue-900 mb-2">תוכן דף הבית (ניתן לעריכה מלאה)</h4>
-              <div class="grid md:grid-cols-2 gap-3">
+              <details class="advanced-home-content">
+                <summary>תוכן דף הבית (מתקדם - אופציונלי)</summary>
+                <div class="grid md:grid-cols-2 gap-3 mt-3">
                 <div><label class="lbl">כותרת משנה עליונה</label><input id="setHomeKicker" class="inp" /></div>
                 <div><label class="lbl">כותרת ראשית</label><input id="setHomeTitle" class="inp" /></div>
                 <div class="md:col-span-2"><label class="lbl">תיאור ראשי</label><textarea id="setHomeSubtitle" class="inp" rows="3"></textarea></div>
@@ -284,6 +285,8 @@
                 <div><label class="lbl">כיתוב גלריה 1</label><input id="setHomeGalleryLabel1" class="inp" /></div>
                 <div><label class="lbl">כיתוב גלריה 2</label><input id="setHomeGalleryLabel2" class="inp" /></div>
                 <div><label class="lbl">כיתוב גלריה 3</label><input id="setHomeGalleryLabel3" class="inp" /></div>
+                </div>
+              </details>
               </div>
             </div>
             <div><label class="lbl">לוגו</label><input id="setLogoInput" type="file" accept="image/*" class="inp" /></div>
