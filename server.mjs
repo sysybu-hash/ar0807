@@ -40,105 +40,105 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/api/settings", (_req, res) => {
-  res.json(getSettings());
+app.get("/api/settings", async (_req, res) => {
+  res.json(await getSettings());
 });
 
-app.put("/api/settings", (req, res) => {
+app.put("/api/settings", async (req, res) => {
   try {
-    res.json(saveSettings(req.body ?? {}));
+    res.json(await saveSettings(req.body ?? {}));
   } catch (e) {
     res.status(400).json({ error: String(e.message || e) });
   }
 });
 
-app.get("/api/certificates", (_req, res) => {
-  res.json(listCertificates());
+app.get("/api/certificates", async (_req, res) => {
+  res.json(await listCertificates());
 });
 
-app.get("/api/certificates/:id", (req, res) => {
-  const row = getCertificate(Number(req.params.id));
+app.get("/api/certificates/:id", async (req, res) => {
+  const row = await getCertificate(Number(req.params.id));
   if (!row) return res.status(404).json({ error: "לא נמצא" });
   res.json(row);
 });
 
-app.post("/api/certificates", (req, res) => {
+app.post("/api/certificates", async (req, res) => {
   const body = req.body ?? {};
   if (!body.facilityName || String(body.facilityName).trim() === "") {
     return res.status(400).json({ error: "שם המתקן הוא שדה חובה" });
   }
   try {
-    const created = createCertificate(body);
+    const created = await createCertificate(body);
     res.status(201).json(created);
   } catch (e) {
     res.status(400).json({ error: String(e.message || e) });
   }
 });
 
-app.put("/api/certificates/:id", (req, res) => {
+app.put("/api/certificates/:id", async (req, res) => {
   const id = Number(req.params.id);
-  const updated = updateCertificate(id, req.body ?? {});
+  const updated = await updateCertificate(id, req.body ?? {});
   if (!updated) return res.status(404).json({ error: "לא נמצא" });
   res.json(updated);
 });
 
-app.delete("/api/certificates/:id", (req, res) => {
-  const ok = deleteCertificate(Number(req.params.id));
+app.delete("/api/certificates/:id", async (req, res) => {
+  const ok = await deleteCertificate(Number(req.params.id));
   if (!ok) return res.status(404).json({ error: "לא נמצא" });
   res.json({ ok: true });
 });
 
-app.get("/api/projects", (_req, res) => {
-  res.json(listProjects());
+app.get("/api/projects", async (_req, res) => {
+  res.json(await listProjects());
 });
 
-app.get("/api/projects/:id", (req, res) => {
-  const row = getProject(Number(req.params.id));
+app.get("/api/projects/:id", async (req, res) => {
+  const row = await getProject(Number(req.params.id));
   if (!row) return res.status(404).json({ error: "לא נמצא" });
   res.json(row);
 });
 
-app.post("/api/projects", (req, res) => {
+app.post("/api/projects", async (req, res) => {
   const body = req.body ?? {};
   if (!body.title || String(body.title).trim() === "") {
     return res.status(400).json({ error: "שם פרויקט הוא שדה חובה" });
   }
   try {
-    const created = createProject(body);
+    const created = await createProject(body);
     res.status(201).json(created);
   } catch (e) {
     res.status(400).json({ error: String(e.message || e) });
   }
 });
 
-app.put("/api/projects/:id", (req, res) => {
+app.put("/api/projects/:id", async (req, res) => {
   const id = Number(req.params.id);
-  const updated = updateProject(id, req.body ?? {});
+  const updated = await updateProject(id, req.body ?? {});
   if (!updated) return res.status(404).json({ error: "לא נמצא" });
   res.json(updated);
 });
 
-app.delete("/api/projects/:id", (req, res) => {
-  const ok = deleteProject(Number(req.params.id));
+app.delete("/api/projects/:id", async (req, res) => {
+  const ok = await deleteProject(Number(req.params.id));
   if (!ok) return res.status(404).json({ error: "לא נמצא" });
   res.json({ ok: true });
 });
 
-app.get("/api/financial-docs", (req, res) => {
+app.get("/api/financial-docs", async (req, res) => {
   const type = typeof req.query.type === "string" ? req.query.type : "";
   if (type && !["invoice", "quote"].includes(type)) {
     return res.status(400).json({ error: "type לא תקין" });
   }
-  res.json(listFinancialDocs(type || undefined));
+  res.json(await listFinancialDocs(type || undefined));
 });
 
-app.get("/api/financial-docs/:id", (req, res) => {
-  const row = getFinancialDoc(Number(req.params.id));
+app.get("/api/financial-docs/:id", async (req, res) => {
+  const row = await getFinancialDoc(Number(req.params.id));
   if (!row) return res.status(404).json({ error: "לא נמצא" });
   res.json(row);
 });
 
-app.post("/api/financial-docs", (req, res) => {
+app.post("/api/financial-docs", async (req, res) => {
   const body = req.body ?? {};
   if (!["invoice", "quote"].includes(body.type)) {
     return res.status(400).json({ error: "type חייב להיות invoice או quote" });
@@ -147,28 +147,28 @@ app.post("/api/financial-docs", (req, res) => {
     return res.status(400).json({ error: "שם לקוח הוא שדה חובה" });
   }
   try {
-    const created = createFinancialDoc(body);
+    const created = await createFinancialDoc(body);
     res.status(201).json(created);
   } catch (e) {
     res.status(400).json({ error: String(e.message || e) });
   }
 });
 
-app.put("/api/financial-docs/:id", (req, res) => {
+app.put("/api/financial-docs/:id", async (req, res) => {
   const id = Number(req.params.id);
-  const updated = updateFinancialDoc(id, req.body ?? {});
+  const updated = await updateFinancialDoc(id, req.body ?? {});
   if (!updated) return res.status(404).json({ error: "לא נמצא" });
   res.json(updated);
 });
 
-app.delete("/api/financial-docs/:id", (req, res) => {
-  const ok = deleteFinancialDoc(Number(req.params.id));
+app.delete("/api/financial-docs/:id", async (req, res) => {
+  const ok = await deleteFinancialDoc(Number(req.params.id));
   if (!ok) return res.status(404).json({ error: "לא נמצא" });
   res.json({ ok: true });
 });
 
-app.get("/api/exports/accountant.csv", (_req, res) => {
-  const { invoiceRows, quoteRows } = exportRowsForAccountant();
+app.get("/api/exports/accountant.csv", async (_req, res) => {
+  const { invoiceRows, quoteRows } = await exportRowsForAccountant();
   const rows = [
     [
       "סוג",

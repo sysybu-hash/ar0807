@@ -1,6 +1,10 @@
 # מערכת ניהול לחשמלאי מוסמך
 
-## הפעלה
+## הפעלה מקומית (עם Neon)
+
+1. צור מסד נתונים ב-Neon והעתק `DATABASE_URL`.
+2. צור קובץ `.env` לפי `.env.example`.
+3. התקן והרץ:
 
 ```bash
 npm install
@@ -8,6 +12,13 @@ npm start
 ```
 
 פתח בדפדפן: [http://localhost:3847](http://localhost:3847)
+
+## פריסה ל-Vercel
+
+1. ודא שקיים הקובץ `vercel.json`.
+2. ב-Vercel Project Settings -> Environment Variables הוסף:
+   - `DATABASE_URL` = Neon connection string
+3. בצע Deploy מחדש.
 
 ## מה יש במערכת
 
@@ -21,11 +32,5 @@ npm start
 - מערכת הצעות מחיר
 - ייצוא CSV לרו"ח
 - הגדרות אישיות: שם, פרטי קשר, WhatsApp, לוגו, חותמת, טקסט אודות וקוד גישה
-
-## מסד נתונים
-
-המידע נשמר בשרת בקובץ SQLite:
-
-`data/certs.sqlite`
 
 > ברירת מחדל לקוד כניסה לאזור אישי: `1234`
