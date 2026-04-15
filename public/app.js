@@ -1,5 +1,37 @@
 /* global SignaturePad */
 const API = "";
+const WIZARD_STEPS = ["dashboard", "projects", "documents", "invoices", "quotes", "exports", "settings"];
+const DEFAULT_HOME_CONTENT = {
+  kicker: "Premium Home v2",
+  title: "חשמלאי מוסמך עם תפעול חכם, שירות מהיר ונראות מקצועית",
+  subtitle:
+    "פתרון פרימיום לניהול פרויקטים, הפקת אישורים, חשבוניות והצעות מחיר - עם תיעוד מסודר, חוויית עבודה מהירה בשטח, וסטנדרט שירות שמרשים לקוחות מהמפגש הראשון.",
+  primaryCta: "כניסה לאזור אישי",
+  whatsappCta: "דברו איתי ב-WhatsApp",
+  chip1: "אישורים מקצועיים",
+  chip2: "חשבוניות + מס' הקצאה",
+  chip3: "ייצוא CSV לרו\"ח",
+  trustTitle1: "זמינות",
+  trustText1: "מענה מהיר ותיאום יעיל",
+  trustTitle2: "אמינות",
+  trustText2: "תיעוד מלא ושקיפות ללקוח",
+  trustTitle3: "מקצועיות",
+  trustText3: "תהליך עבודה מדויק ובטיחותי",
+  featureTitle1: "פתיחת פרויקט תוך דקה",
+  featureText1: "קליטת נתוני לקוח, כתובת וסטטוס עבודה בצורה מהירה וברורה.",
+  featureTitle2: "מסמכים שמייצרים אמון",
+  featureText2: "אישורי תקינות מקצועיים עם תמונות, חתימה וחותמת להדפסה/שליחה.",
+  featureTitle3: "ניהול פיננסי נקי",
+  featureText3: "חשבוניות, הצעות מחיר וייצוא מסודר לרואה חשבון בלחיצה.",
+  processTitle: "איך זה עובד",
+  step1: "פתיחת פרויקט",
+  step2: "בדיקה ותיעוד",
+  step3: "הנפקת מסמכים",
+  step4: "סגירה וייצוא לרו\"ח",
+  galleryLabel1: "ארונות חשמל מתקדמים",
+  galleryLabel2: "בדיקות איכות ובטיחות",
+  galleryLabel3: "תיעוד דיגיטלי מלא",
+};
 
 let settings = {
   name: "אברהם רובינשטיין - חשמלאי מוסמך",
@@ -11,6 +43,7 @@ let settings = {
     "אברהם רובינשטיין - חשמלאי מוסמך.\nמתמחה בבדיקות תקינות, תיעוד פרויקטים וניהול מלא של מסמכים פיננסיים ומקצועיים.",
   logoData: null,
   stampData: null,
+  homeContent: { ...DEFAULT_HOME_CONTENT },
   useBlankTemplate: false,
   blankTemplateData: null,
   blankOffsetXmm: 0,
@@ -28,6 +61,7 @@ let docsCache = [];
 let invoicesCache = [];
 let quotesCache = [];
 let deferredInstallPrompt = null;
+let wizardIndex = 0;
 const ACCESS_STORAGE_KEY = "ecs_accessibility_prefs_v1";
 
 function $(id) {
@@ -125,12 +159,73 @@ function setupDrawer() {
   document.querySelector("[data-go-portal]").onclick = () => setSection("portal");
 }
 
+function setupHomeShowcase() {
+  const lightbox = $("galleryLightbox");
+  const lightboxImage = $("lightboxImage");
+  const lightboxClose = $("lightboxClose");
+  if (!lightbox || !lightboxImage || !lightboxClose) return;
+
+  const close = () => {
+    lightbox.classList.add("hidden");
+    lightboxImage.src = "";
+    lightboxImage.alt = "";
+  };
+
+  document.querySelectorAll("[data-gallery-src]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const src = btn.getAttribute("data-gallery-src");
+      const alt = btn.getAttribute("data-gallery-alt") || "";
+      if (!src) return;
+      lightboxImage.src = src;
+      lightboxImage.alt = alt;
+      lightbox.classList.remove("hidden");
+    });
+  });
+
+  lightboxClose.addEventListener("click", close);
+  lightbox.addEventListener("click", (ev) => {
+    if (ev.target === lightbox) close();
+  });
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape" && !lightbox.classList.contains("hidden")) close();
+  });
+}
+
 function renderHomeFromSettings() {
+  const hc = { ...DEFAULT_HOME_CONTENT, ...(settings.homeContent || {}) };
   $("heroInspectorName").textContent = settings.name || "אברהם רובינשטיין - חשמלאי מוסמך";
   $("contactName").textContent = settings.name || "—";
   $("contactPhone").textContent = settings.phone || "—";
   $("contactEmail").textContent = settings.email || "—";
   $("aboutText").textContent = settings.aboutText || "";
+  $("homeHeroKicker").textContent = hc.kicker;
+  $("homeHeroTitle").textContent = hc.title;
+  $("homeHeroSubtitle").textContent = hc.subtitle;
+  $("homePrimaryCta").textContent = hc.primaryCta;
+  $("whatsappTopLink").textContent = hc.whatsappCta;
+  $("homeChip1").textContent = hc.chip1;
+  $("homeChip2").textContent = hc.chip2;
+  $("homeChip3").textContent = hc.chip3;
+  $("homeTrustTitle1").textContent = hc.trustTitle1;
+  $("homeTrustText1").textContent = hc.trustText1;
+  $("homeTrustTitle2").textContent = hc.trustTitle2;
+  $("homeTrustText2").textContent = hc.trustText2;
+  $("homeTrustTitle3").textContent = hc.trustTitle3;
+  $("homeTrustText3").textContent = hc.trustText3;
+  $("homeFeatureTitle1").textContent = hc.featureTitle1;
+  $("homeFeatureText1").textContent = hc.featureText1;
+  $("homeFeatureTitle2").textContent = hc.featureTitle2;
+  $("homeFeatureText2").textContent = hc.featureText2;
+  $("homeFeatureTitle3").textContent = hc.featureTitle3;
+  $("homeFeatureText3").textContent = hc.featureText3;
+  $("homeProcessTitle").textContent = hc.processTitle;
+  $("homeStep1").textContent = hc.step1;
+  $("homeStep2").textContent = hc.step2;
+  $("homeStep3").textContent = hc.step3;
+  $("homeStep4").textContent = hc.step4;
+  $("homeGalleryLabel1").textContent = hc.galleryLabel1;
+  $("homeGalleryLabel2").textContent = hc.galleryLabel2;
+  $("homeGalleryLabel3").textContent = hc.galleryLabel3;
 
   const href = toWaHref(settings.whatsapp || settings.phone);
   $("whatsappLink").href = href;
@@ -189,17 +284,31 @@ function setupAccessibilityToolbar() {
   });
 }
 
-function setupPortalTabs() {
-  document.querySelectorAll(".portal-tab").forEach((btn) => {
+function setWizardStepByIndex(index) {
+  wizardIndex = Math.max(0, Math.min(WIZARD_STEPS.length - 1, index));
+  const name = WIZARD_STEPS[wizardIndex];
+  document.querySelectorAll(".wizard-step-btn").forEach((btn, i) => {
+    btn.classList.toggle("active", i === wizardIndex);
+    btn.classList.toggle("done", i < wizardIndex);
+  });
+  document.querySelectorAll(".portal-panel").forEach((panel) => {
+    panel.classList.toggle("hidden", panel.id !== `portal-${name}`);
+  });
+  $("wizardStepLabel").textContent = `שלב ${wizardIndex + 1} מתוך ${WIZARD_STEPS.length}`;
+  $("wizardPrevBtn").disabled = wizardIndex === 0;
+  $("wizardNextBtn").textContent = wizardIndex === WIZARD_STEPS.length - 1 ? "סיום" : "הבא";
+}
+
+function setupPortalWizard() {
+  document.querySelectorAll(".wizard-step-btn").forEach((btn) => {
     btn.onclick = () => {
-      document.querySelectorAll(".portal-tab").forEach((x) => x.classList.remove("active"));
-      btn.classList.add("active");
-      const name = btn.dataset.portalTab;
-      document.querySelectorAll(".portal-panel").forEach((panel) => {
-        panel.classList.toggle("hidden", panel.id !== `portal-${name}`);
-      });
+      const target = WIZARD_STEPS.indexOf(btn.dataset.portalTab);
+      if (target >= 0) setWizardStepByIndex(target);
     };
   });
+  $("wizardPrevBtn").onclick = () => setWizardStepByIndex(wizardIndex - 1);
+  $("wizardNextBtn").onclick = () => setWizardStepByIndex(wizardIndex + 1);
+  setWizardStepByIndex(0);
 }
 
 function ensurePortalOpen() {
@@ -643,6 +752,35 @@ async function loadSettings() {
   $("setWhatsapp").value = settings.whatsapp || "";
   $("setAccessCode").value = settings.accessCode || "";
   $("setAboutText").value = settings.aboutText || "";
+  const hc = { ...DEFAULT_HOME_CONTENT, ...(settings.homeContent || {}) };
+  $("setHomeKicker").value = hc.kicker;
+  $("setHomeTitle").value = hc.title;
+  $("setHomeSubtitle").value = hc.subtitle;
+  $("setHomePrimaryCta").value = hc.primaryCta;
+  $("setHomeWhatsappCta").value = hc.whatsappCta;
+  $("setHomeChip1").value = hc.chip1;
+  $("setHomeChip2").value = hc.chip2;
+  $("setHomeChip3").value = hc.chip3;
+  $("setHomeTrustTitle1").value = hc.trustTitle1;
+  $("setHomeTrustText1").value = hc.trustText1;
+  $("setHomeTrustTitle2").value = hc.trustTitle2;
+  $("setHomeTrustText2").value = hc.trustText2;
+  $("setHomeTrustTitle3").value = hc.trustTitle3;
+  $("setHomeTrustText3").value = hc.trustText3;
+  $("setHomeFeatureTitle1").value = hc.featureTitle1;
+  $("setHomeFeatureText1").value = hc.featureText1;
+  $("setHomeFeatureTitle2").value = hc.featureTitle2;
+  $("setHomeFeatureText2").value = hc.featureText2;
+  $("setHomeFeatureTitle3").value = hc.featureTitle3;
+  $("setHomeFeatureText3").value = hc.featureText3;
+  $("setHomeProcessTitle").value = hc.processTitle;
+  $("setHomeStep1").value = hc.step1;
+  $("setHomeStep2").value = hc.step2;
+  $("setHomeStep3").value = hc.step3;
+  $("setHomeStep4").value = hc.step4;
+  $("setHomeGalleryLabel1").value = hc.galleryLabel1;
+  $("setHomeGalleryLabel2").value = hc.galleryLabel2;
+  $("setHomeGalleryLabel3").value = hc.galleryLabel3;
   $("setUseBlankTemplate").checked = !!settings.useBlankTemplate;
   $("setBlankOffsetX").value = String(Number(settings.blankOffsetXmm || 0));
   $("setBlankOffsetY").value = String(Number(settings.blankOffsetYmm || 0));
@@ -674,6 +812,36 @@ async function bindSettingsForm() {
       settings.whatsapp = $("setWhatsapp").value.trim();
       settings.accessCode = $("setAccessCode").value.trim();
       settings.aboutText = $("setAboutText").value.trim();
+      settings.homeContent = {
+        kicker: $("setHomeKicker").value.trim(),
+        title: $("setHomeTitle").value.trim(),
+        subtitle: $("setHomeSubtitle").value.trim(),
+        primaryCta: $("setHomePrimaryCta").value.trim(),
+        whatsappCta: $("setHomeWhatsappCta").value.trim(),
+        chip1: $("setHomeChip1").value.trim(),
+        chip2: $("setHomeChip2").value.trim(),
+        chip3: $("setHomeChip3").value.trim(),
+        trustTitle1: $("setHomeTrustTitle1").value.trim(),
+        trustText1: $("setHomeTrustText1").value.trim(),
+        trustTitle2: $("setHomeTrustTitle2").value.trim(),
+        trustText2: $("setHomeTrustText2").value.trim(),
+        trustTitle3: $("setHomeTrustTitle3").value.trim(),
+        trustText3: $("setHomeTrustText3").value.trim(),
+        featureTitle1: $("setHomeFeatureTitle1").value.trim(),
+        featureText1: $("setHomeFeatureText1").value.trim(),
+        featureTitle2: $("setHomeFeatureTitle2").value.trim(),
+        featureText2: $("setHomeFeatureText2").value.trim(),
+        featureTitle3: $("setHomeFeatureTitle3").value.trim(),
+        featureText3: $("setHomeFeatureText3").value.trim(),
+        processTitle: $("setHomeProcessTitle").value.trim(),
+        step1: $("setHomeStep1").value.trim(),
+        step2: $("setHomeStep2").value.trim(),
+        step3: $("setHomeStep3").value.trim(),
+        step4: $("setHomeStep4").value.trim(),
+        galleryLabel1: $("setHomeGalleryLabel1").value.trim(),
+        galleryLabel2: $("setHomeGalleryLabel2").value.trim(),
+        galleryLabel3: $("setHomeGalleryLabel3").value.trim(),
+      };
       settings.useBlankTemplate = $("setUseBlankTemplate").checked;
       settings.blankOffsetXmm = Number($("setBlankOffsetX").value || 0);
       settings.blankOffsetYmm = Number($("setBlankOffsetY").value || 0);
@@ -730,8 +898,9 @@ function registerServiceWorker() {
 
 window.addEventListener("DOMContentLoaded", async () => {
   setupDrawer();
+  setupHomeShowcase();
   setupAccessibilityToolbar();
-  setupPortalTabs();
+  setupPortalWizard();
   setupPortalAuth();
   bindProjectForm();
   await bindDocForm();

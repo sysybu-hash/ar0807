@@ -56,35 +56,63 @@
   </header>
 
   <main class="max-w-7xl mx-auto px-4 py-6 space-y-8" id="mainContent">
-    <section id="section-home" class="app-card hero-card">
-      <div class="grid lg:grid-cols-2 gap-8 items-center">
-        <div>
-          <p class="hero-kicker">פתרון מתקדם לחשמלאי מוסמך</p>
-          <h2 class="text-3xl md:text-5xl font-extrabold text-slate-900 mb-4 leading-tight">ניהול עסק חשמל ברמת פרימיום</h2>
-          <p class="text-slate-700 leading-relaxed mb-5 text-lg">
-            מערכת מקיפה המשלבת ניהול פרויקטים, תיקי עבודה מתועדים, הנפקת אישורים מקצועיים,
-            חשבוניות עם מספר הקצאה והצעות מחיר - הכל בממשק נקי, מהיר ומותאם לשטח.
+    <section id="section-home" class="app-card hero-card premium-home">
+      <div class="hero-shell">
+        <div class="hero-copy reveal-up">
+          <p id="homeHeroKicker" class="hero-kicker">Premium Home v2</p>
+          <h2 id="homeHeroTitle" class="hero-title">חשמלאי מוסמך עם תפעול חכם, שירות מהיר ונראות מקצועית</h2>
+          <p id="homeHeroSubtitle" class="hero-subtitle">
+            פתרון פרימיום לניהול פרויקטים, הפקת אישורים, חשבוניות והצעות מחיר - עם תיעוד מסודר,
+            חוויית עבודה מהירה בשטח, וסטנדרט שירות שמרשים לקוחות מהמפגש הראשון.
           </p>
-          <div class="flex flex-wrap gap-3 mb-4">
-            <button class="btn-primary" data-go-portal type="button">כניסה לאזור אישי</button>
-            <a id="whatsappTopLink" class="btn-secondary" href="#" target="_blank" rel="noopener">הודעת WhatsApp מהירה</a>
+          <div class="hero-actions">
+            <button id="homePrimaryCta" class="btn-primary" data-go-portal type="button">כניסה לאזור אישי</button>
+            <a id="whatsappTopLink" class="btn-secondary" href="#" target="_blank" rel="noopener">דברו איתי ב-WhatsApp</a>
           </div>
           <div class="chips-wrap">
-            <span class="hero-chip">מערכת מסמכים כפולה</span>
-            <span class="hero-chip">חשבוניות והצעות מחיר</span>
-            <span class="hero-chip">ייצוא מיידי לרו"ח</span>
+            <span id="homeChip1" class="hero-chip">אישורים מקצועיים</span>
+            <span id="homeChip2" class="hero-chip">חשבוניות + מס' הקצאה</span>
+            <span id="homeChip3" class="hero-chip">ייצוא CSV לרו"ח</span>
+          </div>
+          <div class="trust-row">
+            <article class="trust-item"><strong id="homeTrustTitle1">זמינות</strong><small id="homeTrustText1">מענה מהיר ותיאום יעיל</small></article>
+            <article class="trust-item"><strong id="homeTrustTitle2">אמינות</strong><small id="homeTrustText2">תיעוד מלא ושקיפות ללקוח</small></article>
+            <article class="trust-item"><strong id="homeTrustTitle3">מקצועיות</strong><small id="homeTrustText3">תהליך עבודה מדויק ובטיחותי</small></article>
           </div>
         </div>
-        <div class="hero-gallery" aria-label="גלריית פרויקטים בארונות חשמל">
-          <img src="/images/cabinet-1.svg" alt="ארון חשמל תעשייתי עם מיתוג מעגלים" loading="lazy" />
-          <img src="/images/cabinet-2.svg" alt="בדיקות איכות ובטיחות בלוח חשמל" loading="lazy" />
-          <img src="/images/cabinet-3.svg" alt="תיעוד חכם של תחזוקת ארונות חשמל" loading="lazy" />
+
+        <div class="hero-gallery-wrap reveal-up" aria-label="גלריית פרויקטים בארונות חשמל">
+          <div class="hero-gallery premium-gallery">
+            <button class="gallery-card large" type="button" data-gallery-src="/images/cabinet-1.svg" data-gallery-alt="ארון חשמל תעשייתי עם מיתוג מעגלים">
+              <img src="/images/cabinet-1.svg" alt="ארון חשמל תעשייתי עם מיתוג מעגלים" loading="lazy" />
+              <span id="homeGalleryLabel1">ארונות חשמל מתקדמים</span>
+            </button>
+            <button class="gallery-card" type="button" data-gallery-src="/images/cabinet-2.svg" data-gallery-alt="בדיקות איכות ובטיחות בלוח חשמל">
+              <img src="/images/cabinet-2.svg" alt="בדיקות איכות ובטיחות בלוח חשמל" loading="lazy" />
+              <span id="homeGalleryLabel2">בדיקות איכות ובטיחות</span>
+            </button>
+            <button class="gallery-card" type="button" data-gallery-src="/images/cabinet-3.svg" data-gallery-alt="תיעוד חכם של תחזוקת ארונות חשמל">
+              <img src="/images/cabinet-3.svg" alt="תיעוד חכם של תחזוקת ארונות חשמל" loading="lazy" />
+              <span id="homeGalleryLabel3">תיעוד דיגיטלי מלא</span>
+            </button>
+          </div>
         </div>
       </div>
-      <div class="grid md:grid-cols-3 gap-4 mt-8">
-        <article class="feature-card"><h3>תיעוד פרויקטים חכם</h3><p>ניהול שלבי עבודה, תמונות שטח, סטטוסים ונתוני לקוח בכל רגע.</p></article>
-        <article class="feature-card"><h3>מסמכים וחשבוניות במקום אחד</h3><p>הנפקת אישורי תקינות, צרכנים מטלטלים, חשבוניות והצעות מחיר.</p></article>
-        <article class="feature-card"><h3>תואם עבודה מקצועית ורגולציה</h3><p>מבנה תיעוד ברור, נגישות משופרת ועקרונות תאימות לפי EN 301 549 / WCAG 2.1 AA.</p></article>
+
+      <div class="home-grid-grid reveal-up">
+        <article class="feature-card"><h3 id="homeFeatureTitle1">פתיחת פרויקט תוך דקה</h3><p id="homeFeatureText1">קליטת נתוני לקוח, כתובת וסטטוס עבודה בצורה מהירה וברורה.</p></article>
+        <article class="feature-card"><h3 id="homeFeatureTitle2">מסמכים שמייצרים אמון</h3><p id="homeFeatureText2">אישורי תקינות מקצועיים עם תמונות, חתימה וחותמת להדפסה/שליחה.</p></article>
+        <article class="feature-card"><h3 id="homeFeatureTitle3">ניהול פיננסי נקי</h3><p id="homeFeatureText3">חשבוניות, הצעות מחיר וייצוא מסודר לרואה חשבון בלחיצה.</p></article>
+      </div>
+
+      <div class="process-strip reveal-up">
+        <h3 id="homeProcessTitle">איך זה עובד</h3>
+        <ol>
+          <li><b>1</b><span id="homeStep1">פתיחת פרויקט</span></li>
+          <li><b>2</b><span id="homeStep2">בדיקה ותיעוד</span></li>
+          <li><b>3</b><span id="homeStep3">הנפקת מסמכים</span></li>
+          <li><b>4</b><span id="homeStep4">סגירה וייצוא לרו"ח</span></li>
+        </ol>
       </div>
     </section>
 
@@ -120,14 +148,23 @@
       </div>
 
       <div id="portalArea" class="hidden space-y-6">
-        <div class="flex flex-wrap gap-2 border-b pb-3">
-          <button class="portal-tab active" data-portal-tab="dashboard" type="button">דאשבורד</button>
-          <button class="portal-tab" data-portal-tab="projects" type="button">ניהול פרויקטים</button>
-          <button class="portal-tab" data-portal-tab="documents" type="button">מסמכים</button>
-          <button class="portal-tab" data-portal-tab="invoices" type="button">חשבוניות</button>
-          <button class="portal-tab" data-portal-tab="quotes" type="button">הצעות מחיר</button>
-          <button class="portal-tab" data-portal-tab="exports" type="button">ייצוא לרו"ח</button>
-          <button class="portal-tab" data-portal-tab="settings" type="button">הגדרות</button>
+        <div class="wizard-shell">
+          <div id="wizardSteps" class="wizard-steps">
+            <button class="wizard-step-btn active" data-portal-tab="dashboard" type="button">1. פתיחה</button>
+            <button class="wizard-step-btn" data-portal-tab="projects" type="button">2. פרויקטים</button>
+            <button class="wizard-step-btn" data-portal-tab="documents" type="button">3. מסמכים</button>
+            <button class="wizard-step-btn" data-portal-tab="invoices" type="button">4. חשבוניות</button>
+            <button class="wizard-step-btn" data-portal-tab="quotes" type="button">5. הצעות מחיר</button>
+            <button class="wizard-step-btn" data-portal-tab="exports" type="button">6. ייצוא</button>
+            <button class="wizard-step-btn" data-portal-tab="settings" type="button">7. הגדרות</button>
+          </div>
+          <div class="wizard-footer">
+            <span id="wizardStepLabel" class="wizard-label">שלב 1 מתוך 7</span>
+            <div class="wizard-actions">
+              <button id="wizardPrevBtn" class="btn-secondary" type="button">הקודם</button>
+              <button id="wizardNextBtn" class="btn-primary" type="button">הבא</button>
+            </div>
+          </div>
         </div>
 
         <div id="portal-dashboard" class="portal-panel">
@@ -218,6 +255,39 @@
             <div><label class="lbl">WhatsApp (ניתן לשינוי)</label><input id="setWhatsapp" class="inp" /></div>
             <div><label class="lbl">קוד כניסה לאזור אישי</label><input id="setAccessCode" class="inp" /></div>
             <div class="md:col-span-2"><label class="lbl">אודות</label><textarea id="setAboutText" class="inp" rows="4"></textarea></div>
+            <div class="md:col-span-2 wizard-config-block">
+              <h4 class="font-bold text-blue-900 mb-2">תוכן דף הבית (ניתן לעריכה מלאה)</h4>
+              <div class="grid md:grid-cols-2 gap-3">
+                <div><label class="lbl">כותרת משנה עליונה</label><input id="setHomeKicker" class="inp" /></div>
+                <div><label class="lbl">כותרת ראשית</label><input id="setHomeTitle" class="inp" /></div>
+                <div class="md:col-span-2"><label class="lbl">תיאור ראשי</label><textarea id="setHomeSubtitle" class="inp" rows="3"></textarea></div>
+                <div><label class="lbl">טקסט כפתור ראשי</label><input id="setHomePrimaryCta" class="inp" /></div>
+                <div><label class="lbl">טקסט כפתור WhatsApp</label><input id="setHomeWhatsappCta" class="inp" /></div>
+                <div><label class="lbl">Chip 1</label><input id="setHomeChip1" class="inp" /></div>
+                <div><label class="lbl">Chip 2</label><input id="setHomeChip2" class="inp" /></div>
+                <div><label class="lbl">Chip 3</label><input id="setHomeChip3" class="inp" /></div>
+                <div><label class="lbl">אמון 1 כותרת</label><input id="setHomeTrustTitle1" class="inp" /></div>
+                <div><label class="lbl">אמון 1 טקסט</label><input id="setHomeTrustText1" class="inp" /></div>
+                <div><label class="lbl">אמון 2 כותרת</label><input id="setHomeTrustTitle2" class="inp" /></div>
+                <div><label class="lbl">אמון 2 טקסט</label><input id="setHomeTrustText2" class="inp" /></div>
+                <div><label class="lbl">אמון 3 כותרת</label><input id="setHomeTrustTitle3" class="inp" /></div>
+                <div><label class="lbl">אמון 3 טקסט</label><input id="setHomeTrustText3" class="inp" /></div>
+                <div><label class="lbl">פיצ'ר 1 כותרת</label><input id="setHomeFeatureTitle1" class="inp" /></div>
+                <div><label class="lbl">פיצ'ר 1 טקסט</label><input id="setHomeFeatureText1" class="inp" /></div>
+                <div><label class="lbl">פיצ'ר 2 כותרת</label><input id="setHomeFeatureTitle2" class="inp" /></div>
+                <div><label class="lbl">פיצ'ר 2 טקסט</label><input id="setHomeFeatureText2" class="inp" /></div>
+                <div><label class="lbl">פיצ'ר 3 כותרת</label><input id="setHomeFeatureTitle3" class="inp" /></div>
+                <div><label class="lbl">פיצ'ר 3 טקסט</label><input id="setHomeFeatureText3" class="inp" /></div>
+                <div><label class="lbl">כותרת תהליך</label><input id="setHomeProcessTitle" class="inp" /></div>
+                <div><label class="lbl">שלב 1</label><input id="setHomeStep1" class="inp" /></div>
+                <div><label class="lbl">שלב 2</label><input id="setHomeStep2" class="inp" /></div>
+                <div><label class="lbl">שלב 3</label><input id="setHomeStep3" class="inp" /></div>
+                <div><label class="lbl">שלב 4</label><input id="setHomeStep4" class="inp" /></div>
+                <div><label class="lbl">כיתוב גלריה 1</label><input id="setHomeGalleryLabel1" class="inp" /></div>
+                <div><label class="lbl">כיתוב גלריה 2</label><input id="setHomeGalleryLabel2" class="inp" /></div>
+                <div><label class="lbl">כיתוב גלריה 3</label><input id="setHomeGalleryLabel3" class="inp" /></div>
+              </div>
+            </div>
             <div><label class="lbl">לוגו</label><input id="setLogoInput" type="file" accept="image/*" class="inp" /></div>
             <div><label class="lbl">חותמת</label><input id="setStampInput" type="file" accept="image/*" class="inp" /></div>
             <div class="md:col-span-2">
@@ -257,6 +327,11 @@
   <a id="whatsappFloatingCta" class="wa-floating-cta" href="#" target="_blank" rel="noopener" aria-label="פתיחת WhatsApp">
     <span>WhatsApp</span>
   </a>
+
+  <div id="galleryLightbox" class="lightbox hidden" role="dialog" aria-modal="true" aria-label="תצוגת תמונה מוגדלת">
+    <button id="lightboxClose" class="lightbox-close" type="button" aria-label="סגירת תצוגת תמונה">✕</button>
+    <img id="lightboxImage" src="" alt="" />
+  </div>
 
   <noscript>
     <div class="noscript">יש להפעיל JavaScript כדי להשתמש בכל יכולות המערכת.</div>

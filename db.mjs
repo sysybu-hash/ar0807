@@ -65,6 +65,7 @@ async function migrate() {
       about_text TEXT DEFAULT '',
       logo_data TEXT,
       stamp_data TEXT,
+      home_content_json JSONB DEFAULT '{}'::jsonb,
       use_blank_template BOOLEAN NOT NULL DEFAULT FALSE,
       blank_template_data TEXT,
       blank_offset_x_mm NUMERIC(8,2) NOT NULL DEFAULT 0,
@@ -76,6 +77,7 @@ async function migrate() {
   `);
   await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS use_blank_template BOOLEAN NOT NULL DEFAULT FALSE;`);
   await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS blank_template_data TEXT;`);
+  await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS home_content_json JSONB DEFAULT '{}'::jsonb;`);
   await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS blank_offset_x_mm NUMERIC(8,2) NOT NULL DEFAULT 0;`);
   await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS blank_offset_y_mm NUMERIC(8,2) NOT NULL DEFAULT 0;`);
   await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS blank_scale NUMERIC(8,3) NOT NULL DEFAULT 1;`);
@@ -155,6 +157,7 @@ export async function getSettings() {
     aboutText: row.about_text ?? "",
     logoData: row.logo_data ?? null,
     stampData: row.stamp_data ?? null,
+    homeContent: safeJson(row.home_content_json, {}),
     useBlankTemplate: !!row.use_blank_template,
     blankTemplateData: row.blank_template_data ?? null,
     blankOffsetXmm: Number(row.blank_offset_x_mm || 0),
@@ -176,12 +179,13 @@ export async function saveSettings(payload) {
       about_text = $6,
       logo_data = $7,
       stamp_data = $8,
-      use_blank_template = $9,
-      blank_template_data = $10,
-      blank_offset_x_mm = $11,
-      blank_offset_y_mm = $12,
-      blank_scale = $13,
-      access_code = $14,
+      home_content_json = $9::jsonb,
+      use_blank_template = $10,
+      blank_template_data = $11,
+      blank_offset_x_mm = $12,
+      blank_offset_y_mm = $13,
+      blank_scale = $14,
+      access_code = $15,
       updated_at = now()
     WHERE id = 1`,
     [
@@ -193,6 +197,7 @@ export async function saveSettings(payload) {
       payload.aboutText ?? "",
       payload.logoData ?? null,
       payload.stampData ?? null,
+      JSON.stringify(payload.homeContent ?? {}),
       !!payload.useBlankTemplate,
       payload.blankTemplateData ?? null,
       Number(payload.blankOffsetXmm || 0),
