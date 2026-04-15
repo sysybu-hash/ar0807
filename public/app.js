@@ -2,35 +2,35 @@
 const API = "";
 const WIZARD_STEPS = ["dashboard", "projects", "documents", "invoices", "quotes", "exports", "settings"];
 const DEFAULT_HOME_CONTENT = {
-  kicker: "Premium Home v2",
-  title: "חשמלאי מוסמך עם תפעול חכם, שירות מהיר ונראות מקצועית",
+  kicker: "חשמלאי מוסמך",
+  title: "שירותי חשמל מקצועיים לבית, לעסק ולתעשייה",
   subtitle:
-    "פתרון פרימיום לניהול פרויקטים, הפקת אישורים, חשבוניות והצעות מחיר - עם תיעוד מסודר, חוויית עבודה מהירה בשטח, וסטנדרט שירות שמרשים לקוחות מהמפגש הראשון.",
+    "בדיקות תקינות, טיפול בלוחות חשמל, איתור ותיקון תקלות, תחזוקה ושדרוג מערכות חשמל - באחריות, בבטיחות ובסטנדרט עבודה גבוה.",
   primaryCta: "כניסה לאזור אישי",
-  whatsappCta: "דברו איתי ב-WhatsApp",
-  chip1: "אישורים מקצועיים",
-  chip2: "חשבוניות + מס' הקצאה",
-  chip3: "ייצוא CSV לרו\"ח",
-  trustTitle1: "זמינות",
-  trustText1: "מענה מהיר ותיאום יעיל",
-  trustTitle2: "אמינות",
-  trustText2: "תיעוד מלא ושקיפות ללקוח",
-  trustTitle3: "מקצועיות",
-  trustText3: "תהליך עבודה מדויק ובטיחותי",
-  featureTitle1: "פתיחת פרויקט תוך דקה",
-  featureText1: "קליטת נתוני לקוח, כתובת וסטטוס עבודה בצורה מהירה וברורה.",
-  featureTitle2: "מסמכים שמייצרים אמון",
-  featureText2: "אישורי תקינות מקצועיים עם תמונות, חתימה וחותמת להדפסה/שליחה.",
-  featureTitle3: "ניהול פיננסי נקי",
-  featureText3: "חשבוניות, הצעות מחיר וייצוא מסודר לרואה חשבון בלחיצה.",
-  processTitle: "איך זה עובד",
-  step1: "פתיחת פרויקט",
-  step2: "בדיקה ותיעוד",
-  step3: "הנפקת מסמכים",
-  step4: "סגירה וייצוא לרו\"ח",
-  galleryLabel1: "ארונות חשמל מתקדמים",
-  galleryLabel2: "בדיקות איכות ובטיחות",
-  galleryLabel3: "תיעוד דיגיטלי מלא",
+  whatsappCta: "קבלת הצעת מחיר ב-WhatsApp",
+  chip1: "",
+  chip2: "",
+  chip3: "",
+  trustTitle1: "",
+  trustText1: "",
+  trustTitle2: "",
+  trustText2: "",
+  trustTitle3: "",
+  trustText3: "",
+  featureTitle1: "בדיקות תקינות חשמל",
+  featureText1: "בדיקות מקיפות והנפקת אישורים מקצועיים לפי דרישות התקן.",
+  featureTitle2: "איתור ותיקון תקלות",
+  featureText2: "אבחון מדויק וטיפול מהיר בתקלות חשמל בבית ובעסק.",
+  featureTitle3: "שדרוג ותחזוקה",
+  featureText3: "שדרוג לוחות ותשתיות חשמל, תחזוקה תקופתית ושיפור בטיחות.",
+  processTitle: "",
+  step1: "",
+  step2: "",
+  step3: "",
+  step4: "",
+  galleryLabel1: "לוחות חשמל ובדיקות תקינות",
+  galleryLabel2: "",
+  galleryLabel3: "",
 };
 
 let settings = {
@@ -193,39 +193,29 @@ function setupHomeShowcase() {
 
 function renderHomeFromSettings() {
   const hc = { ...DEFAULT_HOME_CONTENT, ...(settings.homeContent || {}) };
+  const setText = (id, value) => {
+    const el = $(id);
+    if (el) el.textContent = value || "";
+  };
   $("heroInspectorName").textContent = settings.name || "אברהם רובינשטיין - חשמלאי מוסמך";
   $("contactName").textContent = settings.name || "—";
   $("contactPhone").textContent = settings.phone || "—";
   $("contactEmail").textContent = settings.email || "—";
   $("aboutText").textContent = settings.aboutText || "";
-  $("homeHeroKicker").textContent = hc.kicker;
-  $("homeHeroTitle").textContent = hc.title;
-  $("homeHeroSubtitle").textContent = hc.subtitle;
-  $("homePrimaryCta").textContent = hc.primaryCta;
+  setText("homeHeroKicker", hc.kicker);
+  setText("homeHeroTitle", hc.title);
+  setText("homeHeroSubtitle", hc.subtitle);
+  setText("homePrimaryCta", hc.primaryCta);
   $("whatsappTopLink").textContent = hc.whatsappCta;
-  $("homeChip1").textContent = hc.chip1;
-  $("homeChip2").textContent = hc.chip2;
-  $("homeChip3").textContent = hc.chip3;
-  $("homeTrustTitle1").textContent = hc.trustTitle1;
-  $("homeTrustText1").textContent = hc.trustText1;
-  $("homeTrustTitle2").textContent = hc.trustTitle2;
-  $("homeTrustText2").textContent = hc.trustText2;
-  $("homeTrustTitle3").textContent = hc.trustTitle3;
-  $("homeTrustText3").textContent = hc.trustText3;
-  $("homeFeatureTitle1").textContent = hc.featureTitle1;
-  $("homeFeatureText1").textContent = hc.featureText1;
-  $("homeFeatureTitle2").textContent = hc.featureTitle2;
-  $("homeFeatureText2").textContent = hc.featureText2;
-  $("homeFeatureTitle3").textContent = hc.featureTitle3;
-  $("homeFeatureText3").textContent = hc.featureText3;
-  $("homeProcessTitle").textContent = hc.processTitle;
-  $("homeStep1").textContent = hc.step1;
-  $("homeStep2").textContent = hc.step2;
-  $("homeStep3").textContent = hc.step3;
-  $("homeStep4").textContent = hc.step4;
-  $("homeGalleryLabel1").textContent = hc.galleryLabel1;
-  $("homeGalleryLabel2").textContent = hc.galleryLabel2;
-  $("homeGalleryLabel3").textContent = hc.galleryLabel3;
+  setText("homeFeatureTitle1", hc.featureTitle1);
+  setText("homeFeatureText1", hc.featureText1);
+  setText("homeFeatureTitle2", hc.featureTitle2);
+  setText("homeFeatureText2", hc.featureText2);
+  setText("homeFeatureTitle3", hc.featureTitle3);
+  setText("homeFeatureText3", hc.featureText3);
+  setText("homeGalleryLabel1", hc.galleryLabel1);
+  setText("homeGalleryLabel2", hc.galleryLabel2);
+  setText("homeGalleryLabel3", hc.galleryLabel3);
 
   const href = toWaHref(settings.whatsapp || settings.phone);
   $("whatsappLink").href = href;

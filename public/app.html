@@ -57,62 +57,31 @@
 
   <main class="max-w-7xl mx-auto px-4 py-6 space-y-8" id="mainContent">
     <section id="section-home" class="app-card hero-card premium-home">
-      <div class="hero-shell">
+      <div class="hero-shell simple-home-shell">
         <div class="hero-copy reveal-up">
-          <p id="homeHeroKicker" class="hero-kicker">Premium Home v2</p>
-          <h2 id="homeHeroTitle" class="hero-title">חשמלאי מוסמך עם תפעול חכם, שירות מהיר ונראות מקצועית</h2>
+          <p id="homeHeroKicker" class="hero-kicker">חשמלאי מוסמך</p>
+          <h2 id="homeHeroTitle" class="hero-title">שירותי חשמל מקצועיים לבית, לעסק ולתעשייה</h2>
           <p id="homeHeroSubtitle" class="hero-subtitle">
-            פתרון פרימיום לניהול פרויקטים, הפקת אישורים, חשבוניות והצעות מחיר - עם תיעוד מסודר,
-            חוויית עבודה מהירה בשטח, וסטנדרט שירות שמרשים לקוחות מהמפגש הראשון.
+            בדיקות תקינות, טיפול בלוחות חשמל, איתור ותיקון תקלות, תחזוקה ושדרוג מערכות חשמל - באחריות, בבטיחות ובסטנדרט עבודה גבוה.
           </p>
           <div class="hero-actions">
-            <button id="homePrimaryCta" class="btn-primary" data-go-portal type="button">כניסה לאזור אישי</button>
-            <a id="whatsappTopLink" class="btn-secondary" href="#" target="_blank" rel="noopener">דברו איתי ב-WhatsApp</a>
-          </div>
-          <div class="chips-wrap">
-            <span id="homeChip1" class="hero-chip">אישורים מקצועיים</span>
-            <span id="homeChip2" class="hero-chip">חשבוניות + מס' הקצאה</span>
-            <span id="homeChip3" class="hero-chip">ייצוא CSV לרו"ח</span>
-          </div>
-          <div class="trust-row">
-            <article class="trust-item"><strong id="homeTrustTitle1">זמינות</strong><small id="homeTrustText1">מענה מהיר ותיאום יעיל</small></article>
-            <article class="trust-item"><strong id="homeTrustTitle2">אמינות</strong><small id="homeTrustText2">תיעוד מלא ושקיפות ללקוח</small></article>
-            <article class="trust-item"><strong id="homeTrustTitle3">מקצועיות</strong><small id="homeTrustText3">תהליך עבודה מדויק ובטיחותי</small></article>
+            <a id="whatsappTopLink" class="btn-primary" href="#" target="_blank" rel="noopener">קבלת הצעת מחיר ב-WhatsApp</a>
+            <button id="homePrimaryCta" class="btn-secondary" data-go-portal type="button">כניסה לאזור אישי</button>
           </div>
         </div>
-
-        <div class="hero-gallery-wrap reveal-up" aria-label="גלריית פרויקטים בארונות חשמל">
-          <div class="hero-gallery premium-gallery">
-            <button class="gallery-card large" type="button" data-gallery-src="/images/cabinet-1.svg" data-gallery-alt="ארון חשמל תעשייתי עם מיתוג מעגלים">
-              <img src="/images/cabinet-1.svg" alt="ארון חשמל תעשייתי עם מיתוג מעגלים" loading="lazy" />
-              <span id="homeGalleryLabel1">ארונות חשמל מתקדמים</span>
-            </button>
-            <button class="gallery-card" type="button" data-gallery-src="/images/cabinet-2.svg" data-gallery-alt="בדיקות איכות ובטיחות בלוח חשמל">
-              <img src="/images/cabinet-2.svg" alt="בדיקות איכות ובטיחות בלוח חשמל" loading="lazy" />
-              <span id="homeGalleryLabel2">בדיקות איכות ובטיחות</span>
-            </button>
-            <button class="gallery-card" type="button" data-gallery-src="/images/cabinet-3.svg" data-gallery-alt="תיעוד חכם של תחזוקת ארונות חשמל">
-              <img src="/images/cabinet-3.svg" alt="תיעוד חכם של תחזוקת ארונות חשמל" loading="lazy" />
-              <span id="homeGalleryLabel3">תיעוד דיגיטלי מלא</span>
-            </button>
+        <div class="hero-gallery-wrap reveal-up" aria-label="גלריית עבודות חשמל">
+          <div class="hero-gallery simple-gallery">
+            <div class="gallery-card large">
+              <img src="/images/cabinet-1.svg" alt="לוח חשמל מקצועי לאחר סידור ובדיקה" loading="lazy" />
+              <span id="homeGalleryLabel1">לוחות חשמל ובדיקות תקינות</span>
+            </div>
           </div>
         </div>
       </div>
-
       <div class="home-grid-grid reveal-up">
-        <article class="feature-card"><h3 id="homeFeatureTitle1">פתיחת פרויקט תוך דקה</h3><p id="homeFeatureText1">קליטת נתוני לקוח, כתובת וסטטוס עבודה בצורה מהירה וברורה.</p></article>
-        <article class="feature-card"><h3 id="homeFeatureTitle2">מסמכים שמייצרים אמון</h3><p id="homeFeatureText2">אישורי תקינות מקצועיים עם תמונות, חתימה וחותמת להדפסה/שליחה.</p></article>
-        <article class="feature-card"><h3 id="homeFeatureTitle3">ניהול פיננסי נקי</h3><p id="homeFeatureText3">חשבוניות, הצעות מחיר וייצוא מסודר לרואה חשבון בלחיצה.</p></article>
-      </div>
-
-      <div class="process-strip reveal-up">
-        <h3 id="homeProcessTitle">איך זה עובד</h3>
-        <ol>
-          <li><b>1</b><span id="homeStep1">פתיחת פרויקט</span></li>
-          <li><b>2</b><span id="homeStep2">בדיקה ותיעוד</span></li>
-          <li><b>3</b><span id="homeStep3">הנפקת מסמכים</span></li>
-          <li><b>4</b><span id="homeStep4">סגירה וייצוא לרו"ח</span></li>
-        </ol>
+        <article class="feature-card"><h3 id="homeFeatureTitle1">בדיקות תקינות חשמל</h3><p id="homeFeatureText1">בדיקות מקיפות והנפקת אישורים מקצועיים לפי דרישות התקן.</p></article>
+        <article class="feature-card"><h3 id="homeFeatureTitle2">איתור ותיקון תקלות</h3><p id="homeFeatureText2">אבחון מדויק וטיפול מהיר בתקלות חשמל בבית ובעסק.</p></article>
+        <article class="feature-card"><h3 id="homeFeatureTitle3">שדרוג ותחזוקה</h3><p id="homeFeatureText3">שדרוג לוחות ותשתיות חשמל, תחזוקה תקופתית ושיפור בטיחות.</p></article>
       </div>
     </section>
 
@@ -175,6 +144,26 @@
             <div class="stat"><span id="statInvoices">0</span><small>חשבוניות</small></div>
             <div class="stat"><span id="statQuotes">0</span><small>הצעות מחיר</small></div>
           </div>
+          <div class="grid md:grid-cols-2 gap-4 mt-4">
+            <div class="box">
+              <h4 class="font-bold mb-2">לקוחות (CRM)</h4>
+              <div class="grid md:grid-cols-2 gap-2 mb-2">
+                <input id="customerName" class="inp" placeholder="שם לקוח *" />
+                <input id="customerPhone" class="inp" placeholder="טלפון" />
+              </div>
+              <button id="saveCustomerBtn" type="button" class="btn-primary">שמור לקוח</button>
+              <div class="table-wrap mt-3"><table class="table"><thead><tr><th>שם</th><th>טלפון</th><th>פעולות</th></tr></thead><tbody id="customersTable"></tbody></table></div>
+            </div>
+            <div class="box">
+              <h4 class="font-bold mb-2">משימות ותזכורות</h4>
+              <div class="grid md:grid-cols-2 gap-2 mb-2">
+                <input id="taskTitle" class="inp" placeholder="כותרת משימה *" />
+                <input id="taskDueDate" type="date" class="inp" />
+              </div>
+              <button id="saveTaskBtn" type="button" class="btn-primary">שמור משימה</button>
+              <div class="table-wrap mt-3"><table class="table"><thead><tr><th>משימה</th><th>תאריך יעד</th><th>פעולות</th></tr></thead><tbody id="tasksTable"></tbody></table></div>
+            </div>
+          </div>
         </div>
 
         <div id="portal-projects" class="portal-panel hidden">
@@ -200,9 +189,16 @@
 
         <div id="portal-documents" class="portal-panel hidden">
           <h3 class="font-bold text-lg mb-3">מערכת הנפקת מסמכים</h3>
+          <div class="grid md:grid-cols-3 gap-2 mb-3">
+            <input id="docsSearchInput" class="inp" placeholder="חיפוש מסמכים (שם/כתובת/מספר)" />
+            <select id="docsStatusFilter" class="inp"><option value="">כל הסטטוסים</option><option value="draft">טיוטה</option><option value="final">סופי</option></select>
+            <select id="docsTypeFilter" class="inp"><option value="">כל הסוגים</option><option value="installation">תקינות מתקן</option><option value="portable">צרכנים מטלטלים</option></select>
+          </div>
           <form id="docForm" class="grid md:grid-cols-2 gap-3 mb-4">
             <input type="hidden" id="docId" />
+            <div><label class="lbl">מספר מסמך</label><input id="docNo" class="inp" placeholder="אוטומטי אם ריק" /></div>
             <div><label class="lbl">סוג מסמך</label><select id="docType" class="inp"><option value="installation">אישור תקינות מתקן</option><option value="portable">אישור צרכנים מטלטלים</option></select></div>
+            <div><label class="lbl">סטטוס</label><select id="docWorkflowStatus" class="inp"><option value="draft">טיוטה</option><option value="final">סופי</option></select></div>
             <div><label class="lbl">שם מתקן / אתר *</label><input id="docFacilityName" class="inp" /></div>
             <div><label class="lbl">כתובת</label><input id="docAddress" class="inp" /></div>
             <div><label class="lbl">גודל חיבור</label><input id="docConnection" class="inp" /></div>
@@ -221,10 +217,11 @@
           </div>
           <div class="flex flex-wrap gap-2 mb-4">
             <button id="saveDocBtn" type="button" class="btn-primary">שמירת מסמך</button>
+            <button id="finalizeDocBtn" type="button" class="btn-secondary">סמן כסופי</button>
             <button id="printDocBtn" type="button" class="btn-secondary">הדפסה / PDF</button>
             <button id="newDocBtn" type="button" class="btn-secondary">מסמך חדש</button>
           </div>
-          <div class="table-wrap"><table class="table"><thead><tr><th>סוג</th><th>שם מתקן</th><th>כתובת</th><th>עודכן</th><th>פעולות</th></tr></thead><tbody id="docsTable"></tbody></table></div>
+          <div class="table-wrap"><table class="table"><thead><tr><th>מספר</th><th>סטטוס</th><th>סוג</th><th>שם מתקן</th><th>כתובת</th><th>עודכן</th><th>פעולות</th></tr></thead><tbody id="docsTable"></tbody></table></div>
         </div>
 
         <div id="portal-invoices" class="portal-panel hidden">
@@ -253,7 +250,8 @@
             <div><label class="lbl">טלפון</label><input id="setPhone" class="inp" /></div>
             <div><label class="lbl">דוא"ל</label><input id="setEmail" class="inp" /></div>
             <div><label class="lbl">WhatsApp (ניתן לשינוי)</label><input id="setWhatsapp" class="inp" /></div>
-            <div><label class="lbl">קוד כניסה לאזור אישי</label><input id="setAccessCode" class="inp" /></div>
+            <div><label class="lbl">קוד כניסה מנהל</label><input id="setAccessCode" class="inp" /></div>
+            <div><label class="lbl">קוד כניסה עובד</label><input id="setWorkerAccessCode" class="inp" /></div>
             <div class="md:col-span-2"><label class="lbl">אודות</label><textarea id="setAboutText" class="inp" rows="4"></textarea></div>
             <div class="md:col-span-2 wizard-config-block">
               <h4 class="font-bold text-blue-900 mb-2">תוכן דף הבית (ניתן לעריכה מלאה)</h4>
@@ -315,6 +313,8 @@
             </div>
             <div class="md:col-span-2 flex gap-2 flex-wrap">
               <button id="saveSettingsBtn" class="btn-primary" type="button">שמור הגדרות</button>
+              <button id="exportBackupBtn" class="btn-secondary" type="button">גיבוי מלא JSON</button>
+              <label class="btn-secondary cursor-pointer">שחזור JSON<input id="importBackupInput" type="file" accept="application/json" class="hidden" /></label>
               <button id="logoutBtn" class="btn-secondary" type="button">התנתקות</button>
             </div>
           </form>
