@@ -289,7 +289,9 @@ function renderHomeFromSettings() {
   const getEl = (id) => $(id);
   const setText = (id, value) => {
     const el = getEl(id);
-    if (el) el.textContent = value || "";
+    if (!el) return;
+    if (value == null || value === "") el.textContent = "";
+    else el.textContent = typeof value === "string" ? value : String(value);
   };
   setText("heroInspectorName", settings.name || "אברהם רובינשטיין - חשמלאי מוסמך");
   setText("contactName", settings.name || "—");
@@ -1068,12 +1070,25 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   try {
     await api("/api/health");
+  } catch (e) {
+    console.error(e);
+    alert(`שגיאת חיבור לשרת (בדיקת /api/health): ${e.message}`);
+    return;
+  }
+  try {
     await loadSettings();
+  } catch (e) {
+    console.error(e);
+    alert(`שגיאה בטעינת הגדרות: ${e.message}`);
+    return;
+  }
+  try {
     fillProjectForm(null);
     fillDocForm(null);
     fillFinancialForm("invoice", null);
     fillFinancialForm("quote", null);
   } catch (e) {
-    alert(`לא ניתן להתחבר לשרת: ${e.message}`);
+    console.error(e);
+    alert(`שגיאה באתחול טפסים בממשק: ${e.message}`);
   }
 });

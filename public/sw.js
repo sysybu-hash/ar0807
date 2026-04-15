@@ -1,4 +1,5 @@
-const CACHE_NAME = "ecs-pwa-v4";
+const CACHE_NAME = "ecs-pwa-v5";
+
 const CORE_ASSETS = [
   "/",
   "/app.html",
@@ -11,17 +12,39 @@ const CORE_ASSETS = [
   "/images/cabinet-3.svg",
 ];
 
+/** מטמון שלב התקנה — לא נכשל כולו אם נכשל נכס בודד (למשל / לא זמין) */
+async function precacheSafe(cache) {
+  for (const path of CORE_ASSETS) {
+    try {
+      const res = await fetch(new Request(path, { cache: "reload" }));
+      if (res.ok) await cache.put(path, res);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+function isNetworkFirstPath(pathname) {
+  return (
+    pathname === "/app.js" ||
+    pathname === "/styles.css" ||
+    pathname === "/app.html" ||
+    pathname.startsWith("/images/")
+  );
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) => precacheSafe(cache)).then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
@@ -33,6 +56,23 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(fetch(event.request));
     return;
   }
+
+  /* קודם רשת ל־JS/CSS/HTML ותמונות — מונע תקיעות בגרסה ישנה של app.js */
+  if (isNetworkFirstPath(url.pathname)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
   if (event.request.mode === "navigate") {
     event.respondWith(
       fetch(event.request)
