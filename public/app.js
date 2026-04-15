@@ -193,20 +193,21 @@ function setupHomeShowcase() {
 
 function renderHomeFromSettings() {
   const hc = { ...DEFAULT_HOME_CONTENT, ...(settings.homeContent || {}) };
+  const getEl = (id) => $(id);
   const setText = (id, value) => {
-    const el = $(id);
+    const el = getEl(id);
     if (el) el.textContent = value || "";
   };
-  $("heroInspectorName").textContent = settings.name || "אברהם רובינשטיין - חשמלאי מוסמך";
-  $("contactName").textContent = settings.name || "—";
-  $("contactPhone").textContent = settings.phone || "—";
-  $("contactEmail").textContent = settings.email || "—";
-  $("aboutText").textContent = settings.aboutText || "";
+  setText("heroInspectorName", settings.name || "אברהם רובינשטיין - חשמלאי מוסמך");
+  setText("contactName", settings.name || "—");
+  setText("contactPhone", settings.phone || "—");
+  setText("contactEmail", settings.email || "—");
+  setText("aboutText", settings.aboutText || "");
   setText("homeHeroKicker", hc.kicker);
   setText("homeHeroTitle", hc.title);
   setText("homeHeroSubtitle", hc.subtitle);
   setText("homePrimaryCta", hc.primaryCta);
-  $("whatsappTopLink").textContent = hc.whatsappCta;
+  setText("whatsappTopLink", hc.whatsappCta);
   setText("homeFeatureTitle1", hc.featureTitle1);
   setText("homeFeatureText1", hc.featureText1);
   setText("homeFeatureTitle2", hc.featureTitle2);
@@ -218,9 +219,12 @@ function renderHomeFromSettings() {
   setText("homeGalleryLabel3", hc.galleryLabel3);
 
   const href = toWaHref(settings.whatsapp || settings.phone);
-  $("whatsappLink").href = href;
-  $("whatsappTopLink").href = href;
-  $("whatsappFloatingCta").href = href;
+  const wa = getEl("whatsappLink");
+  const waTop = getEl("whatsappTopLink");
+  const waFloat = getEl("whatsappFloatingCta");
+  if (wa) wa.href = href;
+  if (waTop) waTop.href = href;
+  if (waFloat) waFloat.href = href;
 }
 
 function readAccessPrefs() {
