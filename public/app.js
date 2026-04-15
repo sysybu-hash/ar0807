@@ -22,6 +22,8 @@ let projectCache = [];
 let docsCache = [];
 let invoicesCache = [];
 let quotesCache = [];
+let deferredInstallPrompt = null;
+const ACCESS_STORAGE_KEY = "ecs_accessibility_prefs_v1";
 
 function $(id) {
   return document.getElementById(id);
@@ -99,12 +101,20 @@ function setSection(section) {
 }
 
 function setupDrawer() {
-  $("drawerOpen").onclick = () => $("drawer").classList.remove("hidden");
-  $("drawerClose").onclick = () => $("drawer").classList.add("hidden");
+  const drawer = $("drawer");
+  const closeDrawer = () => drawer.classList.add("hidden");
+  $("drawerOpen").onclick = () => drawer.classList.remove("hidden");
+  $("drawerClose").onclick = closeDrawer;
+  drawer.addEventListener("click", (ev) => {
+    if (ev.target === drawer) closeDrawer();
+  });
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape") closeDrawer();
+  });
   document.querySelectorAll(".drawer-link").forEach((btn) => {
     btn.onclick = () => {
       setSection(btn.dataset.section);
-      $("drawer").classList.add("hidden");
+      closeDrawer();
     };
   });
   document.querySelector("[data-go-portal]").onclick = () => setSection("portal");
@@ -120,6 +130,58 @@ function renderHomeFromSettings() {
   const href = toWaHref(settings.whatsapp || settings.phone);
   $("whatsappLink").href = href;
   $("whatsappTopLink").href = href;
+  $("whatsappFloatingCta").href = href;
+}
+
+function readAccessPrefs() {
+  try {
+    return JSON.parse(localStorage.getItem(ACCESS_STORAGE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function writeAccessPrefs(next) {
+  localStorage.setItem(ACCESS_STORAGE_KEY, JSON.stringify(next));
+}
+
+function applyAccessPrefs(prefs) {
+  document.body.classList.toggle("high-contrast", !!prefs.contrast);
+  document.body.classList.toggle("underline-links", !!prefs.underlineLinks);
+  document.body.classList.toggle("grayscale", !!prefs.grayscale);
+  const size = Number(prefs.fontSize || 16);
+  document.body.style.setProperty("--base-font-size", `${Math.min(22, Math.max(14, size))}px`);
+}
+
+function setupAccessibilityToolbar() {
+  const toggle = $("accessToggle");
+  const panel = $("accessPanel");
+  const prefs = readAccessPrefs();
+  applyAccessPrefs(prefs);
+
+  toggle.onclick = () => {
+    panel.classList.toggle("hidden");
+    toggle.setAttribute("aria-expanded", String(!panel.classList.contains("hidden")));
+  };
+
+  panel.querySelectorAll("button[data-access]").forEach((btn) => {
+    btn.onclick = () => {
+      const action = btn.dataset.access;
+      const state = readAccessPrefs();
+      if (action === "font-plus") state.fontSize = Math.min(22, Number(state.fontSize || 16) + 1);
+      if (action === "font-minus") state.fontSize = Math.max(14, Number(state.fontSize || 16) - 1);
+      if (action === "contrast") state.contrast = !state.contrast;
+      if (action === "underline-links") state.underlineLinks = !state.underlineLinks;
+      if (action === "grayscale") state.grayscale = !state.grayscale;
+      if (action === "reset") {
+        localStorage.removeItem(ACCESS_STORAGE_KEY);
+        applyAccessPrefs({});
+        return;
+      }
+      writeAccessPrefs(state);
+      applyAccessPrefs(state);
+    };
+  });
 }
 
 function setupPortalTabs() {
@@ -581,8 +643,34 @@ function setupExport() {
   };
 }
 
+function setupPwaInstall() {
+  const installBtn = $("pwaInstallBtn");
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    installBtn.classList.remove("hidden");
+  });
+
+  installBtn.onclick = async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    installBtn.classList.add("hidden");
+  };
+}
+
+function registerServiceWorker() {
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    });
+  }
+}
+
 window.addEventListener("DOMContentLoaded", async () => {
   setupDrawer();
+  setupAccessibilityToolbar();
   setupPortalTabs();
   setupPortalAuth();
   bindProjectForm();
@@ -592,6 +680,8 @@ window.addEventListener("DOMContentLoaded", async () => {
   renderFinancialForm("quote");
   bindSettingsForm();
   setupExport();
+  setupPwaInstall();
+  registerServiceWorker();
   setSection("home");
 
   try {

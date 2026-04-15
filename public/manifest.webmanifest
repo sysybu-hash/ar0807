@@ -1,0 +1,20 @@
+{
+  "name": "אברהם רובינשטיין - חשמלאי מוסמך",
+  "short_name": "ניהול חשמל",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b2c6b",
+  "theme_color": "#0b2c6b",
+  "description": "מערכת ניהול פרויקטים, מסמכים, חשבוניות והצעות מחיר לחשמלאי מוסמך.",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

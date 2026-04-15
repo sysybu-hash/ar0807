@@ -3,60 +3,88 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="אברהם רובינשטיין - חשמלאי מוסמך. ניהול פרויקטים, מסמכים מקצועיים, חשבוניות והצעות מחיר במקום אחד." />
+  <meta name="theme-color" content="#0B2C6B" />
+  <meta name="color-scheme" content="light only" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/icons/icon.svg" />
   <title>אברהם רובינשטיין - חשמלאי מוסמך</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="bg-slate-100 text-slate-900">
+  <a href="#section-portal" class="skip-link">דלג לתוכן הראשי</a>
+
+  <div id="accessToolbar" class="access-toolbar" role="region" aria-label="סרגל נגישות">
+    <button id="accessToggle" class="access-main-btn" type="button" aria-expanded="false" aria-controls="accessPanel">נגישות</button>
+    <div id="accessPanel" class="access-panel hidden">
+      <button data-access="font-plus" type="button">A+</button>
+      <button data-access="font-minus" type="button">A-</button>
+      <button data-access="contrast" type="button">ניגודיות גבוהה</button>
+      <button data-access="underline-links" type="button">קו תחתון לקישורים</button>
+      <button data-access="grayscale" type="button">גווני אפור</button>
+      <button data-access="reset" type="button">איפוס</button>
+    </div>
+  </div>
+
   <aside id="drawer" class="drawer hidden">
     <div class="drawer-inner">
-      <button id="drawerClose" class="drawer-close" type="button">✕</button>
-      <h2 class="text-xl font-bold mb-6">תפריט</h2>
+      <button id="drawerClose" class="drawer-close" type="button" aria-label="סגור תפריט">✕</button>
+      <h2 class="text-xl font-bold mb-6">תפריט ראשי</h2>
       <nav class="space-y-2">
-        <button class="drawer-link" data-section="home">דף הבית</button>
-        <button class="drawer-link" data-section="about">אודות</button>
-        <button class="drawer-link" data-section="contact">צור קשר</button>
-        <button class="drawer-link" data-section="portal">כניסה לאזור אישי</button>
+        <button class="drawer-link" data-section="home" type="button">דף הבית</button>
+        <button class="drawer-link" data-section="about" type="button">אודות</button>
+        <button class="drawer-link" data-section="contact" type="button">צור קשר</button>
+        <button class="drawer-link" data-section="portal" type="button">אזור אישי</button>
       </nav>
     </div>
   </aside>
 
-  <header class="site-header">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
-      <button id="drawerOpen" class="menu-btn" type="button">☰ תפריט</button>
+  <header class="site-header no-print">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-4" role="navigation" aria-label="ניווט עליון">
+      <div class="flex items-center gap-3">
+        <button id="drawerOpen" class="menu-btn" type="button" aria-label="פתח תפריט">☰ תפריט</button>
+        <button id="pwaInstallBtn" class="menu-btn hidden" type="button">התקן אפליקציה</button>
+      </div>
       <div class="text-left">
-        <h1 id="heroInspectorName" class="text-xl md:text-2xl font-bold"></h1>
-        <p class="text-sm text-blue-100">ניהול פרויקטים, מסמכים, חשבוניות והצעות מחיר</p>
+        <h1 id="heroInspectorName" class="text-xl md:text-2xl font-extrabold"></h1>
+        <p class="text-sm text-blue-100">שירות מקצועי, תיעוד מלא ועמידה בתהליכי איכות ובטיחות</p>
       </div>
     </div>
   </header>
 
-  <main class="max-w-7xl mx-auto px-4 py-6 space-y-8">
-    <section id="section-home" class="app-card">
-      <div class="grid lg:grid-cols-2 gap-6 items-center">
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-8" id="mainContent">
+    <section id="section-home" class="app-card hero-card">
+      <div class="grid lg:grid-cols-2 gap-8 items-center">
         <div>
-          <h2 class="text-3xl font-bold text-slate-900 mb-3">מערכת ניהול מלאה לחשמלאי מוסמך</h2>
-          <p class="text-slate-700 leading-relaxed mb-4">
-            פלטפורמה אחת לניהול כולל: תיעוד פרויקטים, הנפקת מסמכים מקצועיים, חשבוניות עם מספר הקצאה,
-            הצעות מחיר וייצוא דוחות לרו"ח.
+          <p class="hero-kicker">פתרון מתקדם לחשמלאי מוסמך</p>
+          <h2 class="text-3xl md:text-5xl font-extrabold text-slate-900 mb-4 leading-tight">ניהול עסק חשמל ברמת פרימיום</h2>
+          <p class="text-slate-700 leading-relaxed mb-5 text-lg">
+            מערכת מקיפה המשלבת ניהול פרויקטים, תיקי עבודה מתועדים, הנפקת אישורים מקצועיים,
+            חשבוניות עם מספר הקצאה והצעות מחיר - הכל בממשק נקי, מהיר ומותאם לשטח.
           </p>
-          <div class="flex flex-wrap gap-3">
+          <div class="flex flex-wrap gap-3 mb-4">
             <button class="btn-primary" data-go-portal type="button">כניסה לאזור אישי</button>
-            <a id="whatsappTopLink" class="btn-secondary" href="#" target="_blank" rel="noopener">שליחת הודעת WhatsApp</a>
+            <a id="whatsappTopLink" class="btn-secondary" href="#" target="_blank" rel="noopener">הודעת WhatsApp מהירה</a>
+          </div>
+          <div class="chips-wrap">
+            <span class="hero-chip">מערכת מסמכים כפולה</span>
+            <span class="hero-chip">חשבוניות והצעות מחיר</span>
+            <span class="hero-chip">ייצוא מיידי לרו"ח</span>
           </div>
         </div>
-        <div class="rounded-2xl bg-slate-50 p-5 border border-slate-200">
-          <h3 class="font-bold text-lg mb-3">מה כלול במערכת</h3>
-          <ul class="list-disc pr-6 text-slate-700 space-y-1">
-            <li>אישור תקינות מתקן חשמל</li>
-            <li>אישור צרכנים מטלטלים</li>
-            <li>ניהול פרויקטים עם גלריית תמונות</li>
-            <li>חשבוניות עם מספר הקצאה (תואם 01/2026)</li>
-            <li>הצעות מחיר והמרה לחשבונית</li>
-            <li>ייצוא דוחות CSV לרו"ח</li>
-          </ul>
+        <div class="hero-gallery">
+          <img src="https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=1000&q=80" alt="ארון חשמל תעשייתי מסודר עם מפסקים ותיוג" />
+          <img src="https://images.unsplash.com/photo-1581093196277-9f608bb3de8f?auto=format&fit=crop&w=1000&q=80" alt="בדיקת לוח חשמל עם ציוד מדידה מקצועי" />
+          <img src="https://images.unsplash.com/photo-1621905252472-e8a8e4f8d7db?auto=format&fit=crop&w=1000&q=80" alt="ארון בקרה עם תיעוד חיבורים תקני" />
         </div>
+      </div>
+      <div class="grid md:grid-cols-3 gap-4 mt-8">
+        <article class="feature-card"><h3>תיעוד פרויקטים חכם</h3><p>ניהול שלבי עבודה, תמונות שטח, סטטוסים ונתוני לקוח בכל רגע.</p></article>
+        <article class="feature-card"><h3>מסמכים וחשבוניות במקום אחד</h3><p>הנפקת אישורי תקינות, צרכנים מטלטלים, חשבוניות והצעות מחיר.</p></article>
+        <article class="feature-card"><h3>תואם עבודה מקצועית ורגולציה</h3><p>מבנה תיעוד ברור, נגישות משופרת ועקרונות תאימות לפי EN 301 549 / WCAG 2.1 AA.</p></article>
       </div>
     </section>
 
@@ -202,6 +230,14 @@
       </div>
     </section>
   </main>
+
+  <a id="whatsappFloatingCta" class="wa-floating-cta" href="#" target="_blank" rel="noopener" aria-label="פתיחת WhatsApp">
+    <span>WhatsApp</span>
+  </a>
+
+  <noscript>
+    <div class="noscript">יש להפעיל JavaScript כדי להשתמש בכל יכולות המערכת.</div>
+  </noscript>
 
   <script src="app.js"></script>
 </body>
