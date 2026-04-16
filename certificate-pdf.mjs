@@ -112,28 +112,44 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
     });
     y += doc.heightOfString(certificate.notes || "—", { width: w, align: "right" }) + 12;
 
+    const decl = String(inspector?.inspectorDeclarationText || "").trim();
+    if (decl) {
+      if (y > doc.page.height - 100) {
+        doc.addPage();
+        y = doc.page.margins.top;
+        doc.font("Hebrew");
+      }
+      doc.fontSize(10).text("הצהרת בודק:", left, y, { width: w, align: "right" });
+      y += 12;
+      doc.fontSize(9).text(decl, left, y, { width: w, align: "right" });
+      y += doc.heightOfString(decl, { width: w, align: "right" }) + 10;
+    }
+
     const photos = Array.isArray(certificate.photos) ? certificate.photos : [];
-    const thumbW = 110;
-    const thumbH = 78;
+    const imgW = w;
+    const imgMaxH = Math.min(220, w * 0.42);
     for (const p of photos) {
       const b = dataUrlToBuffer(p?.data);
       if (!b) continue;
-      if (y + thumbH > doc.page.height - 100) {
+      if (y + imgMaxH > doc.page.height - 120) {
         doc.addPage();
         y = doc.page.margins.top;
         doc.font("Hebrew");
       }
       try {
-        doc.image(b, left + w - thumbW, y, { width: thumbW, height: thumbH, fit: [thumbW, thumbH] });
+        doc.image(b, left, y, { width: imgW, height: imgMaxH, fit: [imgW, imgMaxH] });
       } catch {
         /* skip bad image */
       }
-      y += thumbH + 10;
+      y += imgMaxH + 12;
     }
     y += 6;
 
     const sigBuf = dataUrlToBuffer(certificate.signatureData);
     const stampBuf = dataUrlToBuffer(inspector?.stampData);
+    const mmToPt = 2.83465;
+    const offX = Number(inspector?.stampOffsetXmm || 0) * mmToPt;
+    const offY = Number(inspector?.stampOffsetYmm || 0) * mmToPt;
 
     if (y > doc.page.height - 130) {
       doc.addPage();
@@ -145,9 +161,12 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
     y += 14;
 
     const rowY = y;
+    const stampW = 110;
+    const stampH = 80;
     if (stampBuf) {
       try {
-        doc.image(stampBuf, left + w - 100, rowY, { width: 100, height: 72, fit: [100, 72] });
+        const stampX = left + w - stampW - offX;
+        doc.image(stampBuf, stampX, rowY + offY, { width: stampW, height: stampH, fit: [stampW, stampH] });
       } catch {
         /* ignore */
       }

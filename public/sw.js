@@ -1,10 +1,13 @@
-const CACHE_NAME = "ecs-pwa-v5";
+const CACHE_NAME = "ecs-pwa-v6";
 
 const CORE_ASSETS = [
   "/",
   "/app.html",
   "/styles.css",
   "/app.js",
+  "/js/api.js",
+  "/js/offline-queue.js",
+  "/tw-built.css",
   "/manifest.webmanifest",
   "/icons/icon.svg",
   "/images/cabinet-1.svg",
@@ -29,6 +32,8 @@ function isNetworkFirstPath(pathname) {
     pathname === "/app.js" ||
     pathname === "/styles.css" ||
     pathname === "/app.html" ||
+    pathname === "/tw-built.css" ||
+    pathname.startsWith("/js/") ||
     pathname.startsWith("/images/")
   );
 }
@@ -46,6 +51,11 @@ self.addEventListener("activate", (event) => {
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
+});
+
+/** נסה לסנכרן תור IndexedDB כשהדף חוזר למקוון — הלקוח מריץ processPendingWizardQueue */
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("fetch", (event) => {

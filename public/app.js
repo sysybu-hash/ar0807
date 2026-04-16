@@ -1,16 +1,33 @@
 /* global SignaturePad */
 import { api, apiBlob, getToken, setToken, clearToken } from "./js/api.js";
+import {
+  enqueueProjectWizardPayload,
+  processPendingWizardQueue,
+  countPendingWizard,
+} from "./js/offline-queue.js";
 const WIZARD_STEPS = ["dashboard", "projects", "documents", "invoices", "quotes", "exports", "settings"];
 const DEFAULT_HOME_CONTENT = {
-  kicker: "חשמלאי מוסמך",
-  title: "שירותי חשמל מקצועיים לבית, לעסק ולתעשייה",
+  kicker: "חשמלאי מוסמך · שירות אישי ומקצועי",
+  title:
+    "רובינשטיין חשמל\nחשמל מקצועי, בטוח ומדויק",
   subtitle:
-    "בדיקות תקינות, טיפול בלוחות חשמל, איתור ותיקון תקלות, תחזוקה ושדרוג מערכות חשמל - באחריות, בבטיחות ובסטנדרט עבודה גבוה.",
+    "בדיקות תקינות, לוחות חשמל, איתור תקלות ושדרוגים — עם תיעוד מלא, עמידה בתקן IEC ובדרישות רשות החשמל, ושירות אישי לבית, לעסק ולמשרד.",
   primaryCta: "כניסה לאזור אישי",
-  whatsappCta: "קבלת הצעת מחיר ב-WhatsApp",
-  chip1: "",
-  chip2: "",
-  chip3: "",
+  whatsappCta: "הצעת מחיר ב-WhatsApp",
+  chip1: "זמינות ומענה מהיר",
+  chip2: "מגורים · משרדים · עסקים",
+  chip3: "תקן מקומי ובינלאומי",
+  sectionServicesKicker: "מה אנחנו עושים",
+  sectionServicesTitle: "שירותי חשמל מקצה לקצה",
+  sectionServicesSub:
+    "מבדיקת תקינות ועד שדרוג הלוח — הכל תחת אחריות מקצועית של רובינשטיין חשמל.",
+  sectionGalleryKicker: "בשטח",
+  sectionGalleryTitle: "עבודות שנראות כמו שצריך",
+  sectionGallerySub:
+    "לוחות מסודרים, בדיקות מדויקות ותאורה נקייה — הדברים הקטנים שעושים את ההבדל.",
+  ctaTitle: "רוצים הצעת מחיר או בדיקת תקינות?",
+  ctaSubtitle:
+    "נשמח לשמוע על הפרויקט — מענה מהיר ב-WhatsApp או דרך צור קשר.",
   trustTitle1: "",
   trustText1: "",
   trustTitle2: "",
@@ -18,19 +35,22 @@ const DEFAULT_HOME_CONTENT = {
   trustTitle3: "",
   trustText3: "",
   featureTitle1: "בדיקות תקינות חשמל",
-  featureText1: "בדיקות מקיפות והנפקת אישורים מקצועיים לפי דרישות התקן.",
+  featureText1:
+    "בדיקות מקיפות, תיעוד ממצאים והנפת אישור תקינות — לפי התקן הישראלי והאירופי IEC 60364.",
   featureTitle2: "איתור ותיקון תקלות",
-  featureText2: "אבחון מדויק וטיפול מהיר בתקלות חשמל בבית ובעסק.",
-  featureTitle3: "שדרוג ותחזוקה",
-  featureText3: "שדרוג לוחות ותשתיות חשמל, תחזוקה תקופתית ושיפור בטיחות.",
+  featureText2:
+    "אבחון מהיר עם ציוד מדידה מקצועי, תיקון בטוח ומניעת חזרת התקלה — בבית או בעסק.",
+  featureTitle3: "שדרוג לוחות ותחזוקה",
+  featureText3:
+    "שדרוג לוחות ומפסקים, הרחבות חשמל ותחזוקה שוטפת — בהתאמה לרשות החשמל ולבטיחות הדיירים.",
   processTitle: "",
   step1: "",
   step2: "",
   step3: "",
   step4: "",
-  galleryLabel1: "לוחות חשמל ובדיקות תקינות",
-  galleryLabel2: "",
-  galleryLabel3: "",
+  galleryLabel1: "לוח חשמל מסודר ומקצועי",
+  galleryLabel2: "בדיקות תקינות בשטח",
+  galleryLabel3: "תאורה וחשמל במגורים",
 };
 
 let settings = {
@@ -48,8 +68,25 @@ let settings = {
   blankOffsetXmm: 0,
   blankOffsetYmm: 0,
   blankScale: 1,
+  inspectorDeclarationText: "",
+  stampOffsetXmm: 0,
+  stampOffsetYmm: 0,
   accessCode: "",
 };
+
+/** Merge server payload without wiping keys omitted in partial (public) responses. */
+function mergeServerSettings(data) {
+  if (!data || typeof data !== "object") return;
+  for (const k of Object.keys(data)) {
+    if (data[k] === undefined) continue;
+    if (k === "homeContent" && data.homeContent && typeof data.homeContent === "object") {
+      settings.homeContent = { ...settings.homeContent, ...data.homeContent };
+      continue;
+    }
+    settings[k] = data[k];
+  }
+  settings.accessCode = "";
+}
 
 let isPortalOpen = false;
 let projectPhotos = [];
@@ -62,6 +99,316 @@ let quotesCache = [];
 let deferredInstallPrompt = null;
 let wizardIndex = 0;
 const ACCESS_STORAGE_KEY = "ecs_accessibility_prefs_v1";
+
+const WIZARD_PROJECT_STEPS = [
+  { key: "client", title: "פרטי פרויקט ולקוח" },
+  { key: "system", title: "סוג מערכת והספק" },
+  { key: "tasks", title: "משימות והערות" },
+  { key: "signature", title: "אישור בוחן — חתימה" },
+];
+
+class ProjectWizard {
+  constructor() {
+    this.currentStep = 0;
+    this.formData = {
+      name: "",
+      clientName: "",
+      address: "",
+      systemType: "חד-פאזי",
+      amperage: "",
+      notes: "",
+      tasks: [],
+      signatureBase64: "",
+    };
+    this.sigPad = null;
+    this.modal = null;
+  }
+
+  open() {
+    this.modal = $("projectWizardModal");
+    if (!this.modal) return;
+    this.currentStep = 0;
+    this.resetData();
+    this.modal.classList.remove("hidden");
+    this.modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+    this.renderStep();
+    this.bindOnce();
+  }
+
+  close() {
+    if (!this.modal) return;
+    this.modal.classList.add("hidden");
+    this.modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+    this.sigPad = null;
+  }
+
+  resetData() {
+    this.formData = {
+      name: "",
+      clientName: "",
+      address: "",
+      systemType: "חד-פאזי",
+      amperage: "",
+      notes: "",
+      tasks: [],
+      signatureBase64: "",
+    };
+  }
+
+  collectFromDom() {
+    const g = (id) => String($(id)?.value ?? "").trim();
+    if ($("wiz-name")) this.formData.name = g("wiz-name");
+    if ($("wiz-client")) this.formData.clientName = g("wiz-client");
+    if ($("wiz-address")) this.formData.address = g("wiz-address");
+    if ($("wiz-system")) this.formData.systemType = g("wiz-system") || "חד-פאזי";
+    if ($("wiz-amp")) this.formData.amperage = g("wiz-amp");
+    if ($("wiz-notes")) this.formData.notes = g("wiz-notes");
+    const taskChecks = document.querySelectorAll('input[name="wiz-task"]:checked');
+    if (document.querySelector('input[name="wiz-task"]'))
+      this.formData.tasks = Array.from(taskChecks).map((el) => el.value);
+    if (this.sigPad && !this.sigPad.isEmpty()) {
+      this.formData.signatureBase64 = this.sigPad.toDataURL("image/png");
+    }
+  }
+
+  softHighlight() {
+    document.querySelectorAll(".wiz-soft").forEach((el) => {
+      el.classList.remove("ring-2", "ring-amber-400/80", "ring-offset-2", "ring-offset-gray-900");
+    });
+    const step = WIZARD_PROJECT_STEPS[this.currentStep];
+    if (!step) return;
+    const rec = {
+      client: ["wiz-name", "wiz-client"],
+      system: ["wiz-system", "wiz-amp"],
+      tasks: ["wiz-notes"],
+      signature: [],
+    }[step.key];
+    (rec || []).forEach((id) => {
+      const el = $(id);
+      if (!el) return;
+      if (!String(el.value || "").trim()) {
+        el.classList.add("ring-2", "ring-amber-400/80", "ring-offset-2", "ring-offset-gray-900");
+        el.classList.add("wiz-soft");
+      }
+    });
+  }
+
+  renderStep() {
+    const wrap = $("wizard-content");
+    const totalEl = $("wizard-total-steps");
+    const curNum = $("current-step-num");
+    const titleEl = $("step-title");
+    const bar = $("progress-bar-fill");
+    const btnPrev = $("btn-prev");
+    const btnNext = $("btn-next");
+    const btnSave = $("btn-save");
+    if (!wrap || !totalEl || !curNum || !titleEl || !bar || !btnPrev || !btnNext || !btnSave) return;
+
+    const total = WIZARD_PROJECT_STEPS.length;
+    totalEl.textContent = String(total);
+    curNum.textContent = String(this.currentStep + 1);
+    titleEl.textContent = WIZARD_PROJECT_STEPS[this.currentStep]?.title || "";
+    const pct = ((this.currentStep + 1) / total) * 100;
+    bar.style.width = `${pct}%`;
+
+    const k = WIZARD_PROJECT_STEPS[this.currentStep].key;
+    if (k === "client") {
+      wrap.innerHTML = `
+        <div class="space-y-4 text-right">
+          <p class="text-sm text-gray-400">שדות מומלצים מסומנים — ניתן להמשיך גם בלי למלא (יודגשו בצהוב עדין).</p>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1" for="wiz-name">שם פרויקט *</label>
+            <input id="wiz-name" type="text" class="w-full rounded-lg bg-gray-800 border border-gray-600 px-3 py-2 text-white text-sm" value="${escapeHtml(this.formData.name)}" autocomplete="off" />
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1" for="wiz-client">שם לקוח (מומלץ)</label>
+            <input id="wiz-client" type="text" class="w-full rounded-lg bg-gray-800 border border-gray-600 px-3 py-2 text-white text-sm" value="${escapeHtml(this.formData.clientName)}" autocomplete="off" />
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1" for="wiz-address">כתובת (מומלץ)</label>
+            <input id="wiz-address" type="text" class="w-full rounded-lg bg-gray-800 border border-gray-600 px-3 py-2 text-white text-sm" value="${escapeHtml(this.formData.address)}" autocomplete="off" />
+          </div>
+        </div>`;
+    } else if (k === "system") {
+      wrap.innerHTML = `
+        <div class="space-y-4 text-right">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1" for="wiz-system">סוג מערכת (מומלץ)</label>
+            <select id="wiz-system" class="w-full rounded-lg bg-gray-800 border border-gray-600 px-3 py-2 text-white text-sm">
+              <option value="חד-פאזי" ${this.formData.systemType === "חד-פאזי" ? "selected" : ""}>חד-פאזי</option>
+              <option value="תלת-פאזי" ${this.formData.systemType === "תלת-פאזי" ? "selected" : ""}>תלת-פאזי</option>
+              <option value="זרם חוזר" ${this.formData.systemType === "זרם חוזר" ? "selected" : ""}>זרם חוזר</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1" for="wiz-amp">זרם / הספק (מומלץ)</label>
+            <input id="wiz-amp" type="text" class="w-full rounded-lg bg-gray-800 border border-gray-600 px-3 py-2 text-white text-sm" placeholder="למשל 40A / 12 kW" value="${escapeHtml(this.formData.amperage)}" />
+          </div>
+        </div>`;
+    } else if (k === "tasks") {
+      const opts = [
+        { v: "בדיקת לוח", l: "בדיקת לוח ראשי" },
+        { v: "הארקה", l: "בדיקת הארקה" },
+        { v: "תאורה", l: "התקנת תאורה" },
+        { v: "תקשורת", l: "נקודות תקשורת" },
+      ];
+      const checked = new Set(this.formData.tasks);
+      wrap.innerHTML = `
+        <div class="space-y-4 text-right">
+          <p class="text-sm text-gray-400">בחר משימות צפויות (אופציונלי).</p>
+          <div class="grid grid-cols-1 gap-2">
+            ${opts
+              .map(
+                (o) => `
+              <label class="flex items-center gap-2 justify-end text-sm text-gray-200 cursor-pointer">
+                <span>${escapeHtml(o.l)}</span>
+                <input type="checkbox" name="wiz-task" value="${escapeHtml(o.v)}" class="rounded border-gray-600" ${checked.has(o.v) ? "checked" : ""} />
+              </label>`
+              )
+              .join("")}
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1" for="wiz-notes">הערות (מומלץ)</label>
+            <textarea id="wiz-notes" rows="4" class="w-full rounded-lg bg-gray-800 border border-gray-600 px-3 py-2 text-white text-sm">${escapeHtml(this.formData.notes)}</textarea>
+          </div>
+        </div>`;
+    } else if (k === "signature") {
+      wrap.innerHTML = `
+        <div class="space-y-3 text-right">
+          <p class="text-sm text-gray-400">חתימת בוחן על הקמת הפרויקט (אופציונלי). הנתונים נשמרים כ־Base64 ב־JSON.</p>
+          <div class="relative max-w-full border border-gray-600 rounded-lg bg-white overflow-hidden">
+            <canvas id="wizardSignaturePad" class="block w-full touch-none" style="height:10rem" aria-label="שטח חתימה"></canvas>
+          </div>
+          <button type="button" id="wiz-clear-sig" class="text-sm text-teal-400 hover:underline bg-transparent border-0 cursor-pointer p-0">נקה חתימה</button>
+        </div>`;
+      setTimeout(() => this.initSignaturePad(), 80);
+    }
+
+    btnPrev.disabled = this.currentStep === 0;
+    const last = this.currentStep >= total - 1;
+    btnNext.classList.toggle("hidden", last);
+    btnSave.classList.toggle("hidden", !last);
+    if (last) btnSave.textContent = "שמור פרויקט";
+  }
+
+  initSignaturePad() {
+    const canvas = $("wizardSignaturePad");
+    if (!canvas || typeof SignaturePad === "undefined") return;
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    const w = canvas.parentElement?.clientWidth || 400;
+    canvas.width = w * ratio;
+    canvas.height = 160 * ratio;
+    const ctx = canvas.getContext("2d");
+    ctx.scale(ratio, ratio);
+    this.sigPad = new SignaturePad(canvas, { minWidth: 0.5, maxWidth: 2.2, penColor: "#0f172a" });
+    const clr = $("wiz-clear-sig");
+    if (clr) clr.onclick = () => this.sigPad?.clear();
+  }
+
+  bindOnce() {
+    if (this._bound) return;
+    this._bound = true;
+    const prev = $("btn-prev");
+    const next = $("btn-next");
+    const save = $("btn-save");
+    const backdrop = $("projectWizardModalBackdrop");
+    if (prev)
+      prev.onclick = () => {
+        this.collectFromDom();
+        if (this.currentStep > 0) {
+          this.currentStep--;
+          this.renderStep();
+        }
+      };
+    if (next)
+      next.onclick = () => {
+        this.collectFromDom();
+        this.softHighlight();
+        if (this.currentStep < WIZARD_PROJECT_STEPS.length - 1) {
+          this.currentStep++;
+          this.renderStep();
+        }
+      };
+    if (save)
+      save.onclick = () => {
+        void this.submit();
+      };
+    if (backdrop) backdrop.onclick = () => this.close();
+  }
+
+  async submit() {
+    this.collectFromDom();
+    if (!this.formData.name) {
+      showToast("שם פרויקט הוא שדה חובה — חזור לשלב 1.", "warn");
+      return;
+    }
+    const payload = {
+      name: this.formData.name,
+      clientName: this.formData.clientName,
+      address: this.formData.address,
+      systemType: this.formData.systemType,
+      amperage: this.formData.amperage,
+      notes: this.formData.notes,
+      tasks: this.formData.tasks,
+      signatureBase64: this.formData.signatureBase64 || "",
+    };
+    try {
+      await api("/api/projects/wizard", { method: "POST", body: payload });
+      showToast("הפרויקט נשמר בהצלחה.", "ok");
+      this.close();
+      await loadProjects();
+      await refreshPortalData();
+    } catch (e) {
+      const msg = e?.message || "";
+      const offline = typeof navigator !== "undefined" && !navigator.onLine;
+      const netFail =
+        offline ||
+        /fetch|network|Failed to fetch|רשת|בקשה לקחה/i.test(msg) ||
+        /abort/i.test(msg);
+      if (netFail) {
+        try {
+          await enqueueProjectWizardPayload(payload);
+          showToast("אין רשת — הנתונים נשמרו במכשיר ויסונכרנו אוטומטית.", "ok");
+          this.close();
+        } catch (e2) {
+          showToast(e2.message || "שגיאת שמירה מקומית", "err");
+        }
+      } else {
+        showToast(msg || "שגיאת שמירה", "err");
+      }
+    }
+  }
+}
+
+let projectWizardInst = null;
+
+function setupProjectWizardModal() {
+  projectWizardInst = new ProjectWizard();
+  window.openProjectWizard = () => projectWizardInst?.open();
+  const btn = $("openProjectWizardBtn");
+  if (btn) btn.onclick = () => projectWizardInst?.open();
+  document.querySelectorAll("[data-portal-tab-jump]").forEach((el) => {
+    el.addEventListener("click", () => {
+      const tab = el.getAttribute("data-portal-tab-jump");
+      if (!tab) return;
+      const idx = WIZARD_STEPS.indexOf(tab);
+      if (idx >= 0) setWizardStepByIndex(idx);
+    });
+  });
+}
+
+async function syncWizardOutbox() {
+  try {
+    const before = await countPendingWizard();
+    await processPendingWizardQueue((path, opts) => api(path, opts));
+    const after = await countPendingWizard();
+    if (before > 0 && after === 0) showToast("פרויקטים מהמצב לא מקוון סונכרנו בהצלחה.", "ok");
+  } catch (e) {
+    console.warn("[syncWizardOutbox]", e);
+  }
+}
 
 function $(id) {
   return document.getElementById(id);
@@ -370,6 +717,21 @@ function setupHomeShowcase() {
   });
 }
 
+function renderHomeHeroChips(hc) {
+  const wrap = $("homeHeroChips");
+  if (!wrap) return;
+  const chips = [hc.chip1, hc.chip2, hc.chip3].filter((c) => c && String(c).trim());
+  if (chips.length === 0) {
+    wrap.innerHTML = "";
+    wrap.classList.add("hidden");
+    return;
+  }
+  wrap.classList.remove("hidden");
+  wrap.innerHTML = chips
+    .map((c) => `<span class="home-hero__chip">${escapeHtml(String(c).trim())}</span>`)
+    .join("");
+}
+
 function renderHomeFromSettings() {
   const hc = { ...DEFAULT_HOME_CONTENT, ...(settings.homeContent || {}) };
   const getEl = (id) => $(id);
@@ -383,11 +745,20 @@ function renderHomeFromSettings() {
   setText("contactName", settings.name || "—");
   setText("contactPhone", settings.phone || "—");
   setText("contactEmail", settings.email || "—");
-  setText("homeHeroKicker", hc.kicker);
+  setText("homeHeroKickerText", hc.kicker);
   setText("homeHeroTitle", hc.title);
   setText("homeHeroSubtitle", hc.subtitle);
-  setText("homePrimaryCta", hc.primaryCta);
-  setText("whatsappTopLink", hc.whatsappCta);
+  setText("homePrimaryText", hc.primaryCta);
+  setText("whatsappTopText", hc.whatsappCta);
+  renderHomeHeroChips(hc);
+  setText("homeSectionServicesKicker", hc.sectionServicesKicker);
+  setText("homeSectionServicesTitle", hc.sectionServicesTitle);
+  setText("homeSectionServicesSub", hc.sectionServicesSub);
+  setText("homeSectionGalleryKicker", hc.sectionGalleryKicker);
+  setText("homeSectionGalleryTitle", hc.sectionGalleryTitle);
+  setText("homeSectionGallerySub", hc.sectionGallerySub);
+  setText("homeCtaTitle", hc.ctaTitle);
+  setText("homeCtaSubtitle", hc.ctaSubtitle);
   setText("homeFeatureTitle1", hc.featureTitle1);
   setText("homeFeatureText1", hc.featureText1);
   setText("homeFeatureTitle2", hc.featureTitle2);
@@ -586,6 +957,7 @@ function setupPortalAuth() {
       ensurePortalOpen();
       await loadSettings(); // reload with auth token to get blankTemplateData
       await refreshPortalData();
+      await syncWizardOutbox();
     } catch (e) {
       showMsg("accessMsg", e.message || "קוד שגוי.", false);
       clearToken();
@@ -706,6 +1078,7 @@ async function loadProjects() {
     };
     tbody.appendChild(tr);
   });
+  refreshDashboardStats();
 }
 
 function initDocSignature() {
@@ -849,7 +1222,24 @@ async function saveDoc() {
 function printDoc(doc) {
   const when = fmtDate(doc.updatedAt || doc.createdAt || new Date().toISOString());
   const title = doc.docType === "portable" ? "אישור צרכנים מטלטלים" : "אישור תקינות מתקן";
-  const photosHtml = (doc.photos || []).map((p) => `<img src="${p.data}" style="width:140px;height:100px;object-fit:cover;border:1px solid #ddd;border-radius:6px">`).join("");
+  const photosHtml = (doc.photos || [])
+    .map(
+      (p) =>
+        `<div class="rounded-lg overflow-hidden border border-slate-200 shadow-sm"><img src="${p.data}" class="w-full h-44 md:h-52 object-cover" alt="" /></div>`
+    )
+    .join("");
+  const photosBlock = photosHtml
+    ? `<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">${photosHtml}</div>`
+    : "";
+  const decl = String(settings.inspectorDeclarationText || "").trim();
+  const declBlock = decl
+    ? `<div class="mb-4 text-sm border rounded-lg p-3 bg-slate-50 whitespace-pre-wrap leading-relaxed">${escapeHtml(decl)}</div>`
+    : "";
+  const sx = Number(settings.stampOffsetXmm || 0);
+  const sy = Number(settings.stampOffsetYmm || 0);
+  const stampBlock = settings.stampData
+    ? `<div class="relative inline-block" style="width:8rem;height:6rem"><img src="${settings.stampData}" alt="" style="position:absolute;right:0;top:0;max-width:120px;max-height:96px;transform:translate(${sx}mm,${sy}mm);transform-origin:top right" /></div>`
+    : "";
   const standardLayout = `<div class="max-w-[210mm] mx-auto p-8">
     <div class="flex justify-between items-start border-b-4 border-blue-700 pb-4 mb-6">
       <div class="flex items-start gap-4">
@@ -871,10 +1261,11 @@ function printDoc(doc) {
       <div><b>בידוד:</b> ${escapeHtml(doc.insulation || "")}</div>
     </div>
     <div class="mb-4"><h3 class="font-bold">הערות</h3><div class="border rounded p-2 min-h-[40px] whitespace-pre-wrap">${escapeHtml(doc.notes || "")}</div></div>
-    ${photosHtml ? `<div class="mb-4 flex gap-2 flex-wrap">${photosHtml}</div>` : ""}
-    <div class="flex justify-between items-end mt-8">
-      <div>${settings.stampData ? `<img src="${settings.stampData}" style="max-width:110px;max-height:90px">` : ""}</div>
-      <div class="text-center">
+    ${photosBlock}
+    ${declBlock}
+    <div class="flex justify-between items-end mt-8 gap-4">
+      <div>${stampBlock}</div>
+      <div class="text-center shrink-0">
         ${doc.signatureData ? `<img src="${doc.signatureData}" style="height:80px">` : `<div style="height:80px"></div>`}
         <div class="border-t pt-1 text-sm">חתימה וחותמת</div>
       </div>
@@ -895,10 +1286,11 @@ function printDoc(doc) {
           <div><b>בודק:</b> ${escapeHtml(settings.name || "")}</div>
         </div>
         <div class="mb-4 bg-white/90 border rounded p-2 min-h-[40px] whitespace-pre-wrap"><b>הערות:</b> ${escapeHtml(doc.notes || "")}</div>
-        ${photosHtml ? `<div class="mb-4 flex gap-2 flex-wrap">${photosHtml}</div>` : ""}
-        <div class="flex justify-between items-end mt-8">
-          <div>${settings.stampData ? `<img src="${settings.stampData}" style="max-width:110px;max-height:90px">` : ""}</div>
-          <div class="text-center">
+        ${photosBlock}
+        ${declBlock}
+        <div class="flex justify-between items-end mt-8 gap-4">
+          <div>${stampBlock}</div>
+          <div class="text-center shrink-0">
             ${doc.signatureData ? `<img src="${doc.signatureData}" style="height:80px">` : `<div style="height:80px"></div>`}
             <div class="border-t pt-1 text-sm">חתימה וחותמת</div>
           </div>
@@ -1077,6 +1469,21 @@ async function refreshPortalData() {
   refreshDashboardStats();
 }
 
+function certsThisMonthCount() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  return docsCache.filter((d) => {
+    if (!d.updatedAt) return false;
+    try {
+      const t = new Date(d.updatedAt);
+      return t.getFullYear() === y && t.getMonth() === m;
+    } catch {
+      return false;
+    }
+  }).length;
+}
+
 function refreshDashboardStats() {
   const sp = $("statProjects");
   const sd = $("statDocs");
@@ -1086,17 +1493,58 @@ function refreshDashboardStats() {
   if (sd) sd.textContent = String(docsCache.length);
   if (si) si.textContent = String(invoicesCache.length);
   if (sq) sq.textContent = String(quotesCache.length);
+
+  const active = projectCache.filter((p) => p.status === "active").length;
+  const sap = $("stat-active-projects");
+  if (sap) sap.textContent = String(active);
+
+  const scm = $("stat-certs-month");
+  if (scm) scm.textContent = String(certsThisMonthCount());
+
+  const rev = invoicesCache.reduce((s, r) => s + Number(r.totalAmount || 0), 0);
+  const sr = $("stat-revenue");
+  if (sr) sr.textContent = `₪${asMoney(rev)}`;
+
+  const greet = $("dashboard-greeting-name");
+  if (greet) greet.textContent = settings.name?.trim() || "בודק";
+
+  renderRecentProjects();
+}
+
+function renderRecentProjects() {
+  const tbody = $("recent-projects-list");
+  if (!tbody) return;
+  const rows = [...projectCache].sort((a, b) => {
+    const ta = new Date(a.updatedAt || 0).getTime();
+    const tb = new Date(b.updatedAt || 0).getTime();
+    return tb - ta;
+  }).slice(0, 8);
+  const statusMap = { planned: "בתכנון", active: "בביצוע", done: "הושלם" };
+  tbody.innerHTML = rows
+    .map(
+      (row) => `
+    <tr>
+      <td class="p-4">${escapeHtml(row.title)}</td>
+      <td class="p-4">${escapeHtml(row.clientName || "")}</td>
+      <td class="p-4">${escapeHtml(statusMap[row.status] || row.status || "")}</td>
+      <td class="p-4 whitespace-nowrap">${escapeHtml(fmtDate(row.updatedAt))}</td>
+    </tr>`
+    )
+    .join("");
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-gray-500">אין פרויקטים עדיין — לחץ &quot;פרויקט חדש&quot;.</td></tr>`;
+  }
 }
 
 async function loadSettings() {
-  settings = await api("/api/settings");
+  mergeServerSettings(await api("/api/settings"));
   renderHomeFromSettings();
   setInputValue("setName", settings.name || "");
   setInputValue("setLicense", settings.licenseNo || "");
   setInputValue("setPhone", settings.phone || "");
   setInputValue("setEmail", settings.email || "");
   setInputValue("setWhatsapp", settings.whatsapp || "");
-  setInputValue("setAccessCode", settings.accessCode || "");
+  setInputValue("setAccessCode", "");
   setInputValue("setAboutText", settings.aboutText || "");
   const hc = { ...DEFAULT_HOME_CONTENT, ...(settings.homeContent || {}) };
   setInputValue("setHomeKicker", hc.kicker);
@@ -1127,10 +1575,21 @@ async function loadSettings() {
   setInputValue("setHomeGalleryLabel1", hc.galleryLabel1);
   setInputValue("setHomeGalleryLabel2", hc.galleryLabel2);
   setInputValue("setHomeGalleryLabel3", hc.galleryLabel3);
+  setInputValue("setHomeSectionServicesKicker", hc.sectionServicesKicker);
+  setInputValue("setHomeSectionServicesTitle", hc.sectionServicesTitle);
+  setInputValue("setHomeSectionServicesSub", hc.sectionServicesSub);
+  setInputValue("setHomeSectionGalleryKicker", hc.sectionGalleryKicker);
+  setInputValue("setHomeSectionGalleryTitle", hc.sectionGalleryTitle);
+  setInputValue("setHomeSectionGallerySub", hc.sectionGallerySub);
+  setInputValue("setHomeCtaTitle", hc.ctaTitle);
+  setInputValue("setHomeCtaSubtitle", hc.ctaSubtitle);
   setChecked("setUseBlankTemplate", !!settings.useBlankTemplate);
   setInputValue("setBlankOffsetX", String(Number(settings.blankOffsetXmm || 0)));
   setInputValue("setBlankOffsetY", String(Number(settings.blankOffsetYmm || 0)));
   setInputValue("setBlankScale", String(Number(settings.blankScale || 1)));
+  setInputValue("setInspectorDeclaration", settings.inspectorDeclarationText || "");
+  setInputValue("setStampOffsetX", String(Number(settings.stampOffsetXmm || 0)));
+  setInputValue("setStampOffsetY", String(Number(settings.stampOffsetYmm || 0)));
 }
 
 async function bindSettingsForm() {
@@ -1198,13 +1657,24 @@ async function bindSettingsForm() {
         galleryLabel1: inputTrim("setHomeGalleryLabel1"),
         galleryLabel2: inputTrim("setHomeGalleryLabel2"),
         galleryLabel3: inputTrim("setHomeGalleryLabel3"),
+        sectionServicesKicker: inputTrim("setHomeSectionServicesKicker"),
+        sectionServicesTitle: inputTrim("setHomeSectionServicesTitle"),
+        sectionServicesSub: inputTrim("setHomeSectionServicesSub"),
+        sectionGalleryKicker: inputTrim("setHomeSectionGalleryKicker"),
+        sectionGalleryTitle: inputTrim("setHomeSectionGalleryTitle"),
+        sectionGallerySub: inputTrim("setHomeSectionGallerySub"),
+        ctaTitle: inputTrim("setHomeCtaTitle"),
+        ctaSubtitle: inputTrim("setHomeCtaSubtitle"),
       };
       const blankTpl = $("setUseBlankTemplate");
       settings.useBlankTemplate = !!blankTpl?.checked;
       settings.blankOffsetXmm = Number(inputRaw("setBlankOffsetX") || 0);
       settings.blankOffsetYmm = Number(inputRaw("setBlankOffsetY") || 0);
       settings.blankScale = Number(inputRaw("setBlankScale") || 1);
-      settings = await api("/api/settings", { method: "PUT", body: settings });
+      settings.inspectorDeclarationText = inputTrim("setInspectorDeclaration");
+      settings.stampOffsetXmm = Number(inputRaw("setStampOffsetX") || 0);
+      settings.stampOffsetYmm = Number(inputRaw("setStampOffsetY") || 0);
+      mergeServerSettings(await api("/api/settings", { method: "PUT", body: settings }));
       renderHomeFromSettings();
       showMsg("settingsMsg", "הגדרות נשמרו בהצלחה", true);
     } catch (e) {
@@ -1265,7 +1735,11 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupHomeShowcase();
   setupAccessibilityToolbar();
   setupPortalWizard();
+  setupProjectWizardModal();
   setupPortalAuth();
+  window.addEventListener("online", () => {
+    void syncWizardOutbox();
+  });
   bindProjectForm();
   await bindDocForm();
   initDocSignature();
@@ -1308,6 +1782,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   if (isPortalOpen) {
     try {
       await refreshPortalData();
+      await syncWizardOutbox();
     } catch (e) {
       // Token may be expired — force logout
       console.warn("[auto-login] could not load portal data:", e.message);

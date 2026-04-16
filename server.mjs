@@ -26,6 +26,7 @@ import {
   updateFinancialDoc,
   deleteFinancialDoc,
   exportRowsForAccountant,
+  createProjectFromWizard,
 } from "./db.mjs";
 import { buildCertificatePdfBuffer } from "./certificate-pdf.mjs";
 
@@ -52,6 +53,9 @@ function inspectorForPdf(settings) {
     phone: settings.phone ?? "",
     logoData: settings.logoData ?? null,
     stampData: settings.stampData ?? null,
+    inspectorDeclarationText: settings.inspectorDeclarationText ?? "",
+    stampOffsetXmm: Number(settings.stampOffsetXmm || 0),
+    stampOffsetYmm: Number(settings.stampOffsetYmm || 0),
   };
 }
 
@@ -263,11 +267,23 @@ app.get("/api/settings", async (req, res) => {
     let authed = false;
     if (token) { try { verifyJwt(token); authed = true; } catch {} }
     if (authed) {
-      const { accessCode: _a, ...safe } = full;
-      return res.json(safe);
+      return res.json(full);
     }
-    const { accessCode: _a, blankTemplateData: _b, ...pub } = full;
-    res.json({ ...pub, useBlankTemplate: false });
+    // Public: omit fields used only for authenticated portal / print templates so the
+    // client can merge without overwriting stored blank/stamp settings when no JWT is sent.
+    const {
+      accessCode: _a,
+      blankTemplateData: _b,
+      useBlankTemplate: _u,
+      blankOffsetXmm: _bx,
+      blankOffsetYmm: _by,
+      blankScale: _bs,
+      inspectorDeclarationText: _d,
+      stampOffsetXmm: _sx,
+      stampOffsetYmm: _sy,
+      ...pub
+    } = full;
+    res.json(pub);
   } catch (e) {
     console.error("[GET /api/settings]", e.message);
     res.status(500).json({ error: "שגיאת שרת." });
@@ -392,6 +408,24 @@ app.get("/api/projects", async (req, res) => {
   } catch (e) {
     console.error("[GET /api/projects]", e.message);
     res.status(500).json({ error: "שגיאת שרת." });
+  }
+});
+
+app.post("/api/projects/wizard", async (req, res) => {
+  try {
+    const row = await createProjectFromWizard(req.body ?? {});
+    res.status(201).json({
+      success: true,
+      message: "הפרויקט הוקם בהצלחה",
+      projectId: row.id,
+    });
+  } catch (e) {
+    const msg = String(e.message || e);
+    if (msg.includes("שם פרויקט")) {
+      return res.status(400).json({ error: msg });
+    }
+    console.error("[POST /api/projects/wizard]", e.message);
+    res.status(500).json({ error: "שגיאת שרת בשמירת הנתונים" });
   }
 });
 
