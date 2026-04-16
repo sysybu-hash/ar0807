@@ -1241,6 +1241,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupExport();
   setupPwaInstall();
   registerServiceWorker();
+  document.body.classList.add("settings-loading");
   setSection("home");
 
   try {
@@ -1252,7 +1253,9 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
   try {
     await loadSettings();
+    document.body.classList.remove("settings-loading");
   } catch (e) {
+    document.body.classList.remove("settings-loading");
     console.error(e);
     showToast(`שגיאה בטעינת הגדרות: ${e.message}`, "err", 8000);
     return;
