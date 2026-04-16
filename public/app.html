@@ -1,351 +1,795 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="he" dir="rtl" xml:lang="he">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="אברהם רובינשטיין - חשמלאי מוסמך. ניהול פרויקטים, מסמכים מקצועיים, חשבוניות והצעות מחיר במקום אחד." />
-  <meta name="theme-color" content="#0B2C6B" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="אברהם רובינשטיין - חשמלאי מוסמך. בדיקות תקינות, פרויקטים, חשבוניות והצעות מחיר - הכל במקום אחד." />
+  <meta name="theme-color" content="#0A1628" />
   <meta name="color-scheme" content="light only" />
+  <meta name="language" content="he" />
+  <!-- European Accessibility / EN 301 549 -->
+  <meta name="robots" content="index, follow" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/icons/icon.svg" />
-  <title>אברהם רובינשטיין - חשמלאי מוסמך</title>
+  <title>אברהם רובינשטיין — חשמלאי מוסמך</title>
+  <!-- Tailwind for print layouts only -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Signature Pad -->
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="bg-slate-100 text-slate-900">
-  <a href="#section-portal" class="skip-link">דלג לתוכן הראשי</a>
+<body>
 
-  <div id="accessToolbar" class="access-toolbar" role="region" aria-label="סרגל נגישות">
-    <button id="accessToggle" class="access-main-btn" type="button" aria-expanded="false" aria-controls="accessPanel">נגישות</button>
-    <div id="accessPanel" class="access-panel hidden">
-      <button data-access="font-plus" type="button">A+</button>
-      <button data-access="font-minus" type="button">A-</button>
-      <button data-access="contrast" type="button">ניגודיות גבוהה</button>
-      <button data-access="underline-links" type="button">קו תחתון לקישורים</button>
-      <button data-access="grayscale" type="button">גווני אפור</button>
-      <button data-access="reset" type="button">איפוס</button>
+  <!-- Skip Navigation — EN 301 549 §9.2.4.1 -->
+  <a href="#mainContent" class="skip-link">דלג לתוכן הראשי</a>
+
+  <!-- ================================================================
+       ACCESSIBILITY TOOLBAR — EN 301 549 / WCAG 2.1 AA §1.4.4, §1.4.11
+       ================================================================ -->
+  <div id="accessToolbar" class="access-toolbar" role="region" aria-label="סרגל נגישות" aria-live="polite">
+    <button id="accessToggle" class="access-main-btn" type="button"
+            aria-expanded="false" aria-controls="accessPanel"
+            aria-label="פתח סרגל נגישות">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 6c-1.1 0-2.3.6-3.1 1.6L7 13h2l1-2v9h2v-5h2v5h2V11l1 2h2l-1.9-3.4C15.3 8.6 14.1 8 13 8h-1z"/>
+      </svg>
+      נגישות
+    </button>
+    <div id="accessPanel" class="access-panel hidden" role="group" aria-label="אפשרויות נגישות">
+
+      <button class="access-btn" data-access="font-plus" type="button" aria-label="הגדל גופן">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M9 7v10M5 12h8M17 7v10M15 7h4"/></svg>
+        הגדל טקסט (A+)
+      </button>
+
+      <button class="access-btn" data-access="font-minus" type="button" aria-label="הקטן גופן">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M9 7v10M5 12h8M15 10h6"/></svg>
+        הקטן טקסט (A-)
+      </button>
+
+      <button class="access-btn" data-access="contrast" type="button" aria-label="שנה ניגודיות" aria-pressed="false">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93V4.07A8.01 8.01 0 0 1 20 12a8.01 8.01 0 0 1-9 7.93z"/></svg>
+        ניגודיות גבוהה
+      </button>
+
+      <button class="access-btn" data-access="underline-links" type="button" aria-label="הוסף קו תחתון לקישורים" aria-pressed="false">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 3v7a6 6 0 0 0 12 0V3M4 21h16"/></svg>
+        קו תחתון לקישורים
+      </button>
+
+      <button class="access-btn" data-access="grayscale" type="button" aria-label="הפעל גווני אפור" aria-pressed="false">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2a10 10 0 0 1 0 20z"/></svg>
+        גווני אפור
+      </button>
+
+      <button class="access-btn" data-access="focus-enhanced" type="button" aria-label="שפר מוקד מקלדת" aria-pressed="false">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h4v4H7zM13 7h4v4h-4zM7 13h4v4H7zM13 13h4v4h-4z"/></svg>
+        הדגש מוקד
+      </button>
+
+      <button class="access-btn access-btn-reset" data-access="reset" type="button" aria-label="אפס הגדרות נגישות">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        איפוס
+      </button>
+
     </div>
   </div>
 
-  <aside id="drawer" class="drawer hidden">
-    <div class="drawer-inner">
-      <button id="drawerClose" class="drawer-close" type="button" aria-label="סגור תפריט">✕</button>
-      <h2 class="text-xl font-bold mb-6">תפריט ראשי</h2>
-      <nav class="space-y-2">
-        <button class="drawer-link" data-section="home" type="button">דף הבית</button>
-        <button class="drawer-link" data-section="about" type="button">אודות</button>
-        <button class="drawer-link" data-section="contact" type="button">צור קשר</button>
-        <button class="drawer-link" data-section="portal" type="button">אזור אישי</button>
+  <!-- ================================================================
+       SIDE DRAWER
+       ================================================================ -->
+  <aside id="drawer" class="drawer hidden" role="dialog" aria-modal="true" aria-label="תפריט ניווט ראשי">
+    <div class="drawer-inner" tabindex="-1">
+      <div class="drawer-header">
+        <span class="drawer-logo">חשמל<span>אי</span></span>
+        <button id="drawerClose" class="drawer-close" type="button" aria-label="סגור תפריט">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <nav class="drawer-nav" aria-label="ניווט ראשי">
+        <button class="drawer-link" data-section="home" type="button" aria-label="עבור לדף הבית">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          דף הבית
+        </button>
+        <button class="drawer-link" data-section="about" type="button" aria-label="עבור לעמוד אודות">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          אודות
+        </button>
+        <button class="drawer-link" data-section="contact" type="button" aria-label="עבור לצור קשר">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.61 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9a16 16 0 0 0 6.29 6.29l.83-.83a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          צור קשר
+        </button>
+        <button class="drawer-link" data-go-portal type="button" aria-label="כניסה לאזור האישי">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          אזור אישי
+        </button>
       </nav>
     </div>
   </aside>
 
-  <header class="site-header no-print">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-4" role="navigation" aria-label="ניווט עליון">
-      <div class="flex items-center gap-3">
-        <button id="drawerOpen" class="menu-btn" type="button" aria-label="פתח תפריט">☰ תפריט</button>
-        <button id="pwaInstallBtn" class="menu-btn hidden" type="button">התקן אפליקציה</button>
+  <!-- ================================================================
+       HEADER
+       ================================================================ -->
+  <header class="site-header no-print" role="banner">
+    <div class="site-header__inner">
+      <div class="site-header__actions">
+        <button id="drawerOpen" class="menu-btn" type="button" aria-label="פתח תפריט ניווט" aria-expanded="false" aria-controls="drawer">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          תפריט
+        </button>
+        <button id="pwaInstallBtn" class="menu-btn hidden" type="button" aria-label="התקן כאפליקציה">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          התקן אפליקציה
+        </button>
       </div>
-      <div class="text-left">
-        <h1 id="heroInspectorName" class="text-xl md:text-2xl font-extrabold"></h1>
-        <p class="text-sm text-blue-100">שירות מקצועי, תיעוד מלא ועמידה בתהליכי איכות ובטיחות</p>
+      <div class="site-header__brand">
+        <span id="heroInspectorName" class="site-header__name" aria-live="polite">אברהם רובינשטיין — חשמלאי מוסמך</span>
+        <span class="site-header__tagline">שירות מקצועי · תיעוד מלא · בטיחות ואיכות</span>
       </div>
     </div>
   </header>
 
-  <main class="max-w-7xl mx-auto px-4 py-6 space-y-8" id="mainContent">
-    <section id="section-home" class="app-card hero-card premium-home">
-      <div class="hero-shell simple-home-shell">
-        <div class="hero-copy reveal-up">
-          <p id="homeHeroKicker" class="hero-kicker">חשמלאי מוסמך</p>
-          <h2 id="homeHeroTitle" class="hero-title">שירותי חשמל מקצועיים לבית, לעסק ולתעשייה</h2>
-          <p id="homeHeroSubtitle" class="hero-subtitle">
-            בדיקות תקינות, טיפול בלוחות חשמל, איתור ותיקון תקלות, תחזוקה ושדרוג מערכות חשמל - באחריות, בבטיחות ובסטנדרט עבודה גבוה.
+  <!-- ================================================================
+       MAIN CONTENT
+       ================================================================ -->
+  <main id="mainContent" class="page-main">
+
+    <!-- ============================================================
+         HOME SECTION
+         ============================================================ -->
+    <section id="section-home" aria-label="דף הבית">
+
+      <!-- HERO -->
+      <div class="home-hero reveal-up" role="region" aria-label="כותרת ראשית">
+        <div class="home-hero__inner">
+          <p id="homeHeroKicker" class="home-hero__kicker">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="14" height="14" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            חשמלאי מוסמך
           </p>
-          <div class="hero-actions">
-            <a id="whatsappTopLink" class="btn-primary" href="#" target="_blank" rel="noopener">קבלת הצעת מחיר ב-WhatsApp</a>
-            <button id="homePrimaryCta" class="btn-secondary" data-go-portal type="button">כניסה לאזור אישי</button>
-          </div>
-        </div>
-        <div class="hero-gallery-wrap reveal-up" aria-label="גלריית עבודות חשמל">
-          <div class="hero-gallery home-hero-gallery">
-            <button type="button" class="gallery-card" data-gallery-src="/images/cabinet-1.svg" data-gallery-alt="לוח חשמל מקצועי לאחר סידור ובדיקה">
-              <img src="/images/cabinet-1.svg" alt="" loading="lazy" decoding="async" />
-              <span id="homeGalleryLabel1">לוחות חשמל ובדיקות תקינות</span>
-            </button>
-            <button type="button" class="gallery-card" data-gallery-src="/images/cabinet-2.svg" data-gallery-alt="עבודות חשמל ותשתית מסודרת">
-              <img src="/images/cabinet-2.svg" alt="" loading="lazy" decoding="async" />
-              <span id="homeGalleryLabel2"></span>
-            </button>
-            <button type="button" class="gallery-card" data-gallery-src="/images/cabinet-3.svg" data-gallery-alt="ארון חשמל ועמידה בתקן">
-              <img src="/images/cabinet-3.svg" alt="" loading="lazy" decoding="async" />
-              <span id="homeGalleryLabel3"></span>
+          <h2 id="homeHeroTitle" class="home-hero__title">
+            שירותי <span>חשמל מקצועיים</span><br>לבית, לעסק ולתעשייה
+          </h2>
+          <p id="homeHeroSubtitle" class="home-hero__subtitle">
+            בדיקות תקינות, טיפול בלוחות חשמל, איתור ותיקון תקלות, תחזוקה ושדרוג מערכות חשמל — באחריות מלאה, בבטיחות ובסטנדרט עבודה גבוה.
+          </p>
+          <div class="home-hero__actions">
+            <a id="whatsappTopLink" class="btn-gold" href="#" target="_blank" rel="noopener noreferrer" aria-label="פתיחת שיחת WhatsApp לקבלת הצעת מחיר">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+              הצעת מחיר ב-WhatsApp
+            </a>
+            <button id="homePrimaryCta" class="btn-outline-white" data-go-portal type="button" aria-label="כניסה לאזור האישי">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              כניסה לאזור אישי
             </button>
           </div>
         </div>
       </div>
-      <div class="home-grid-grid reveal-up">
-        <article class="feature-card"><h3 id="homeFeatureTitle1">בדיקות תקינות חשמל</h3><p id="homeFeatureText1">בדיקות מקיפות והנפקת אישורים מקצועיים לפי דרישות התקן.</p></article>
-        <article class="feature-card"><h3 id="homeFeatureTitle2">איתור ותיקון תקלות</h3><p id="homeFeatureText2">אבחון מדויק וטיפול מהיר בתקלות חשמל בבית ובעסק.</p></article>
-        <article class="feature-card"><h3 id="homeFeatureTitle3">שדרוג ותחזוקה</h3><p id="homeFeatureText3">שדרוג לוחות ותשתיות חשמל, תחזוקה תקופתית ושיפור בטיחות.</p></article>
+
+      <!-- STATS BAR -->
+      <div class="stats-bar reveal-up reveal-up-delay-1" role="region" aria-label="נתוני ניסיון">
+        <div class="stat-card">
+          <span class="stat-card__number">15+</span>
+          <span class="stat-card__label">שנות ניסיון</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__number">500+</span>
+          <span class="stat-card__label">פרויקטים בוצעו</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__number">100%</span>
+          <span class="stat-card__label">עמידה בתקן</span>
+        </div>
+      </div>
+
+      <!-- GALLERY — 3 real photos from Unsplash CDN -->
+      <section class="gallery-section reveal-up reveal-up-delay-2" aria-label="גלריית עבודות">
+        <div class="section-header">
+          <span class="section-kicker">העבודות שלנו</span>
+          <h3 class="section-title">מקצועיות בכל פרויקט</h3>
+          <p class="section-subtitle">מלוחות חשמל מסודרים ועד עבודות שלד — אנו מתמחים בכל היבט של מערכות חשמל.</p>
+        </div>
+        <div class="gallery-grid" role="list">
+
+          <!-- Card 1 — לוח חשמל -->
+          <button type="button" class="gallery-card" role="listitem"
+                  data-gallery-src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=1200&q=85"
+                  data-gallery-alt="לוח חשמל מדוגם ומסודר"
+                  aria-label="הצג תמונה מוגדלת: לוח חשמל מדוגם">
+            <div class="gallery-card__img-wrap">
+              <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=700&q=80"
+                   alt="לוח חשמל מדוגם ומסודר עם מפסקים ואוטומטים" loading="lazy" decoding="async"
+                   width="700" height="220" />
+              <div class="gallery-card__overlay" aria-hidden="true"></div>
+              <span class="gallery-card__badge" aria-hidden="true">לוחות חשמל</span>
+            </div>
+            <div class="gallery-card__body">
+              <h4 id="homeGalleryLabel1" class="gallery-card__title">לוח חשמל מדוגם ומסודר</h4>
+              <p class="gallery-card__text">התקנה ותכנון לוחות חשמל תקניים עם הגנות מתאימות, סידור מקצועי של כבלים ועמידה מלאה בדרישות תקן ישראלי ואירופאי.</p>
+            </div>
+          </button>
+
+          <!-- Card 2 — בדיקת חשמל -->
+          <button type="button" class="gallery-card" role="listitem"
+                  data-gallery-src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=1200&q=85"
+                  data-gallery-alt="חשמלאי בודק ומסמן טופס בדיקה"
+                  aria-label="הצג תמונה מוגדלת: חשמלאי בודק ומסמן טופס">
+            <div class="gallery-card__img-wrap">
+              <img src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=700&q=80"
+                   alt="חשמלאי עומד ומסמן וי על דף בדיקה מקצועי" loading="lazy" decoding="async"
+                   width="700" height="220" />
+              <div class="gallery-card__overlay" aria-hidden="true"></div>
+              <span class="gallery-card__badge" aria-hidden="true">בדיקות תקינות</span>
+            </div>
+            <div class="gallery-card__body">
+              <h4 id="homeGalleryLabel2" class="gallery-card__title">בדיקות תקינות מקצועיות</h4>
+              <p class="gallery-card__text">בדיקה שיטתית ומקיפה של כלל מערכות החשמל, תיעוד ממצאים, סימון ווי על כל נקודה שנבדקה, והנפקת אישור תקינות מוכר.</p>
+            </div>
+          </button>
+
+          <!-- Card 3 — עבודות שלד -->
+          <button type="button" class="gallery-card" role="listitem"
+                  data-gallery-src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1200&q=85"
+                  data-gallery-alt="עבודות חשמל בבית פרטי בשלב השלד"
+                  aria-label="הצג תמונה מוגדלת: עבודות חשמל בשלד הבית">
+            <div class="gallery-card__img-wrap">
+              <img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=700&q=80"
+                   alt="עבודות חשמל בבית פרטי בשלב השלד — הנחת צינורות וכבלים" loading="lazy" decoding="async"
+                   width="700" height="220" />
+              <div class="gallery-card__overlay" aria-hidden="true"></div>
+              <span class="gallery-card__badge" aria-hidden="true">עבודות שלד</span>
+            </div>
+            <div class="gallery-card__body">
+              <h4 id="homeGalleryLabel3" class="gallery-card__title">עבודות חשמל בבית פרטי בשלד</h4>
+              <p class="gallery-card__text">תכנון והתקנת תשתית חשמל מלאה בבניה חדשה — הנחת צינורות, הכנת עמדות, חיווט מלא וחיבור לוח חשמל ראשי.</p>
+            </div>
+          </button>
+
+        </div>
+      </section>
+
+      <!-- SERVICES -->
+      <section class="services-section reveal-up reveal-up-delay-3" aria-label="שירותים">
+        <div class="section-header">
+          <span class="section-kicker">השירותים שלנו</span>
+          <h3 class="section-title">פתרון מקצועי לכל צורך</h3>
+        </div>
+        <div class="services-grid" role="list">
+
+          <article class="service-card" role="listitem">
+            <div class="service-card__icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </div>
+            <h4 id="homeFeatureTitle1" class="service-card__title">בדיקות תקינות חשמל</h4>
+            <p id="homeFeatureText1" class="service-card__text">בדיקות מקיפות והנפקת אישורים מקצועיים לפי דרישות תקן ישראלי ואירופאי IEC 60364.</p>
+          </article>
+
+          <article class="service-card" role="listitem">
+            <div class="service-card__icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            </div>
+            <h4 id="homeFeatureTitle2" class="service-card__title">איתור ותיקון תקלות</h4>
+            <p id="homeFeatureText2" class="service-card__text">אבחון מדויק וטיפול מהיר בתקלות חשמל בבית ובעסק — עם ציוד מדידה מתקדם ופתרון ביום הפנייה.</p>
+          </article>
+
+          <article class="service-card" role="listitem">
+            <div class="service-card__icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <h4 id="homeFeatureTitle3" class="service-card__title">שדרוג ותחזוקה</h4>
+            <p id="homeFeatureText3" class="service-card__text">שדרוג לוחות ותשתיות חשמל, תחזוקה תקופתית ושיפור בטיחות — התאמה לדרישות רשות החשמל.</p>
+          </article>
+
+        </div>
+      </section>
+
+      <!-- CTA BANNER -->
+      <div class="cta-banner" role="complementary" aria-label="קריאה לפעולה">
+        <div class="cta-banner__inner">
+          <h3 class="cta-banner__title">מוכנים להתחיל? דברו איתנו עכשיו</h3>
+          <p class="cta-banner__subtitle">שירות מהיר, מחיר הוגן, עמידה בתקנות האירופאיות והישראליות.</p>
+          <div class="cta-banner__actions">
+            <a id="whatsappBannerLink" class="btn-gold" href="#" target="_blank" rel="noopener noreferrer" aria-label="פתח שיחת WhatsApp">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+              דברו איתנו ב-WhatsApp
+            </a>
+            <button class="btn-outline-white" data-go-portal type="button" aria-label="כניסה לאזור האישי">
+              כניסה לאזור אישי
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </section><!-- /section-home -->
+
+    <!-- ============================================================
+         ABOUT SECTION
+         ============================================================ -->
+    <section id="section-about" class="section-hidden" aria-label="אודות">
+      <div class="content-card">
+        <h2 class="content-card__title">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          אודות
+        </h2>
+        <p id="aboutText" class="text-base leading-relaxed whitespace-pre-wrap" style="color: var(--text-mid)"></p>
       </div>
     </section>
 
-    <section id="section-about" class="app-card hidden">
-      <h2 class="section-title">אודות</h2>
-      <p id="aboutText" class="text-slate-700 leading-relaxed whitespace-pre-wrap"></p>
-    </section>
-
-    <section id="section-contact" class="app-card hidden">
-      <h2 class="section-title">צור קשר</h2>
-      <div class="grid md:grid-cols-2 gap-4">
-        <div class="box">
-          <p><strong>שם:</strong> <span id="contactName"></span></p>
-          <p><strong>טלפון:</strong> <span id="contactPhone"></span></p>
-          <p><strong>דוא"ל:</strong> <span id="contactEmail"></span></p>
-        </div>
-        <div class="box">
-          <p class="mb-2">לפניות מהירות:</p>
-          <a id="whatsappLink" href="#" target="_blank" rel="noopener" class="btn-primary inline-block">פתיחת שיחה ב-WhatsApp</a>
+    <!-- ============================================================
+         CONTACT SECTION
+         ============================================================ -->
+    <section id="section-contact" class="section-hidden" aria-label="צור קשר">
+      <div class="content-card">
+        <h2 class="content-card__title">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.61 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9a16 16 0 0 0 6.29 6.29l.83-.83a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          צור קשר
+        </h2>
+        <div class="contact-grid">
+          <div class="contact-info-box">
+            <p><strong>שם:</strong> <span id="contactName"></span></p>
+            <p><strong>טלפון:</strong> <span id="contactPhone"></span></p>
+            <p><strong>דוא״ל:</strong> <span id="contactEmail"></span></p>
+          </div>
+          <div class="contact-info-box">
+            <p style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text-mid)">לפניות מהירות:</p>
+            <a id="whatsappLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-gold" style="width:fit-content" aria-label="פתח שיחת WhatsApp">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+              פתיחת שיחה ב-WhatsApp
+            </a>
+          </div>
         </div>
       </div>
     </section>
 
-    <section id="section-portal" class="app-card hidden">
-      <div id="portalGate">
-        <h2 class="section-title">כניסה לאזור אישי</h2>
-        <p class="text-sm text-slate-600 mb-4">הכנס קוד גישה כדי לפתוח את אזור הניהול.</p>
-        <form id="portalLoginForm" class="max-w-sm space-y-3" autocomplete="on">
-          <input id="accessCodeInput" name="accessCode" type="password" class="inp" placeholder="קוד גישה" autocomplete="current-password" />
-          <button id="accessLoginBtn" type="submit" class="btn-primary w-full">כניסה</button>
-          <p id="accessMsg" class="msg"></p>
-        </form>
-      </div>
+    <!-- ============================================================
+         PORTAL SECTION
+         ============================================================ -->
+    <section id="section-portal" class="section-hidden" aria-label="אזור אישי">
+      <div class="portal-card" role="region" aria-label="אזור ניהול אישי">
 
-      <div id="portalArea" class="hidden space-y-6">
-        <div class="wizard-shell">
-          <div id="wizardSteps" class="wizard-steps">
-            <button class="wizard-step-btn active" data-portal-tab="dashboard" type="button">1. פתיחה</button>
-            <button class="wizard-step-btn" data-portal-tab="projects" type="button">2. פרויקטים</button>
-            <button class="wizard-step-btn" data-portal-tab="documents" type="button">3. מסמכים</button>
-            <button class="wizard-step-btn" data-portal-tab="invoices" type="button">4. חשבוניות</button>
-            <button class="wizard-step-btn" data-portal-tab="quotes" type="button">5. הצעות מחיר</button>
-            <button class="wizard-step-btn" data-portal-tab="exports" type="button">6. ייצוא</button>
-            <button class="wizard-step-btn" data-portal-tab="settings" type="button">7. הגדרות</button>
+        <!-- LOGIN GATE -->
+        <div id="portalGate" class="portal-login" role="form" aria-label="טופס כניסה לאזור האישי">
+          <div class="portal-login__icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           </div>
-          <div class="wizard-footer">
-            <span id="wizardStepLabel" class="wizard-label">שלב 1 מתוך 7</span>
-            <div class="wizard-actions">
-              <button id="wizardPrevBtn" class="btn-secondary" type="button">הקודם</button>
-              <button id="wizardNextBtn" class="btn-primary" type="button">הבא</button>
+          <h2 class="portal-login__title">כניסה לאזור אישי</h2>
+          <p class="portal-login__sub">הזן קוד גישה כדי לפתוח את אזור הניהול</p>
+          <form id="portalLoginForm" style="width: 100%; max-width: 320px; margin: 0 auto;" autocomplete="on" novalidate>
+            <div style="margin-bottom: 0.85rem;">
+              <label for="accessCodeInput" class="lbl">קוד גישה</label>
+              <input id="accessCodeInput" name="accessCode" type="password"
+                     class="inp" placeholder="הזן קוד גישה"
+                     autocomplete="current-password"
+                     aria-required="true"
+                     aria-describedby="accessMsg" />
             </div>
-          </div>
-        </div>
-
-        <div id="portal-dashboard" class="portal-panel">
-          <h3 class="font-bold text-lg mb-3">סקירה מהירה</h3>
-          <div class="grid md:grid-cols-4 gap-3">
-            <div class="stat"><span id="statProjects">0</span><small>פרויקטים</small></div>
-            <div class="stat"><span id="statDocs">0</span><small>מסמכים</small></div>
-            <div class="stat"><span id="statInvoices">0</span><small>חשבוניות</small></div>
-            <div class="stat"><span id="statQuotes">0</span><small>הצעות מחיר</small></div>
-          </div>
-          <div class="grid md:grid-cols-2 gap-4 mt-4">
-            <div class="box">
-              <h4 class="font-bold mb-2">לקוחות (CRM)</h4>
-              <div class="grid md:grid-cols-2 gap-2 mb-2">
-                <input id="customerName" class="inp" placeholder="שם לקוח *" />
-                <input id="customerPhone" class="inp" placeholder="טלפון" />
-              </div>
-              <button id="saveCustomerBtn" type="button" class="btn-primary">שמור לקוח</button>
-              <div class="table-wrap mt-3"><table class="table"><thead><tr><th>שם</th><th>טלפון</th><th>פעולות</th></tr></thead><tbody id="customersTable"></tbody></table></div>
-            </div>
-            <div class="box">
-              <h4 class="font-bold mb-2">משימות ותזכורות</h4>
-              <div class="grid md:grid-cols-2 gap-2 mb-2">
-                <input id="taskTitle" class="inp" placeholder="כותרת משימה *" />
-                <input id="taskDueDate" type="date" class="inp" />
-              </div>
-              <button id="saveTaskBtn" type="button" class="btn-primary">שמור משימה</button>
-              <div class="table-wrap mt-3"><table class="table"><thead><tr><th>משימה</th><th>תאריך יעד</th><th>פעולות</th></tr></thead><tbody id="tasksTable"></tbody></table></div>
-            </div>
-          </div>
-        </div>
-
-        <div id="portal-projects" class="portal-panel hidden">
-          <h3 class="font-bold text-lg mb-3">הקמה וניהול פרויקטים</h3>
-          <form id="projectForm" class="grid md:grid-cols-2 gap-3 mb-4">
-            <input type="hidden" id="projectId" />
-            <div><label class="lbl">שם פרויקט *</label><input id="projectTitle" class="inp" /></div>
-            <div><label class="lbl">לקוח</label><input id="projectClient" class="inp" /></div>
-            <div><label class="lbl">כתובת</label><input id="projectAddress" class="inp" /></div>
-            <div><label class="lbl">סטטוס</label><select id="projectStatus" class="inp"><option value="planned">בתכנון</option><option value="active">בביצוע</option><option value="done">הושלם</option></select></div>
-            <div><label class="lbl">תאריך התחלה</label><input id="projectStarted" type="date" class="inp" /></div>
-            <div><label class="lbl">תאריך סיום</label><input id="projectCompleted" type="date" class="inp" /></div>
-            <div class="md:col-span-2"><label class="lbl">תיאור</label><textarea id="projectDescription" class="inp" rows="3"></textarea></div>
-            <div class="md:col-span-2"><label class="lbl">גלריית תמונות פרויקט</label><input id="projectPhotosInput" class="inp" type="file" accept="image/*" multiple /></div>
-            <div class="md:col-span-2 flex flex-wrap gap-2">
-              <button type="button" id="saveProjectBtn" class="btn-primary">שמירת פרויקט</button>
-              <button type="button" id="newProjectBtn" class="btn-secondary">פרויקט חדש</button>
-            </div>
+            <button id="accessLoginBtn" type="submit" class="btn-primary" style="width: 100%;">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+              כניסה
+            </button>
+            <p id="accessMsg" class="msg" role="alert" aria-live="assertive"></p>
           </form>
-          <div id="projectPhotoPreview" class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4"></div>
-          <div class="table-wrap"><table class="table"><thead><tr><th>פרויקט</th><th>לקוח</th><th>סטטוס</th><th>עודכן</th><th>פעולות</th></tr></thead><tbody id="projectsTable"></tbody></table></div>
         </div>
 
-        <div id="portal-documents" class="portal-panel hidden">
-          <h3 class="font-bold text-lg mb-3">מערכת הנפקת מסמכים</h3>
-          <div class="grid md:grid-cols-3 gap-2 mb-3">
-            <input id="docsSearchInput" class="inp" placeholder="חיפוש מסמכים (שם/כתובת/מספר)" />
-            <select id="docsStatusFilter" class="inp"><option value="">כל הסטטוסים</option><option value="draft">טיוטה</option><option value="final">סופי</option></select>
-            <select id="docsTypeFilter" class="inp"><option value="">כל הסוגים</option><option value="installation">תקינות מתקן</option><option value="portable">צרכנים מטלטלים</option></select>
-          </div>
-          <form id="docForm" class="grid md:grid-cols-2 gap-3 mb-4">
-            <input type="hidden" id="docId" />
-            <div><label class="lbl">מספר מסמך</label><input id="docNo" class="inp" placeholder="אוטומטי אם ריק" /></div>
-            <div><label class="lbl">סוג מסמך</label><select id="docType" class="inp"><option value="installation">אישור תקינות מתקן</option><option value="portable">אישור צרכנים מטלטלים</option></select></div>
-            <div><label class="lbl">סטטוס</label><select id="docWorkflowStatus" class="inp"><option value="draft">טיוטה</option><option value="final">סופי</option></select></div>
-            <div><label class="lbl">שם מתקן / אתר *</label><input id="docFacilityName" class="inp" /></div>
-            <div><label class="lbl">כתובת</label><input id="docAddress" class="inp" /></div>
-            <div><label class="lbl">גודל חיבור</label><input id="docConnection" class="inp" /></div>
-            <div><label class="lbl">שיטת הגנה / הארקה</label><input id="docGrounding" class="inp" /></div>
-            <div><label class="lbl">בידוד</label><input id="docInsulation" class="inp" /></div>
-            <div class="md:col-span-2"><label class="lbl">הערות</label><textarea id="docNotes" class="inp" rows="3"></textarea></div>
-            <div class="md:col-span-2"><label class="lbl">תמונות</label><input id="docPhotosInput" class="inp" type="file" accept="image/*" multiple /></div>
-          </form>
-          <div id="docPhotosPreview" class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4"></div>
-          <div class="mb-4">
-            <label class="lbl">חתימה</label>
-            <div class="relative max-w-xl">
-              <canvas id="docSignaturePad" class="sig w-full h-40"></canvas>
-              <button id="docClearSig" type="button" class="sig-clear">נקה חתימה</button>
+        <!-- PORTAL AREA -->
+        <div id="portalArea" class="hidden">
+
+          <!-- WIZARD NAVIGATION -->
+          <nav class="wizard-nav no-print" aria-label="ניווט אשף הניהול">
+            <div class="wizard-steps" role="tablist" aria-label="שלבי הניהול">
+              <button class="wizard-step-btn active" data-portal-tab="dashboard" type="button"
+                      role="tab" aria-selected="true" aria-controls="portal-dashboard" id="tab-dashboard">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" width="13" height="13"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                לוח בקרה
+              </button>
+              <button class="wizard-step-btn" data-portal-tab="projects" type="button"
+                      role="tab" aria-selected="false" aria-controls="portal-projects" id="tab-projects">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" width="13" height="13"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                פרויקטים
+              </button>
+              <button class="wizard-step-btn" data-portal-tab="documents" type="button"
+                      role="tab" aria-selected="false" aria-controls="portal-documents" id="tab-documents">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" width="13" height="13"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                מסמכים
+              </button>
+              <button class="wizard-step-btn" data-portal-tab="invoices" type="button"
+                      role="tab" aria-selected="false" aria-controls="portal-invoices" id="tab-invoices">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" width="13" height="13"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                חשבוניות
+              </button>
+              <button class="wizard-step-btn" data-portal-tab="quotes" type="button"
+                      role="tab" aria-selected="false" aria-controls="portal-quotes" id="tab-quotes">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" width="13" height="13"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                הצעות מחיר
+              </button>
+              <button class="wizard-step-btn" data-portal-tab="exports" type="button"
+                      role="tab" aria-selected="false" aria-controls="portal-exports" id="tab-exports">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" width="13" height="13"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                ייצוא
+              </button>
+              <button class="wizard-step-btn" data-portal-tab="settings" type="button"
+                      role="tab" aria-selected="false" aria-controls="portal-settings" id="tab-settings">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" width="13" height="13"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                הגדרות
+              </button>
             </div>
-          </div>
-          <div class="flex flex-wrap gap-2 mb-4">
-            <button id="saveDocBtn" type="button" class="btn-primary">שמירת מסמך</button>
-            <button id="finalizeDocBtn" type="button" class="btn-secondary">סמן כסופי</button>
-            <button id="printDocBtn" type="button" class="btn-secondary">הדפסה / PDF</button>
-            <button id="newDocBtn" type="button" class="btn-secondary">מסמך חדש</button>
-          </div>
-          <div class="table-wrap"><table class="table"><thead><tr><th>מספר</th><th>סטטוס</th><th>סוג</th><th>שם מתקן</th><th>כתובת</th><th>עודכן</th><th>פעולות</th></tr></thead><tbody id="docsTable"></tbody></table></div>
-        </div>
+            <div class="wizard-footer">
+              <span id="wizardStepLabel" class="wizard-label" aria-live="polite">לוח בקרה</span>
+              <div class="wizard-actions">
+                <button id="wizardPrevBtn" class="btn-secondary" type="button" aria-label="עבור לשלב הקודם" disabled>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+                  הקודם
+                </button>
+                <button id="wizardNextBtn" class="btn-primary" type="button" aria-label="עבור לשלב הבא">
+                  הבא
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+              </div>
+            </div>
+          </nav>
 
-        <div id="portal-invoices" class="portal-panel hidden">
-          <h3 class="font-bold text-lg mb-3">הנפקת חשבוניות (כולל מס' הקצאה, מעודכן 01/2026)</h3>
-          <div id="invoiceFormWrap"></div>
-          <div class="table-wrap mt-4"><table class="table"><thead><tr><th>מספר</th><th>הקצאה</th><th>לקוח</th><th>סה"כ</th><th>סטטוס</th><th>פעולות</th></tr></thead><tbody id="invoicesTable"></tbody></table></div>
-        </div>
-
-        <div id="portal-quotes" class="portal-panel hidden">
-          <h3 class="font-bold text-lg mb-3">מערכת הנפקת הצעות מחיר</h3>
-          <div id="quoteFormWrap"></div>
-          <div class="table-wrap mt-4"><table class="table"><thead><tr><th>מספר</th><th>לקוח</th><th>סה"כ</th><th>סטטוס</th><th>פעולות</th></tr></thead><tbody id="quotesTable"></tbody></table></div>
-        </div>
-
-        <div id="portal-exports" class="portal-panel hidden">
-          <h3 class="font-bold text-lg mb-2">ייצוא דוחות לרו"ח</h3>
-          <p class="text-sm text-slate-600 mb-4">הפקת CSV מרכז של חשבוניות והצעות מחיר לשימוש מיידי במשרד הנהלת חשבונות.</p>
-          <button id="exportAccountantBtn" class="btn-primary" type="button">ייצוא קובץ accountant-export.csv</button>
-        </div>
-
-        <div id="portal-settings" class="portal-panel hidden">
-          <h3 class="font-bold text-lg mb-3">הגדרות אזור אישי</h3>
-          <form id="settingsForm" class="grid md:grid-cols-2 gap-3">
-            <div><label class="lbl">שם החשמלאי</label><input id="setName" class="inp" /></div>
-            <div><label class="lbl">מספר רישיון</label><input id="setLicense" class="inp" /></div>
-            <div><label class="lbl">טלפון</label><input id="setPhone" class="inp" /></div>
-            <div><label class="lbl">דוא"ל</label><input id="setEmail" class="inp" /></div>
-            <div><label class="lbl">WhatsApp (ניתן לשינוי)</label><input id="setWhatsapp" class="inp" /></div>
-            <div><label class="lbl">קוד כניסה מנהל</label><input id="setAccessCode" class="inp" /></div>
-            <div><label class="lbl">קוד כניסה עובד</label><input id="setWorkerAccessCode" class="inp" /></div>
-            <div class="md:col-span-2"><label class="lbl">אודות</label><textarea id="setAboutText" class="inp" rows="4"></textarea></div>
-            <div class="md:col-span-2 wizard-config-block">
-              <details class="advanced-home-content">
-                <summary>תוכן דף הבית (מתקדם - אופציונלי)</summary>
-                <div class="grid md:grid-cols-2 gap-3 mt-3">
-                <div><label class="lbl">כותרת משנה עליונה</label><input id="setHomeKicker" class="inp" /></div>
-                <div><label class="lbl">כותרת ראשית</label><input id="setHomeTitle" class="inp" /></div>
-                <div class="md:col-span-2"><label class="lbl">תיאור ראשי</label><textarea id="setHomeSubtitle" class="inp" rows="3"></textarea></div>
-                <div><label class="lbl">טקסט כפתור ראשי</label><input id="setHomePrimaryCta" class="inp" /></div>
-                <div><label class="lbl">טקסט כפתור WhatsApp</label><input id="setHomeWhatsappCta" class="inp" /></div>
-                <div><label class="lbl">Chip 1</label><input id="setHomeChip1" class="inp" /></div>
-                <div><label class="lbl">Chip 2</label><input id="setHomeChip2" class="inp" /></div>
-                <div><label class="lbl">Chip 3</label><input id="setHomeChip3" class="inp" /></div>
-                <div><label class="lbl">אמון 1 כותרת</label><input id="setHomeTrustTitle1" class="inp" /></div>
-                <div><label class="lbl">אמון 1 טקסט</label><input id="setHomeTrustText1" class="inp" /></div>
-                <div><label class="lbl">אמון 2 כותרת</label><input id="setHomeTrustTitle2" class="inp" /></div>
-                <div><label class="lbl">אמון 2 טקסט</label><input id="setHomeTrustText2" class="inp" /></div>
-                <div><label class="lbl">אמון 3 כותרת</label><input id="setHomeTrustTitle3" class="inp" /></div>
-                <div><label class="lbl">אמון 3 טקסט</label><input id="setHomeTrustText3" class="inp" /></div>
-                <div><label class="lbl">פיצ'ר 1 כותרת</label><input id="setHomeFeatureTitle1" class="inp" /></div>
-                <div><label class="lbl">פיצ'ר 1 טקסט</label><input id="setHomeFeatureText1" class="inp" /></div>
-                <div><label class="lbl">פיצ'ר 2 כותרת</label><input id="setHomeFeatureTitle2" class="inp" /></div>
-                <div><label class="lbl">פיצ'ר 2 טקסט</label><input id="setHomeFeatureText2" class="inp" /></div>
-                <div><label class="lbl">פיצ'ר 3 כותרת</label><input id="setHomeFeatureTitle3" class="inp" /></div>
-                <div><label class="lbl">פיצ'ר 3 טקסט</label><input id="setHomeFeatureText3" class="inp" /></div>
-                <div><label class="lbl">כותרת תהליך</label><input id="setHomeProcessTitle" class="inp" /></div>
-                <div><label class="lbl">שלב 1</label><input id="setHomeStep1" class="inp" /></div>
-                <div><label class="lbl">שלב 2</label><input id="setHomeStep2" class="inp" /></div>
-                <div><label class="lbl">שלב 3</label><input id="setHomeStep3" class="inp" /></div>
-                <div><label class="lbl">שלב 4</label><input id="setHomeStep4" class="inp" /></div>
-                <div><label class="lbl">כיתוב גלריה 1</label><input id="setHomeGalleryLabel1" class="inp" /></div>
-                <div><label class="lbl">כיתוב גלריה 2</label><input id="setHomeGalleryLabel2" class="inp" /></div>
-                <div><label class="lbl">כיתוב גלריה 3</label><input id="setHomeGalleryLabel3" class="inp" /></div>
+          <!-- ======================================================
+               PANEL: DASHBOARD
+               ====================================================== -->
+          <div id="portal-dashboard" class="wizard-body portal-panel" role="tabpanel" aria-labelledby="tab-dashboard">
+            <h3 class="section-title" style="font-size: 1.2rem; margin-bottom: 1rem;">סקירה מהירה</h3>
+            <div class="dash-stats">
+              <div class="stat"><span id="statProjects">0</span><small>פרויקטים</small></div>
+              <div class="stat"><span id="statDocs">0</span><small>מסמכים</small></div>
+              <div class="stat"><span id="statInvoices">0</span><small>חשבוניות</small></div>
+              <div class="stat"><span id="statQuotes">0</span><small>הצעות מחיר</small></div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+              <div class="box">
+                <h4 style="font-weight: 800; color: var(--navy); margin-bottom: 0.75rem;">לקוחות (CRM)</h4>
+                <div class="form-grid" style="margin-bottom: 0.6rem;">
+                  <div><label for="customerName" class="lbl">שם לקוח *</label><input id="customerName" class="inp" /></div>
+                  <div><label for="customerPhone" class="lbl">טלפון</label><input id="customerPhone" class="inp" /></div>
                 </div>
-              </details>
+                <button id="saveCustomerBtn" type="button" class="btn-primary">שמור לקוח</button>
+                <div class="table-wrap" style="margin-top: 0.75rem;">
+                  <table class="table" aria-label="רשימת לקוחות"><thead><tr><th scope="col">שם</th><th scope="col">טלפון</th><th scope="col">פעולות</th></tr></thead><tbody id="customersTable"></tbody></table>
+                </div>
+              </div>
+              <div class="box">
+                <h4 style="font-weight: 800; color: var(--navy); margin-bottom: 0.75rem;">משימות ותזכורות</h4>
+                <div class="form-grid" style="margin-bottom: 0.6rem;">
+                  <div><label for="taskTitle" class="lbl">כותרת משימה *</label><input id="taskTitle" class="inp" /></div>
+                  <div><label for="taskDueDate" class="lbl">תאריך יעד</label><input id="taskDueDate" type="date" class="inp" /></div>
+                </div>
+                <button id="saveTaskBtn" type="button" class="btn-primary">שמור משימה</button>
+                <div class="table-wrap" style="margin-top: 0.75rem;">
+                  <table class="table" aria-label="רשימת משימות"><thead><tr><th scope="col">משימה</th><th scope="col">תאריך</th><th scope="col">פעולות</th></tr></thead><tbody id="tasksTable"></tbody></table>
+                </div>
               </div>
             </div>
-            <div><label class="lbl">לוגו</label><input id="setLogoInput" type="file" accept="image/*" class="inp" /></div>
-            <div><label class="lbl">חותמת</label><input id="setStampInput" type="file" accept="image/*" class="inp" /></div>
-            <div class="md:col-span-2">
-              <label class="inline-flex items-center gap-2">
-                <input id="setUseBlankTemplate" type="checkbox" />
-                <span>הדפסה על דף בלאנק (ללא כותרת מובנית)</span>
-              </label>
-              <p class="text-xs text-slate-600 mt-1">כאשר פעיל, ההדפסה מותאמת לטופס מוכן מראש או לרקע בלנק.</p>
+          </div>
+
+          <!-- ======================================================
+               PANEL: PROJECTS
+               ====================================================== -->
+          <div id="portal-projects" class="wizard-body portal-panel hidden" role="tabpanel" aria-labelledby="tab-projects">
+            <h3 class="section-title" style="font-size: 1.2rem; margin-bottom: 1rem;">הקמה וניהול פרויקטים</h3>
+            <form id="projectForm" aria-label="טופס פרויקט" novalidate>
+              <input type="hidden" id="projectId" />
+              <div class="form-grid" style="margin-bottom: 0.75rem;">
+                <div><label for="projectTitle" class="lbl">שם פרויקט *</label><input id="projectTitle" class="inp" aria-required="true" /></div>
+                <div><label for="projectClient" class="lbl">לקוח</label><input id="projectClient" class="inp" /></div>
+                <div><label for="projectAddress" class="lbl">כתובת</label><input id="projectAddress" class="inp" /></div>
+                <div>
+                  <label for="projectStatus" class="lbl">סטטוס</label>
+                  <select id="projectStatus" class="inp">
+                    <option value="planned">בתכנון</option>
+                    <option value="active">בביצוע</option>
+                    <option value="done">הושלם</option>
+                  </select>
+                </div>
+                <div><label for="projectStarted" class="lbl">תאריך התחלה</label><input id="projectStarted" type="date" class="inp" /></div>
+                <div><label for="projectCompleted" class="lbl">תאריך סיום</label><input id="projectCompleted" type="date" class="inp" /></div>
+                <div class="col-span-2"><label for="projectDescription" class="lbl">תיאור</label><textarea id="projectDescription" class="inp" rows="3"></textarea></div>
+                <div class="col-span-2"><label for="projectPhotosInput" class="lbl">גלריית תמונות</label><input id="projectPhotosInput" class="inp" type="file" accept="image/*" multiple aria-describedby="projectPhotosHint" /><span id="projectPhotosHint" style="font-size:0.78rem;color:var(--text-light)">ניתן לבחור מספר תמונות</span></div>
+              </div>
+              <div id="projectPhotoPreview" class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4" aria-label="תצוגה מקדימה של תמונות"></div>
+              <div class="form-actions">
+                <button type="button" id="saveProjectBtn" class="btn-primary">שמירת פרויקט</button>
+                <button type="button" id="newProjectBtn" class="btn-secondary">פרויקט חדש</button>
+              </div>
+            </form>
+            <div class="table-wrap">
+              <table class="table" aria-label="רשימת פרויקטים">
+                <thead><tr><th scope="col">פרויקט</th><th scope="col">לקוח</th><th scope="col">סטטוס</th><th scope="col">עודכן</th><th scope="col">פעולות</th></tr></thead>
+                <tbody id="projectsTable"></tbody>
+              </table>
             </div>
-            <div class="md:col-span-2">
-              <label class="lbl">תמונת בלנק להדפסה (אופציונלי)</label>
-              <input id="setBlankTemplateInput" type="file" accept="image/*" class="inp" />
+          </div>
+
+          <!-- ======================================================
+               PANEL: DOCUMENTS
+               ====================================================== -->
+          <div id="portal-documents" class="wizard-body portal-panel hidden" role="tabpanel" aria-labelledby="tab-documents">
+            <h3 class="section-title" style="font-size: 1.2rem; margin-bottom: 1rem;">מערכת הנפקת מסמכים</h3>
+            <div class="filter-bar" role="search" aria-label="סינון מסמכים">
+              <div><label for="docsSearchInput" class="lbl">חיפוש</label><input id="docsSearchInput" class="inp" placeholder="שם / כתובת / מספר" aria-label="חיפוש מסמכים" /></div>
+              <div><label for="docsStatusFilter" class="lbl">סטטוס</label><select id="docsStatusFilter" class="inp" aria-label="סינון לפי סטטוס"><option value="">כל הסטטוסים</option><option value="draft">טיוטה</option><option value="final">סופי</option></select></div>
+              <div><label for="docsTypeFilter" class="lbl">סוג</label><select id="docsTypeFilter" class="inp" aria-label="סינון לפי סוג"><option value="">כל הסוגים</option><option value="installation">תקינות מתקן</option><option value="portable">צרכנים מטלטלים</option></select></div>
             </div>
-            <div>
-              <label class="lbl">הזזה אופקית (מ"מ)</label>
-              <input id="setBlankOffsetX" type="number" step="0.5" class="inp" value="0" />
+            <form id="docForm" aria-label="טופס מסמך" novalidate>
+              <input type="hidden" id="docId" />
+              <div class="form-grid" style="margin-bottom: 0.75rem;">
+                <div><label for="docNo" class="lbl">מספר מסמך</label><input id="docNo" class="inp" placeholder="אוטומטי אם ריק" /></div>
+                <div>
+                  <label for="docType" class="lbl">סוג מסמך</label>
+                  <select id="docType" class="inp"><option value="installation">אישור תקינות מתקן</option><option value="portable">אישור צרכנים מטלטלים</option></select>
+                </div>
+                <div>
+                  <label for="docWorkflowStatus" class="lbl">סטטוס</label>
+                  <select id="docWorkflowStatus" class="inp"><option value="draft">טיוטה</option><option value="final">סופי</option></select>
+                </div>
+                <div><label for="docFacilityName" class="lbl">שם מתקן / אתר *</label><input id="docFacilityName" class="inp" aria-required="true" /></div>
+                <div><label for="docAddress" class="lbl">כתובת</label><input id="docAddress" class="inp" /></div>
+                <div><label for="docConnection" class="lbl">גודל חיבור</label><input id="docConnection" class="inp" /></div>
+                <div><label for="docGrounding" class="lbl">שיטת הגנה / הארקה</label><input id="docGrounding" class="inp" /></div>
+                <div><label for="docInsulation" class="lbl">בידוד</label><input id="docInsulation" class="inp" /></div>
+                <div class="col-span-2"><label for="docNotes" class="lbl">הערות</label><textarea id="docNotes" class="inp" rows="3"></textarea></div>
+                <div class="col-span-2"><label for="docPhotosInput" class="lbl">תמונות</label><input id="docPhotosInput" class="inp" type="file" accept="image/*" multiple /></div>
+              </div>
+              <div id="docPhotosPreview" class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4" aria-label="תצוגה מקדימה של תמונות"></div>
+              <div style="margin-bottom: 1rem;">
+                <label class="lbl" for="docSignaturePad">חתימה</label>
+                <div style="position: relative; max-width: 600px;">
+                  <canvas id="docSignaturePad" class="sig" style="width: 100%; height: 10rem;" aria-label="שטח חתימה" role="img" tabindex="0"></canvas>
+                  <button id="docClearSig" type="button" class="sig-clear" aria-label="נקה חתימה">נקה</button>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button id="saveDocBtn" type="button" class="btn-primary">שמירת מסמך</button>
+                <button id="finalizeDocBtn" type="button" class="btn-secondary">סמן כסופי</button>
+                <button id="printDocBtn" type="button" class="btn-secondary">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                  הדפסה / PDF
+                </button>
+                <button id="newDocBtn" type="button" class="btn-secondary">מסמך חדש</button>
+              </div>
+            </form>
+            <div class="table-wrap">
+              <table class="table" aria-label="רשימת מסמכים">
+                <thead><tr><th scope="col">סוג</th><th scope="col">שם מתקן</th><th scope="col">כתובת</th><th scope="col">עודכן</th><th scope="col">פעולות</th></tr></thead>
+                <tbody id="docsTable"></tbody>
+              </table>
             </div>
-            <div>
-              <label class="lbl">הזזה אנכית (מ"מ)</label>
-              <input id="setBlankOffsetY" type="number" step="0.5" class="inp" value="0" />
+          </div>
+
+          <!-- ======================================================
+               PANEL: INVOICES
+               ====================================================== -->
+          <div id="portal-invoices" class="wizard-body portal-panel hidden" role="tabpanel" aria-labelledby="tab-invoices">
+            <h3 class="section-title" style="font-size: 1.2rem; margin-bottom: 1rem;">חשבוניות — כולל מספר הקצאה (01/2026)</h3>
+            <div id="invoiceFormWrap"></div>
+            <div class="table-wrap">
+              <table class="table" aria-label="רשימת חשבוניות">
+                <thead><tr><th scope="col">מספר</th><th scope="col">הקצאה</th><th scope="col">לקוח</th><th scope="col">סה"כ</th><th scope="col">סטטוס</th><th scope="col">פעולות</th></tr></thead>
+                <tbody id="invoicesTable"></tbody>
+              </table>
             </div>
-            <div>
-              <label class="lbl">סקייל בלנק</label>
-              <input id="setBlankScale" type="number" step="0.01" min="0.8" max="1.2" class="inp" value="1" />
+          </div>
+
+          <!-- ======================================================
+               PANEL: QUOTES
+               ====================================================== -->
+          <div id="portal-quotes" class="wizard-body portal-panel hidden" role="tabpanel" aria-labelledby="tab-quotes">
+            <h3 class="section-title" style="font-size: 1.2rem; margin-bottom: 1rem;">הצעות מחיר</h3>
+            <div id="quoteFormWrap"></div>
+            <div class="table-wrap">
+              <table class="table" aria-label="רשימת הצעות מחיר">
+                <thead><tr><th scope="col">מספר</th><th scope="col">לקוח</th><th scope="col">סה"כ</th><th scope="col">סטטוס</th><th scope="col">פעולות</th></tr></thead>
+                <tbody id="quotesTable"></tbody>
+              </table>
             </div>
-            <div class="md:col-span-2 flex gap-2 flex-wrap">
-              <button id="saveSettingsBtn" class="btn-primary" type="button">שמור הגדרות</button>
-              <button id="exportBackupBtn" class="btn-secondary" type="button">גיבוי מלא JSON</button>
-              <label class="btn-secondary cursor-pointer">שחזור JSON<input id="importBackupInput" type="file" accept="application/json" class="hidden" /></label>
-              <button id="logoutBtn" class="btn-secondary" type="button">התנתקות</button>
-            </div>
-          </form>
-          <p id="settingsMsg" class="msg"></p>
-        </div>
-      </div>
-    </section>
+          </div>
+
+          <!-- ======================================================
+               PANEL: EXPORTS
+               ====================================================== -->
+          <div id="portal-exports" class="wizard-body portal-panel hidden" role="tabpanel" aria-labelledby="tab-exports">
+            <h3 class="section-title" style="font-size: 1.2rem; margin-bottom: 0.5rem;">ייצוא דוחות לרו"ח</h3>
+            <p style="color: var(--text-light); font-size: 0.9rem; margin-bottom: 1.25rem; line-height: 1.7;">
+              הפקת קובץ CSV מרכז עם כל החשבוניות והצעות המחיר לשימוש במשרד הנהלת חשבונות. הקובץ כולל BOM לתמיכה מלאה בעברית ב-Excel.
+            </p>
+            <button id="exportAccountantBtn" class="btn-primary" type="button" aria-label="הורדת קובץ CSV לרואה חשבון">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="15" height="15" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              ייצוא accountant-export.csv
+            </button>
+          </div>
+
+          <!-- ======================================================
+               PANEL: SETTINGS — כל ההגדרות כאן בלבד
+               ====================================================== -->
+          <div id="portal-settings" class="wizard-body portal-panel hidden" role="tabpanel" aria-labelledby="tab-settings">
+            <h3 class="section-title" style="font-size: 1.2rem; margin-bottom: 1rem;">הגדרות האתר</h3>
+
+            <form id="settingsForm" aria-label="טופס הגדרות" novalidate>
+
+              <!-- SECTION: פרטי החשמלאי -->
+              <div class="settings-group">
+                <p class="settings-section-title">פרטי החשמלאי</p>
+                <div class="form-grid">
+                  <div><label for="setName" class="lbl">שם מלא</label><input id="setName" class="inp" /></div>
+                  <div><label for="setLicense" class="lbl">מספר רישיון</label><input id="setLicense" class="inp" /></div>
+                  <div><label for="setPhone" class="lbl">טלפון</label><input id="setPhone" class="inp" type="tel" autocomplete="tel" /></div>
+                  <div><label for="setEmail" class="lbl">דוא"ל</label><input id="setEmail" class="inp" type="email" autocomplete="email" /></div>
+                  <div><label for="setWhatsapp" class="lbl">מספר WhatsApp</label><input id="setWhatsapp" class="inp" type="tel" /></div>
+                  <div class="col-span-2"><label for="setAboutText" class="lbl">טקסט אודות</label><textarea id="setAboutText" class="inp" rows="4"></textarea></div>
+                </div>
+              </div>
+
+              <!-- SECTION: גישה ואבטחה -->
+              <div class="settings-group">
+                <p class="settings-section-title">גישה ואבטחה</p>
+                <div class="form-grid">
+                  <div><label for="setAccessCode" class="lbl">קוד כניסה מנהל</label><input id="setAccessCode" class="inp" type="password" autocomplete="new-password" /></div>
+                  <div><label for="setWorkerAccessCode" class="lbl">קוד כניסה עובד (עתידי)</label><input id="setWorkerAccessCode" class="inp" type="password" autocomplete="new-password" /></div>
+                </div>
+              </div>
+
+              <!-- SECTION: לוגו וחותמת -->
+              <div class="settings-group">
+                <p class="settings-section-title">לוגו וחותמת</p>
+                <div class="form-grid">
+                  <div><label for="setLogoInput" class="lbl">לוגו העסק</label><input id="setLogoInput" type="file" accept="image/*" class="inp" aria-describedby="logoHint" /><span id="logoHint" style="font-size:0.77rem;color:var(--text-light)">PNG/JPG עד 2MB</span></div>
+                  <div><label for="setStampInput" class="lbl">חותמת</label><input id="setStampInput" type="file" accept="image/*" class="inp" aria-describedby="stampHint" /><span id="stampHint" style="font-size:0.77rem;color:var(--text-light)">PNG/JPG עד 2MB</span></div>
+                </div>
+              </div>
+
+              <!-- SECTION: הדפסה על בלאנק -->
+              <div class="settings-group">
+                <p class="settings-section-title">הדפסה על דף בלאנק</p>
+                <div style="margin-bottom: 0.75rem;">
+                  <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input id="setUseBlankTemplate" type="checkbox" style="width: 1rem; height: 1rem; accent-color: var(--gold);" />
+                    <span style="font-weight: 600; font-size: 0.9rem;">הפעל הדפסה על דף בלאנק (טופס מוכן מראש)</span>
+                  </label>
+                  <p style="font-size: 0.78rem; color: var(--text-light); margin-top: 0.25rem; margin-right: 1.5rem;">כאשר פעיל, ההדפסה מותאמת לרקע/טופס מוכן מראש.</p>
+                </div>
+                <div class="form-grid">
+                  <div class="col-span-2"><label for="setBlankTemplateInput" class="lbl">תמונת בלאנק (אופציונלי)</label><input id="setBlankTemplateInput" type="file" accept="image/*" class="inp" /></div>
+                  <div><label for="setBlankOffsetX" class="lbl">הזזה אופקית (מ"מ)</label><input id="setBlankOffsetX" type="number" step="0.5" class="inp" value="0" /></div>
+                  <div><label for="setBlankOffsetY" class="lbl">הזזה אנכית (מ"מ)</label><input id="setBlankOffsetY" type="number" step="0.5" class="inp" value="0" /></div>
+                  <div><label for="setBlankScale" class="lbl">סקייל (0.8–1.2)</label><input id="setBlankScale" type="number" step="0.01" min="0.8" max="1.2" class="inp" value="1" /></div>
+                </div>
+              </div>
+
+              <!-- SECTION: תוכן דף הבית (מתקדם) -->
+              <div class="settings-group">
+                <details class="advanced-home-content">
+                  <summary>תוכן דף הבית (מתקדם — אופציונלי)</summary>
+                  <div class="advanced-home-content__body">
+                    <div class="form-grid">
+                      <div><label for="setHomeKicker" class="lbl">כותרת משנה עליונה</label><input id="setHomeKicker" class="inp" /></div>
+                      <div><label for="setHomeTitle" class="lbl">כותרת ראשית</label><input id="setHomeTitle" class="inp" /></div>
+                      <div class="col-span-2"><label for="setHomeSubtitle" class="lbl">תיאור ראשי</label><textarea id="setHomeSubtitle" class="inp" rows="3"></textarea></div>
+                      <div><label for="setHomePrimaryCta" class="lbl">טקסט כפתור כניסה</label><input id="setHomePrimaryCta" class="inp" /></div>
+                      <div><label for="setHomeWhatsappCta" class="lbl">טקסט כפתור WhatsApp</label><input id="setHomeWhatsappCta" class="inp" /></div>
+                      <div><label for="setHomeFeatureTitle1" class="lbl">שירות 1 — כותרת</label><input id="setHomeFeatureTitle1" class="inp" /></div>
+                      <div><label for="setHomeFeatureText1" class="lbl">שירות 1 — טקסט</label><input id="setHomeFeatureText1" class="inp" /></div>
+                      <div><label for="setHomeFeatureTitle2" class="lbl">שירות 2 — כותרת</label><input id="setHomeFeatureTitle2" class="inp" /></div>
+                      <div><label for="setHomeFeatureText2" class="lbl">שירות 2 — טקסט</label><input id="setHomeFeatureText2" class="inp" /></div>
+                      <div><label for="setHomeFeatureTitle3" class="lbl">שירות 3 — כותרת</label><input id="setHomeFeatureTitle3" class="inp" /></div>
+                      <div><label for="setHomeFeatureText3" class="lbl">שירות 3 — טקסט</label><input id="setHomeFeatureText3" class="inp" /></div>
+                      <div><label for="setHomeGalleryLabel1" class="lbl">כיתוב גלריה 1</label><input id="setHomeGalleryLabel1" class="inp" /></div>
+                      <div><label for="setHomeGalleryLabel2" class="lbl">כיתוב גלריה 2</label><input id="setHomeGalleryLabel2" class="inp" /></div>
+                      <div><label for="setHomeGalleryLabel3" class="lbl">כיתוב גלריה 3</label><input id="setHomeGalleryLabel3" class="inp" /></div>
+                      <div><label for="setHomeChip1" class="lbl">Chip 1</label><input id="setHomeChip1" class="inp" /></div>
+                      <div><label for="setHomeChip2" class="lbl">Chip 2</label><input id="setHomeChip2" class="inp" /></div>
+                      <div><label for="setHomeChip3" class="lbl">Chip 3</label><input id="setHomeChip3" class="inp" /></div>
+                      <div><label for="setHomeProcessTitle" class="lbl">כותרת תהליך</label><input id="setHomeProcessTitle" class="inp" /></div>
+                      <div><label for="setHomeStep1" class="lbl">שלב 1</label><input id="setHomeStep1" class="inp" /></div>
+                      <div><label for="setHomeStep2" class="lbl">שלב 2</label><input id="setHomeStep2" class="inp" /></div>
+                      <div><label for="setHomeStep3" class="lbl">שלב 3</label><input id="setHomeStep3" class="inp" /></div>
+                      <div><label for="setHomeStep4" class="lbl">שלב 4</label><input id="setHomeStep4" class="inp" /></div>
+                      <div><label for="setHomeTrustTitle1" class="lbl">אמון 1 — כותרת</label><input id="setHomeTrustTitle1" class="inp" /></div>
+                      <div><label for="setHomeTrustText1" class="lbl">אמון 1 — טקסט</label><input id="setHomeTrustText1" class="inp" /></div>
+                      <div><label for="setHomeTrustTitle2" class="lbl">אמון 2 — כותרת</label><input id="setHomeTrustTitle2" class="inp" /></div>
+                      <div><label for="setHomeTrustText2" class="lbl">אמון 2 — טקסט</label><input id="setHomeTrustText2" class="inp" /></div>
+                      <div><label for="setHomeTrustTitle3" class="lbl">אמון 3 — כותרת</label><input id="setHomeTrustTitle3" class="inp" /></div>
+                      <div><label for="setHomeTrustText3" class="lbl">אמון 3 — טקסט</label><input id="setHomeTrustText3" class="inp" /></div>
+                    </div>
+                  </div>
+                </details>
+              </div>
+
+              <!-- SECTION: גיבוי ושחזור -->
+              <div class="settings-group">
+                <p class="settings-section-title">גיבוי ושחזור</p>
+                <div class="form-actions" style="flex-wrap: wrap;">
+                  <button id="exportBackupBtn" class="btn-secondary" type="button" aria-label="ייצא גיבוי JSON">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    גיבוי מלא JSON
+                  </button>
+                  <label class="btn-secondary" style="cursor: pointer;" aria-label="שחזר מקובץ JSON">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    שחזור JSON
+                    <input id="importBackupInput" type="file" accept="application/json" class="hidden" aria-label="בחר קובץ JSON לשחזור" style="display:none;" />
+                  </label>
+                </div>
+              </div>
+
+              <!-- SAVE + LOGOUT -->
+              <div class="form-actions" style="margin-top: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                <button id="saveSettingsBtn" class="btn-gold" type="button" aria-label="שמור הגדרות">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="15" height="15" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                  שמור הגדרות
+                </button>
+                <button id="logoutBtn" class="btn-secondary" type="button" aria-label="התנתק מהאזור האישי">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                  התנתקות
+                </button>
+              </div>
+
+            </form>
+            <p id="settingsMsg" class="msg" role="alert" aria-live="assertive"></p>
+          </div>
+
+        </div><!-- /portalArea -->
+      </div><!-- /portal-card -->
+    </section><!-- /section-portal -->
+
   </main>
 
-  <a id="whatsappFloatingCta" class="wa-floating-cta" href="#" target="_blank" rel="noopener" aria-label="פתיחת WhatsApp">
+  <!-- ================================================================
+       WHATSAPP FLOATING BUTTON — with official WhatsApp SVG logo
+       ================================================================ -->
+  <a id="whatsappFloatingCta" class="wa-floating no-print" href="#"
+     target="_blank" rel="noopener noreferrer"
+     aria-label="פתח שיחת WhatsApp"
+     title="שלח הודעת WhatsApp">
+    <!-- Official WhatsApp Logo SVG -->
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
+    </svg>
     <span>WhatsApp</span>
   </a>
 
-  <div id="galleryLightbox" class="lightbox hidden" role="dialog" aria-modal="true" aria-label="תצוגת תמונה מוגדלת">
-    <button id="lightboxClose" class="lightbox-close" type="button" aria-label="סגירת תצוגת תמונה">✕</button>
+  <!-- ================================================================
+       GALLERY LIGHTBOX
+       ================================================================ -->
+  <div id="galleryLightbox" class="lightbox hidden"
+       role="dialog" aria-modal="true" aria-label="תצוגת תמונה מוגדלת"
+       aria-describedby="lightboxDesc">
+    <p id="lightboxDesc" class="hidden" style="display:none">לחץ ESC או על הרקע לסגירה</p>
+    <button id="lightboxClose" class="lightbox-close" type="button" aria-label="סגור תצוגת תמונה">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
     <img id="lightboxImage" src="" alt="" />
   </div>
 
+  <!-- ================================================================
+       TOAST NOTIFICATIONS
+       ================================================================ -->
+  <div id="toastContainer"
+       role="status" aria-live="polite" aria-atomic="false"
+       aria-label="הודעות מערכת"></div>
+
+  <!-- ================================================================
+       CONFIRM DIALOG
+       ================================================================ -->
+  <div id="confirmModal" class="hidden"
+       role="dialog" aria-modal="true" aria-labelledby="confirmModalMsg">
+    <div class="confirm-dialog">
+      <p id="confirmModalMsg"></p>
+      <div class="confirm-dialog-btns">
+        <button id="confirmModalYes" type="button" class="btn-primary">כן</button>
+        <button id="confirmModalNo" type="button" class="btn-secondary">ביטול</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       NOSCRIPT
+       ================================================================ -->
   <noscript>
-    <div class="noscript">יש להפעיל JavaScript כדי להשתמש בכל יכולות המערכת.</div>
+    <div class="noscript-bar" role="alert">
+      יש להפעיל JavaScript כדי להשתמש במערכת זו.
+    </div>
   </noscript>
 
   <script src="app.js"></script>

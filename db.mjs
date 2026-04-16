@@ -11,6 +11,42 @@ function safeJson(raw, fallback) {
   }
 }
 
+// ── Normalizers ──────────────────────────────────────────────────────────────
+
+function normalizeCertificate(r) {
+  return {
+    id: Number(r.id),
+    docType: r.doc_type ?? "installation",
+    facilityName: r.facility_name,
+    address: r.address,
+    connectionSize: r.connection_size,
+    groundingValue: r.grounding_value,
+    insulation: r.insulation,
+    notes: r.notes,
+    photos: safeJson(r.photos_json, []),
+    signatureData: r.signature_data ?? null,
+    extra: safeJson(r.extra_json, {}),
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
+function normalizeProject(r) {
+  return {
+    id: Number(r.id),
+    title: r.title,
+    clientName: r.client_name,
+    address: r.address,
+    status: r.status,
+    startedOn: r.started_on,
+    completedOn: r.completed_on,
+    description: r.description,
+    photos: safeJson(r.photos_json, []),
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
 function normalizeFinancialDoc(row) {
   return {
     id: Number(row.id),
@@ -34,6 +70,8 @@ function normalizeFinancialDoc(row) {
   };
 }
 
+// ── Pool & helpers ────────────────────────────────────────────────────────────
+
 export async function initDb() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
@@ -43,6 +81,12 @@ export async function initDb() {
     pool = new Pool({
       connectionString,
       ssl: { rejectUnauthorized: false },
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    });
+    pool.on("error", (err) => {
+      console.error("[db] unexpected pool error", err.message);
     });
   }
   await migrate();
@@ -52,6 +96,8 @@ async function q(text, params = []) {
   const result = await pool.query(text, params);
   return result.rows;
 }
+
+// ── Migrations ────────────────────────────────────────────────────────────────
 
 async function migrate() {
   await q(`
@@ -143,7 +189,15 @@ async function migrate() {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `);
+
+  // ── Performance indexes (idempotent) ──
+  await q(`CREATE INDEX IF NOT EXISTS idx_certificates_updated_at ON certificates(updated_at DESC);`);
+  await q(`CREATE INDEX IF NOT EXISTS idx_projects_updated_at ON projects(updated_at DESC);`);
+  await q(`CREATE INDEX IF NOT EXISTS idx_financial_docs_updated_at ON financial_docs(updated_at DESC);`);
+  await q(`CREATE INDEX IF NOT EXISTS idx_financial_docs_type ON financial_docs(type, updated_at DESC);`);
 }
+
+// ── Settings ──────────────────────────────────────────────────────────────────
 
 export async function getSettings() {
   const rows = await q(`SELECT * FROM inspector_settings WHERE id = 1`);
@@ -209,33 +263,42 @@ export async function saveSettings(payload) {
   return getSettings();
 }
 
-export async function listCertificates() {
+/** Returns true if the supplied code matches the stored access_code. */
+export async function verifyAccessCode(code) {
+  const rows = await q(`SELECT access_code FROM inspector_settings WHERE id = 1`);
+  if (!rows[0]) return false;
+  const stored = String(rows[0].access_code || "").trim();
+  return stored !== "" && stored === String(code || "").trim();
+}
+
+// ── Certificates ──────────────────────────────────────────────────────────────
+
+export async function listCertificates({ limit = 500, offset = 0 } = {}) {
   const rows = await q(
-    `SELECT id,
-            doc_type,
-            facility_name,
-            address,
-            connection_size,
-            grounding_value,
-            insulation,
-            notes,
-            created_at,
-            updated_at
+    `SELECT id, doc_type, facility_name, address, connection_size, grounding_value,
+            insulation, notes, created_at, updated_at
      FROM certificates
-     ORDER BY updated_at DESC`
+     ORDER BY updated_at DESC
+     LIMIT $1 OFFSET $2`,
+    [limit, offset]
   );
-  return rows.map((r) => ({
-    id: Number(r.id),
-    docType: r.doc_type,
-    facilityName: r.facility_name,
-    address: r.address,
-    connectionSize: r.connection_size,
-    groundingValue: r.grounding_value,
-    insulation: r.insulation,
-    notes: r.notes,
-    createdAt: r.created_at,
-    updatedAt: r.updated_at,
-  }));
+  const [{ count }] = await q(`SELECT COUNT(*)::int AS count FROM certificates`);
+  return {
+    items: rows.map((r) => ({
+      id: Number(r.id),
+      docType: r.doc_type,
+      facilityName: r.facility_name,
+      address: r.address,
+      connectionSize: r.connection_size,
+      groundingValue: r.grounding_value,
+      insulation: r.insulation,
+      notes: r.notes,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+    })),
+    total: count,
+    hasMore: offset + rows.length < count,
+  };
 }
 
 export async function getCertificate(id) {
@@ -246,23 +309,8 @@ export async function getCertificate(id) {
      FROM certificates WHERE id = $1`,
     [id]
   );
-  const r = rows[0];
-  if (!r) return null;
-  return {
-    id: Number(r.id),
-    docType: r.doc_type ?? "installation",
-    facilityName: r.facility_name,
-    address: r.address,
-    connectionSize: r.connection_size,
-    groundingValue: r.grounding_value,
-    insulation: r.insulation,
-    notes: r.notes,
-    photos: safeJson(r.photos_json, []),
-    signatureData: r.signature_data ?? null,
-    extra: safeJson(r.extra_json, {}),
-    createdAt: r.created_at,
-    updatedAt: r.updated_at,
-  };
+  if (!rows[0]) return null;
+  return normalizeCertificate(rows[0]);
 }
 
 export async function createCertificate(body) {
@@ -271,7 +319,7 @@ export async function createCertificate(body) {
       doc_type, facility_name, address, connection_size, grounding_value, insulation,
       notes, photos_json, signature_data, extra_json, created_at, updated_at
     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9,$10::jsonb,now(),now())
-    RETURNING id`,
+    RETURNING *`,
     [
       body.docType || "installation",
       body.facilityName,
@@ -285,13 +333,13 @@ export async function createCertificate(body) {
       JSON.stringify(body.extra ?? {}),
     ]
   );
-  return getCertificate(rows[0].id);
+  return normalizeCertificate(rows[0]);
 }
 
 export async function updateCertificate(id, body) {
   const existing = await getCertificate(id);
   if (!existing) return null;
-  await q(
+  const rows = await q(
     `UPDATE certificates SET
       doc_type = $1,
       facility_name = $2,
@@ -304,7 +352,8 @@ export async function updateCertificate(id, body) {
       signature_data = $9,
       extra_json = $10::jsonb,
       updated_at = now()
-    WHERE id = $11`,
+    WHERE id = $11
+    RETURNING *`,
     [
       body.docType ?? existing.docType,
       body.facilityName ?? existing.facilityName,
@@ -319,7 +368,7 @@ export async function updateCertificate(id, body) {
       id,
     ]
   );
-  return getCertificate(id);
+  return normalizeCertificate(rows[0]);
 }
 
 export async function deleteCertificate(id) {
@@ -327,26 +376,23 @@ export async function deleteCertificate(id) {
   return rows.length > 0;
 }
 
-export async function listProjects() {
+// ── Projects ──────────────────────────────────────────────────────────────────
+
+export async function listProjects({ limit = 500, offset = 0 } = {}) {
   const rows = await q(
     `SELECT id, title, client_name, address, status, started_on, completed_on,
             description, photos_json, created_at, updated_at
      FROM projects
-     ORDER BY updated_at DESC`
+     ORDER BY updated_at DESC
+     LIMIT $1 OFFSET $2`,
+    [limit, offset]
   );
-  return rows.map((r) => ({
-    id: Number(r.id),
-    title: r.title,
-    clientName: r.client_name,
-    address: r.address,
-    status: r.status,
-    startedOn: r.started_on,
-    completedOn: r.completed_on,
-    description: r.description,
-    photos: safeJson(r.photos_json, []),
-    createdAt: r.created_at,
-    updatedAt: r.updated_at,
-  }));
+  const [{ count }] = await q(`SELECT COUNT(*)::int AS count FROM projects`);
+  return {
+    items: rows.map(normalizeProject),
+    total: count,
+    hasMore: offset + rows.length < count,
+  };
 }
 
 export async function getProject(id) {
@@ -356,21 +402,8 @@ export async function getProject(id) {
      FROM projects WHERE id = $1`,
     [id]
   );
-  const r = rows[0];
-  if (!r) return null;
-  return {
-    id: Number(r.id),
-    title: r.title,
-    clientName: r.client_name,
-    address: r.address,
-    status: r.status,
-    startedOn: r.started_on,
-    completedOn: r.completed_on,
-    description: r.description,
-    photos: safeJson(r.photos_json, []),
-    createdAt: r.created_at,
-    updatedAt: r.updated_at,
-  };
+  if (!rows[0]) return null;
+  return normalizeProject(rows[0]);
 }
 
 export async function createProject(body) {
@@ -379,7 +412,7 @@ export async function createProject(body) {
       title, client_name, address, status, started_on, completed_on,
       description, photos_json, created_at, updated_at
     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,now(),now())
-    RETURNING id`,
+    RETURNING *`,
     [
       body.title,
       body.clientName ?? "",
@@ -391,13 +424,13 @@ export async function createProject(body) {
       JSON.stringify(body.photos ?? []),
     ]
   );
-  return getProject(rows[0].id);
+  return normalizeProject(rows[0]);
 }
 
 export async function updateProject(id, body) {
   const existing = await getProject(id);
   if (!existing) return null;
-  await q(
+  const rows = await q(
     `UPDATE projects SET
       title = $1,
       client_name = $2,
@@ -408,7 +441,8 @@ export async function updateProject(id, body) {
       description = $7,
       photos_json = $8::jsonb,
       updated_at = now()
-    WHERE id = $9`,
+    WHERE id = $9
+    RETURNING *`,
     [
       body.title ?? existing.title,
       body.clientName ?? existing.clientName,
@@ -421,7 +455,7 @@ export async function updateProject(id, body) {
       id,
     ]
   );
-  return getProject(id);
+  return normalizeProject(rows[0]);
 }
 
 export async function deleteProject(id) {
@@ -429,11 +463,26 @@ export async function deleteProject(id) {
   return rows.length > 0;
 }
 
-export async function listFinancialDocs(type) {
+// ── Financial docs ────────────────────────────────────────────────────────────
+
+export async function listFinancialDocs(type, { limit = 500, offset = 0 } = {}) {
   const rows = type
-    ? await q(`SELECT * FROM financial_docs WHERE type = $1 ORDER BY updated_at DESC`, [type])
-    : await q(`SELECT * FROM financial_docs ORDER BY updated_at DESC`);
-  return rows.map(normalizeFinancialDoc);
+    ? await q(
+        `SELECT * FROM financial_docs WHERE type = $1 ORDER BY updated_at DESC LIMIT $2 OFFSET $3`,
+        [type, limit, offset]
+      )
+    : await q(
+        `SELECT * FROM financial_docs ORDER BY updated_at DESC LIMIT $1 OFFSET $2`,
+        [limit, offset]
+      );
+  const [{ count }] = type
+    ? await q(`SELECT COUNT(*)::int AS count FROM financial_docs WHERE type = $1`, [type])
+    : await q(`SELECT COUNT(*)::int AS count FROM financial_docs`);
+  return {
+    items: rows.map(normalizeFinancialDoc),
+    total: count,
+    hasMore: offset + rows.length < count,
+  };
 }
 
 export async function getFinancialDoc(id) {
@@ -449,7 +498,7 @@ export async function createFinancialDoc(body) {
       customer_address, notes, subtotal, tax_rate, tax_amount, total_amount, status,
       items_json, created_at, updated_at
     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15::jsonb,now(),now())
-    RETURNING id`,
+    RETURNING *`,
     [
       body.type,
       body.docNo ?? "",
@@ -468,13 +517,13 @@ export async function createFinancialDoc(body) {
       JSON.stringify(body.items ?? []),
     ]
   );
-  return getFinancialDoc(rows[0].id);
+  return normalizeFinancialDoc(rows[0]);
 }
 
 export async function updateFinancialDoc(id, body) {
   const existing = await getFinancialDoc(id);
   if (!existing) return null;
-  await q(
+  const rows = await q(
     `UPDATE financial_docs SET
       type = $1,
       doc_no = $2,
@@ -492,7 +541,8 @@ export async function updateFinancialDoc(id, body) {
       status = $14,
       items_json = $15::jsonb,
       updated_at = now()
-    WHERE id = $16`,
+    WHERE id = $16
+    RETURNING *`,
     [
       body.type ?? existing.type,
       body.docNo ?? existing.docNo,
@@ -512,7 +562,7 @@ export async function updateFinancialDoc(id, body) {
       id,
     ]
   );
-  return getFinancialDoc(id);
+  return normalizeFinancialDoc(rows[0]);
 }
 
 export async function deleteFinancialDoc(id) {
@@ -521,7 +571,7 @@ export async function deleteFinancialDoc(id) {
 }
 
 export async function exportRowsForAccountant() {
-  const invoiceRows = await listFinancialDocs("invoice");
-  const quoteRows = await listFinancialDocs("quote");
+  const { items: invoiceRows } = await listFinancialDocs("invoice");
+  const { items: quoteRows } = await listFinancialDocs("quote");
   return { invoiceRows, quoteRows };
 }
