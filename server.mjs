@@ -40,7 +40,19 @@ const JWT_SECRET =
 
 const JWT_EXPIRES_IN = "7d";
 
-await initDb();
+// DB is initialised lazily on first request — avoids cold-start crashes on Vercel.
+let _dbReady = false;
+async function ensureDb(req, res, next) {
+  if (_dbReady) return next();
+  try {
+    await initDb();
+    _dbReady = true;
+    next();
+  } catch (e) {
+    console.error("[db] init failed:", e.message);
+    res.status(503).json({ error: "שירות לא זמין כרגע — נסה שוב." });
+  }
+}
 
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -68,6 +80,7 @@ app.use((_req, res, next) => {
   next();
 });
 app.use(express.static(path.join(__dirname, "public"), { index: "app.html" }));
+app.use(ensureDb);
 
 function signToken() {
   return jwt.sign({ sub: "inspector" }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
