@@ -598,6 +598,7 @@ function setupPortalAuth() {
       setToken(token);
       showMsg("accessMsg", "כניסה בוצעה בהצלחה.", true);
       ensurePortalOpen();
+      await loadSettings(); // reload with auth token to get blankTemplateData
       await refreshPortalData();
     } catch (e) {
       showMsg("accessMsg", e.message || "קוד שגוי.", false);

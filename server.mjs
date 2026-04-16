@@ -143,10 +143,19 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
   }
 });
 
-// Public: homepage needs these settings (accessCode stripped for security)
-app.get("/api/settings", async (_req, res) => {
+// GET /api/settings: public → stripped; authenticated → full (with blankTemplateData)
+app.get("/api/settings", async (req, res) => {
   try {
-    const { accessCode: _a, blankTemplateData: _b, ...pub } = await getSettings();
+    const full = await getSettings();
+    const header = req.headers.authorization || "";
+    const token  = header.startsWith("Bearer ") ? header.slice(7) : null;
+    let authed = false;
+    if (token) { try { verifyJwt(token); authed = true; } catch {} }
+    if (authed) {
+      const { accessCode: _a, ...safe } = full;
+      return res.json(safe);
+    }
+    const { accessCode: _a, blankTemplateData: _b, ...pub } = full;
     res.json({ ...pub, useBlankTemplate: false });
   } catch (e) {
     console.error("[GET /api/settings]", e.message);
