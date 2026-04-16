@@ -1,8 +1,7 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import rateLimit from "express-rate-limit";
-import jwt from "jsonwebtoken";
+import { createHmac, timingSafeEqual } from "crypto";
 import {
   initDb,
   getSettings,
@@ -38,9 +37,55 @@ const JWT_SECRET =
     return s;
   })();
 
-const JWT_EXPIRES_IN = "7d";
+// ── Lightweight JWT (HS256) — Node built-in crypto only, no external lib ──────
 
-// DB is initialised lazily on first request — avoids cold-start crashes on Vercel.
+function b64u(str) {
+  return Buffer.from(str).toString("base64url");
+}
+
+function signToken() {
+  const header  = b64u(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+  const iat     = Math.floor(Date.now() / 1000);
+  const payload = b64u(JSON.stringify({ sub: "inspector", iat, exp: iat + 7 * 24 * 3600 }));
+  const sig     = createHmac("sha256", JWT_SECRET).update(header + "." + payload).digest("base64url");
+  return header + "." + payload + "." + sig;
+}
+
+function verifyJwt(token) {
+  const parts = (token || "").split(".");
+  if (parts.length !== 3) throw new Error("malformed token");
+  const [header, payload, sig] = parts;
+  const expected = createHmac("sha256", JWT_SECRET).update(header + "." + payload).digest("base64url");
+  const sBuf = Buffer.from(sig,      "base64url");
+  const eBuf = Buffer.from(expected, "base64url");
+  if (sBuf.length !== eBuf.length || !timingSafeEqual(sBuf, eBuf))
+    throw new Error("invalid signature");
+  const claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+  if (claims.exp && claims.exp < Math.floor(Date.now() / 1000)) throw new Error("token expired");
+  return claims;
+}
+
+// ── Simple in-memory rate limiter (no external lib) ───────────────────────────
+
+function makeRateLimiter(max, windowMs, message) {
+  const store = new Map();
+  return (req, res, next) => {
+    const key = req.ip || "unknown";
+    const now = Date.now();
+    let e = store.get(key);
+    if (!e || now > e.resetAt) e = { count: 0, resetAt: now + windowMs };
+    e.count++;
+    store.set(key, e);
+    if (e.count > max) return res.status(429).json({ error: message });
+    next();
+  };
+}
+
+const generalLimiter = makeRateLimiter(200, 15 * 60 * 1000, "יותר מדי בקשות — נסה שוב מאוחר יותר.");
+const authLimiter    = makeRateLimiter(10,  15 * 60 * 1000, "יותר מדי ניסיונות כניסה — נסה שוב בעוד 15 דקות.");
+
+// ── DB lazy init ──────────────────────────────────────────────────────────────
+
 let _dbReady = false;
 async function ensureDb(req, res, next) {
   if (_dbReady) return next();
@@ -48,28 +93,13 @@ async function ensureDb(req, res, next) {
     await initDb();
     _dbReady = true;
     next();
-  } catch (e) {
-    console.error("[db] init failed:", e.message);
+  } catch (err) {
+    console.error("[db] init failed:", err.message);
     res.status(503).json({ error: "שירות לא זמין כרגע — נסה שוב." });
   }
 }
 
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 200,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "יותר מדי בקשות — נסה שוב מאוחר יותר." },
-});
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "יותר מדי ניסיונות כניסה — נסה שוב בעוד 15 דקות." },
-  skipSuccessfulRequests: true,
-});
+// ── Express setup ─────────────────────────────────────────────────────────────
 
 app.use(express.json({ limit: "50mb" }));
 app.use(generalLimiter);
@@ -82,16 +112,14 @@ app.use((_req, res, next) => {
 app.use(express.static(path.join(__dirname, "public"), { index: "app.html" }));
 app.use(ensureDb);
 
-function signToken() {
-  return jwt.sign({ sub: "inspector" }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-}
+// ── Auth middleware ───────────────────────────────────────────────────────────
 
 function requireAuth(req, res, next) {
   const header = req.headers.authorization || "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  const token  = header.startsWith("Bearer ") ? header.slice(7) : null;
   if (!token) return res.status(401).json({ error: "נדרשת כניסה לאיזור האישי." });
   try {
-    jwt.verify(token, JWT_SECRET);
+    verifyJwt(token);
     next();
   } catch {
     return res.status(401).json({ error: "פג תוקף הכניסה — יש להתחבר מחדש." });
@@ -115,8 +143,7 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
   }
 });
 
-// Public settings — home page uses this to render name, phone, WhatsApp etc.
-// accessCode is stripped for security.
+// Public: homepage needs these settings (accessCode stripped for security)
 app.get("/api/settings", async (_req, res) => {
   try {
     const { accessCode: _omit, ...pub } = await getSettings();
@@ -142,7 +169,7 @@ app.put("/api/settings", async (req, res) => {
 
 app.get("/api/certificates", async (req, res) => {
   try {
-    const limit = Math.min(500, Number(req.query.limit) || 500);
+    const limit  = Math.min(500, Number(req.query.limit)  || 500);
     const offset = Number(req.query.offset) || 0;
     res.json(await listCertificates({ limit, offset }));
   } catch (e) {
@@ -198,7 +225,7 @@ app.delete("/api/certificates/:id", async (req, res) => {
 
 app.get("/api/projects", async (req, res) => {
   try {
-    const limit = Math.min(500, Number(req.query.limit) || 500);
+    const limit  = Math.min(500, Number(req.query.limit)  || 500);
     const offset = Number(req.query.offset) || 0;
     res.json(await listProjects({ limit, offset }));
   } catch (e) {
@@ -254,10 +281,10 @@ app.delete("/api/projects/:id", async (req, res) => {
 
 app.get("/api/financial-docs", async (req, res) => {
   try {
-    const type = typeof req.query.type === "string" ? req.query.type : "";
+    const type   = typeof req.query.type === "string" ? req.query.type : "";
     if (type && !["invoice", "quote"].includes(type))
       return res.status(400).json({ error: "type לא תקין" });
-    const limit = Math.min(500, Number(req.query.limit) || 500);
+    const limit  = Math.min(500, Number(req.query.limit)  || 500);
     const offset = Number(req.query.offset) || 0;
     res.json(await listFinancialDocs(type || undefined, { limit, offset }));
   } catch (e) {
@@ -316,11 +343,11 @@ app.delete("/api/financial-docs/:id", async (req, res) => {
 app.get("/api/exports/accountant.csv", async (_req, res) => {
   try {
     const { invoiceRows, quoteRows } = await exportRowsForAccountant();
-    const header = ["סוג","מספר מסמך","מספר הקצאה","תאריך","שם לקוח","ח.פ/ת.ז","סכום לפני מעמ","מעמ","סהכ","סטטוס"];
-    const esc = (v) => '"' + String(v ?? "").replace(/"/g, '""') + '"';
-    const lines = [header.map(esc).join(",")];
+    const cols = ["סוג","מספר מסמך","מספר הקצאה","תאריך","שם לקוח","ח.פ/ת.ז","סכום לפני מעמ","מעמ","סהכ","סטטוס"];
+    const esc  = (v) => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+    const rows = [cols.map(esc).join(",")];
     for (const d of [...invoiceRows, ...quoteRows]) {
-      lines.push([
+      rows.push([
         d.type === "invoice" ? "חשבונית" : "הצעת מחיר",
         d.docNo||"", d.allocationNo||"", d.issueDate||"",
         d.customerName||"", d.customerId||"",
@@ -330,11 +357,11 @@ app.get("/api/exports/accountant.csv", async (_req, res) => {
     }
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", "attachment; filename=accountant-export.csv");
-    res.send("\uFEFF" + lines.join("\n"));
+    res.send("\uFEFF" + rows.join("\n"));
   } catch (e) {
     console.error("[GET /api/exports/accountant.csv]", e.message);
     res.status(500).json({ error: "שגיאת שרת." });
   }
 });
 
-app.listen(PORT, () => console.log("מערכת אישורים: http://localhost:" + PORT));
+app.listen(PORT, () => console.log("\u05de\u05e2\u05e8\u05db\u05ea \u05d0\u05d9\u05e9\u05d5\u05e8\u05d9\u05dd: http://localhost:" + PORT));
