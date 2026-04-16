@@ -11,8 +11,9 @@
     "test": "node --test ./test/health.test.mjs"
   },
   "dependencies": {
-    "bcrypt": "^5.1.1",
     "@sentry/node": "^10.49.0",
+    "bcrypt": "^5.1.1",
+    "bidi-js": "^1.0.3",
     "express": "^4.21.2",
     "pdfkit": "^0.18.0",
     "pg": "^8.20.0"

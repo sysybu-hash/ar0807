@@ -221,6 +221,19 @@ async function migrate() {
   await q(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS amperage TEXT DEFAULT '';`);
   await q(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS tasks_json JSONB DEFAULT '[]'::jsonb;`);
   await q(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS wizard_meta_json JSONB DEFAULT '{}'::jsonb;`);
+
+  await hashPlainAccessCodeIfNeeded();
+}
+
+/** One-time per deploy: convert legacy plain-text access_code to bcrypt (idempotent). */
+async function hashPlainAccessCodeIfNeeded() {
+  const rows = await q(`SELECT access_code FROM inspector_settings WHERE id = 1`);
+  const raw = rows[0]?.access_code;
+  if (raw == null || raw === "") return;
+  const s = String(raw);
+  if (s.startsWith("$2a$") || s.startsWith("$2b$") || s.startsWith("$2y$")) return;
+  const hashed = await bcrypt.hash(s, 10);
+  await q(`UPDATE inspector_settings SET access_code = $1, updated_at = now() WHERE id = 1`, [hashed]);
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
@@ -319,7 +332,7 @@ export async function verifyAccessCode(code) {
   const input = String(code || "").trim();
   if (!input) return false;
   if (stored.startsWith("$2a$") || stored.startsWith("$2b$") || stored.startsWith("$2y$")) {
-    return bcrypt.compare(input, stored);
+    return await bcrypt.compare(input, stored);
   }
   return stored === input;
 }

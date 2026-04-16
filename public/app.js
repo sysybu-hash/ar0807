@@ -947,10 +947,11 @@ function setupPortalAuth() {
     const loginBtn = $("accessLoginBtn");
     if (loginBtn) { loginBtn.disabled = true; loginBtn.textContent = "מתחבר…"; }
     try {
+      clearToken();
       const { token } = await api("/api/auth/login", {
         method: "POST",
         body: { code },
-        headers: {}, // no auth header on login
+        skipAuth: true,
       });
       setToken(token);
       showMsg("accessMsg", "כניסה בוצעה בהצלחה.", true);
@@ -1176,6 +1177,9 @@ function renderDocPhotos() {
 function fillDocForm(doc) {
   setInputValue("docId", doc ? String(doc.id) : "");
   setInputValue("docType", doc?.docType || "installation");
+  const ex = doc?.extra && typeof doc.extra === "object" ? doc.extra : {};
+  setInputValue("docNo", ex.docNo || doc?.docNo || "");
+  setInputValue("docWorkflowStatus", ex.workflowStatus || "draft");
   setInputValue("docFacilityName", doc?.facilityName || "");
   setInputValue("docAddress", doc?.address || "");
   setInputValue("docConnection", doc?.connectionSize || "");
@@ -1200,7 +1204,10 @@ function buildDocPayload() {
     insulation: inputTrim("docInsulation"),
     notes: inputTrim("docNotes"),
     photos: docPhotos,
-    extra: {},
+    extra: {
+      docNo: inputTrim("docNo"),
+      workflowStatus: inputRaw("docWorkflowStatus") || "draft",
+    },
     signatureData:
       docSignaturePad && !docSignaturePad.isEmpty() ? docSignaturePad.toDataURL("image/png") : null,
   };
@@ -1222,6 +1229,9 @@ async function saveDoc() {
 function printDoc(doc) {
   const when = fmtDate(doc.updatedAt || doc.createdAt || new Date().toISOString());
   const title = doc.docType === "portable" ? "אישור צרכנים מטלטלים" : "אישור תקינות מתקן";
+  const ex = doc.extra && typeof doc.extra === "object" ? doc.extra : {};
+  const docNoStr = ex.docNo ? String(ex.docNo) : "";
+  const wfStr = ex.workflowStatus === "final" ? "סופי" : ex.workflowStatus === "draft" ? "טיוטה" : "";
   const photosHtml = (doc.photos || [])
     .map(
       (p) =>
@@ -1240,13 +1250,15 @@ function printDoc(doc) {
   const stampBlock = settings.stampData
     ? `<div class="relative inline-block" style="width:8rem;height:6rem"><img src="${settings.stampData}" alt="" style="position:absolute;right:0;top:0;max-width:120px;max-height:96px;transform:translate(${sx}mm,${sy}mm);transform-origin:top right" /></div>`
     : "";
-  const standardLayout = `<div class="max-w-[210mm] mx-auto p-8">
-    <div class="flex justify-between items-start border-b-4 border-blue-700 pb-4 mb-6">
-      <div class="flex items-start gap-4">
-        ${settings.logoData ? `<img src="${settings.logoData}" style="max-height:70px">` : ""}
-        <div><h1 class="text-2xl font-bold text-blue-900">${title}</h1><p class="text-sm text-slate-600">נערך בהתאם לתקנות החשמל</p></div>
+  const standardLayout = `<div class="max-w-[210mm] mx-auto p-8 text-right">
+    <div class="flex flex-row-reverse justify-between items-start border-b-4 border-blue-800 pb-4 mb-6 gap-4">
+      <div class="flex flex-row-reverse items-start gap-4">
+        ${settings.logoData ? `<img src="${settings.logoData}" style="max-height:70px" alt="">` : ""}
+        <div><h1 class="text-2xl font-bold text-blue-900">${title}</h1><p class="text-sm text-slate-600">נערך בהתאם לתקנות החשמל והתקן IEC</p>
+        ${docNoStr || wfStr ? `<p class="text-xs text-slate-500 mt-1">${docNoStr ? `מספר מסמך: ${escapeHtml(docNoStr)}` : ""}${docNoStr && wfStr ? " · " : ""}${wfStr ? `סטטוס: ${escapeHtml(wfStr)}` : ""}</p>` : ""}
+        </div>
       </div>
-      <div class="text-sm text-left">
+      <div class="text-sm shrink-0">
         <div class="font-bold">${escapeHtml(settings.name)}</div>
         <div>רישיון: ${escapeHtml(settings.licenseNo || "—")}</div>
         <div>טלפון: ${escapeHtml(settings.phone || "—")}</div>

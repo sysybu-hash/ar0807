@@ -11,19 +11,20 @@ export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
-export async function api(path, opts) {
+export async function api(path, opts = {}) {
+  const { skipAuth, ...fetchOpts } = opts;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
-    const token = getToken();
+    const token = skipAuth === true ? "" : getToken();
     const r = await fetch(API + path, {
-      ...opts,
+      ...fetchOpts,
       headers: {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(opts?.headers || {}),
+        ...(fetchOpts.headers || {}),
       },
-      body: opts?.body != null ? JSON.stringify(opts.body) : undefined,
+      body: fetchOpts.body != null ? JSON.stringify(fetchOpts.body) : undefined,
       signal: controller.signal,
     });
     const text = await r.text();
