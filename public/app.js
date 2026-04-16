@@ -881,7 +881,7 @@ function printDoc(doc) {
     .blank-content{position:relative;z-index:1}
   </style>
   </head><body>
-  ${settings.useBlankTemplate ? blankLayout : standardLayout}
+  ${settings.useBlankTemplate && settings.blankTemplateData ? blankLayout : standardLayout}
   <script>window.onload=()=>{window.print()};<\/script></body></html>`;
   openPrintableHtml(html);
 }

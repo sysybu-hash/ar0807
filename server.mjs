@@ -146,8 +146,8 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
 // Public: homepage needs these settings (accessCode stripped for security)
 app.get("/api/settings", async (_req, res) => {
   try {
-    const { accessCode: _omit, ...pub } = await getSettings();
-    res.json(pub);
+    const { accessCode: _a, blankTemplateData: _b, ...pub } = await getSettings();
+    res.json({ ...pub, useBlankTemplate: false });
   } catch (e) {
     console.error("[GET /api/settings]", e.message);
     res.status(500).json({ error: "שגיאת שרת." });
