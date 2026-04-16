@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import { Pool } from "pg";
 
 let pool;
@@ -195,6 +196,18 @@ async function migrate() {
   await q(`CREATE INDEX IF NOT EXISTS idx_projects_updated_at ON projects(updated_at DESC);`);
   await q(`CREATE INDEX IF NOT EXISTS idx_financial_docs_updated_at ON financial_docs(updated_at DESC);`);
   await q(`CREATE INDEX IF NOT EXISTS idx_financial_docs_type ON financial_docs(type, updated_at DESC);`);
+
+  await q(`
+    CREATE TABLE IF NOT EXISTS certificate_shares (
+      id BIGSERIAL PRIMARY KEY,
+      certificate_id BIGINT NOT NULL REFERENCES certificates(id) ON DELETE CASCADE,
+      token TEXT NOT NULL UNIQUE,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  await q(`CREATE INDEX IF NOT EXISTS idx_certificate_shares_cert ON certificate_shares(certificate_id);`);
+  await q(`CREATE INDEX IF NOT EXISTS idx_certificate_shares_expires ON certificate_shares(expires_at);`);
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
@@ -574,4 +587,55 @@ export async function exportRowsForAccountant() {
   const { items: invoiceRows } = await listFinancialDocs("invoice");
   const { items: quoteRows } = await listFinancialDocs("quote");
   return { invoiceRows, quoteRows };
+}
+
+// ── Certificate share links (public token) ─────────────────────────────────────
+
+/** @param {number} certificateId @param {number} hoursValid 1–720 */
+export async function createCertificateShare(certificateId, hoursValid) {
+  const cert = await getCertificate(certificateId);
+  if (!cert) return null;
+  const h = Math.min(720, Math.max(1, Math.floor(Number(hoursValid) || 72)));
+  const token = randomBytes(24).toString("base64url");
+  const rows = await q(
+    `INSERT INTO certificate_shares (certificate_id, token, expires_at)
+     VALUES ($1, $2, now() + ($3::double precision * interval '1 hour'))
+     RETURNING token, expires_at`,
+    [certificateId, token, h]
+  );
+  const row = rows[0];
+  return {
+    token: row.token,
+    expiresAt: row.expires_at,
+    hoursValid: h,
+  };
+}
+
+/** Returns { certificate, share } or null if invalid/expired. */
+export async function getCertificateShareByToken(token) {
+  const t = String(token || "").trim();
+  if (!t) return null;
+  const rows = await q(
+    `SELECT s.id AS share_id, s.certificate_id, s.expires_at, s.created_at
+     FROM certificate_shares s
+     WHERE s.token = $1 AND s.expires_at >= now()`,
+    [t]
+  );
+  if (!rows[0]) return null;
+  const cert = await getCertificate(Number(rows[0].certificate_id));
+  if (!cert) return null;
+  return {
+    share: {
+      id: Number(rows[0].share_id),
+      certificateId: Number(rows[0].certificate_id),
+      expiresAt: rows[0].expires_at,
+      createdAt: rows[0].created_at,
+    },
+    certificate: cert,
+  };
+}
+
+export async function pruneExpiredCertificateShares() {
+  const rows = await q(`DELETE FROM certificate_shares WHERE expires_at < now() RETURNING id`);
+  return rows.length;
 }

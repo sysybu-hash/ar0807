@@ -866,6 +866,11 @@ select.inp { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.
   border-radius: var(--radius-lg);
   overflow: auto;
   margin-top: 1rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.portal-dash-grid {
+  min-width: 0;
 }
 
 .table {
@@ -1133,6 +1138,17 @@ body.focus-visible-enhanced *:focus-visible { outline: 4px solid #FF0 !important
 }
 
 @media (max-width: 768px) {
+  .table-wrap {
+    margin-left: -0.35rem;
+    margin-right: -0.35rem;
+    border-radius: var(--radius-md);
+  }
+  .table {
+    min-width: 480px;
+  }
+  .portal-dash-grid {
+    grid-template-columns: 1fr !important;
+  }
   .home-hero { padding: 2.5rem 1.5rem; }
   .home-hero__title { font-size: clamp(1.7rem, 7vw, 2.8rem); }
   .gallery-grid { grid-template-columns: 1fr; }

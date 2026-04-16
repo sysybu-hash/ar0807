@@ -1,6 +1,5 @@
 /* global SignaturePad */
-const API = "";
-const TOKEN_KEY = "ecs_jwt";
+import { api, apiBlob, getToken, setToken, clearToken } from "./js/api.js";
 const WIZARD_STEPS = ["dashboard", "projects", "documents", "invoices", "quotes", "exports", "settings"];
 const DEFAULT_HOME_CONTENT = {
   kicker: "חשמלאי מוסמך",
@@ -227,46 +226,16 @@ function confirmDialog(message) {
   });
 }
 
-// ── Token helpers ─────────────────────────────────────────────────────────────
-
-function getToken() { return localStorage.getItem(TOKEN_KEY) || ""; }
-function setToken(t) { localStorage.setItem(TOKEN_KEY, t); }
-function clearToken() { localStorage.removeItem(TOKEN_KEY); }
-
-// ── API wrapper ───────────────────────────────────────────────────────────────
-
-async function api(path, opts) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
-  try {
-    const token = getToken();
-    const r = await fetch(API + path, {
-      ...opts,
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(opts?.headers || {}),
-      },
-      body: opts?.body != null ? JSON.stringify(opts.body) : undefined,
-      signal: controller.signal,
-    });
-    const text = await r.text();
-    let data;
-    try { data = text ? JSON.parse(text) : null; }
-    catch { data = { error: text }; }
-    if (r.status === 401) {
-      clearToken();
-      logoutPortal();
-      throw new Error(data?.error || "פג תוקף הכניסה — יש להתחבר מחדש.");
-    }
-    if (!r.ok) throw new Error(data?.error || r.statusText);
-    return data;
-  } catch (e) {
-    if (e.name === "AbortError") throw new Error("הבקשה לקחה יותר מדי זמן — בדוק חיבור לאינטרנט.");
-    throw e;
-  } finally {
-    clearTimeout(timeout);
-  }
+function triggerBlobDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename || "download";
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
 function normalizeWhatsapp(raw) {
@@ -295,11 +264,29 @@ function asMoney(n) {
   return x.toLocaleString("he-IL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-async function readImageFile(file) {
+async function readImageFile(file, maxW = 800, maxH = 800, quality = 0.85) {
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
-    fr.onload = () => resolve(String(fr.result || ""));
     fr.onerror = reject;
+    fr.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxW || h > maxH) {
+          const ratio = Math.min(maxW / w, maxH / h);
+          w = Math.round(w * ratio);
+          h = Math.round(h * ratio);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = String(fr.result || "");
+    };
     fr.readAsDataURL(file);
   });
 }
@@ -742,6 +729,46 @@ function initDocSignature() {
   if (clearBtn) clearBtn.onclick = () => docSignaturePad?.clear();
 }
 
+async function downloadServerPdf() {
+  const id = inputTrim("docId");
+  if (!id) {
+    showToast("שמור את המסמך לפני הורדת PDF מהשרת.", "warn");
+    return;
+  }
+  try {
+    const blob = await apiBlob(`/api/certificates/${id}/pdf`);
+    triggerBlobDownload(blob, `certificate-${id}.pdf`);
+    showToast("הקובץ הורד.", "ok");
+  } catch (e) {
+    showToast(e.message || "שגיאת הורדה", "err");
+  }
+}
+
+async function shareCurrentDoc() {
+  const id = inputTrim("docId");
+  if (!id) {
+    showToast("שמור את המסמך לפני יצירת קישור שיתוף.", "warn");
+    return;
+  }
+  const raw = window.prompt("משך תוקף בקישור (שעות, 1–720):", "72");
+  if (raw === null) return;
+  const hours = Math.min(720, Math.max(1, parseInt(raw, 10) || 72));
+  try {
+    const { url } = await api(`/api/certificates/${id}/share`, {
+      method: "POST",
+      body: { hoursValid: hours },
+    });
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast("הקישור הועתק ללוח.", "ok");
+    } catch {
+      window.prompt("העתק את קישור השיתוף:", url);
+    }
+  } catch (e) {
+    showToast(e.message || "שגיאה", "err");
+  }
+}
+
 async function bindDocForm() {
   const photosInput = $("docPhotosInput");
   if (photosInput) {
@@ -757,9 +784,13 @@ async function bindDocForm() {
   const newBtn = $("newDocBtn");
   const saveBtn = $("saveDocBtn");
   const printBtn = $("printDocBtn");
+  const downloadBtn = $("downloadPdfBtn");
+  const shareBtn = $("shareDocBtn");
   if (newBtn) newBtn.onclick = () => fillDocForm(null);
   if (saveBtn) saveBtn.onclick = saveDoc;
   if (printBtn) printBtn.onclick = printCurrentDoc;
+  if (downloadBtn) downloadBtn.onclick = () => downloadServerPdf();
+  if (shareBtn) shareBtn.onclick = () => shareCurrentDoc();
 }
 
 function renderDocPhotos() {
@@ -874,11 +905,11 @@ function printDoc(doc) {
         </div>
       </div>
     </div>`;
-  const html = `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><script src="https://cdn.tailwindcss.com"><\/script>
+  const html = `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><link rel="stylesheet" href="/tw-built.css" />
   <style>
     .blank-sheet{position:relative;max-width:210mm;min-height:287mm;margin:0 auto;padding:12mm}
-    .blank-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;transform:translate(${Number(settings.blankOffsetXmm || 0)}mm, ${Number(settings.blankOffsetYmm || 0)}mm) scale(${Math.min(1.2, Math.max(0.8, Number(settings.blankScale || 1)))});transform-origin:top right}
-    .blank-content{position:relative;z-index:1}
+    .blank-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:0;transform:translate(${Number(settings.blankOffsetXmm || 0)}mm, ${Number(settings.blankOffsetYmm || 0)}mm) scale(${Math.min(1.2, Math.max(0.8, Number(settings.blankScale || 1)))});transform-origin:top right}
+    .blank-content{position:relative;z-index:1;padding-top:38mm}
   </style>
   </head><body>
   ${settings.useBlankTemplate && settings.blankTemplateData ? blankLayout : standardLayout}
@@ -1124,7 +1155,7 @@ async function bindSettingsForm() {
     blankIn.addEventListener("change", async (e) => {
       const f = e.target.files?.[0];
       if (!f) return;
-      settings.blankTemplateData = await readImageFile(f);
+      settings.blankTemplateData = await readImageFile(f, 1240, 1754, 0.82);
     });
   }
   const saveBtn = $("saveSettingsBtn");
@@ -1227,6 +1258,9 @@ function registerServiceWorker() {
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
+  window.addEventListener("ecs-unauthorized", () => {
+    logoutPortal();
+  });
   setupDrawer();
   setupHomeShowcase();
   setupAccessibilityToolbar();

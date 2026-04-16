@@ -12,6 +12,9 @@ import {
   createCertificate,
   updateCertificate,
   deleteCertificate,
+  createCertificateShare,
+  getCertificateShareByToken,
+  pruneExpiredCertificateShares,
   listProjects,
   getProject,
   createProject,
@@ -24,10 +27,42 @@ import {
   deleteFinancialDoc,
   exportRowsForAccountant,
 } from "./db.mjs";
+import { buildCertificatePdfBuffer } from "./certificate-pdf.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3847;
+
+if (process.env.SENTRY_DSN) {
+  import("@sentry/node")
+    .then((Sentry) => {
+      Sentry.init({
+        dsn: process.env.SENTRY_DSN,
+        environment: process.env.VERCEL_ENV || process.env.NODE_ENV || "development",
+        tracesSampleRate: 0,
+      });
+    })
+    .catch((e) => console.error("[sentry]", e.message));
+}
+
+function inspectorForPdf(settings) {
+  return {
+    name: settings.name ?? "",
+    licenseNo: settings.licenseNo ?? "",
+    phone: settings.phone ?? "",
+    logoData: settings.logoData ?? null,
+    stampData: settings.stampData ?? null,
+  };
+}
+
+function publicBaseUrl(req) {
+  const env = process.env.PUBLIC_SITE_URL?.trim().replace(/\/$/, "");
+  if (env) return env;
+  const xf = req.get("x-forwarded-host");
+  const proto = req.get("x-forwarded-proto") || req.protocol || "https";
+  if (xf) return `${proto}://${xf}`;
+  return `${req.protocol}://${req.get("host")}`;
+}
 
 const IS_PRODUCTION =
   process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
@@ -119,8 +154,74 @@ app.use((_req, res, next) => {
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   next();
 });
+
+app.get("/share/:token", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "share.html"));
+});
+
 app.use(express.static(path.join(__dirname, "public"), { index: "app.html" }));
 app.use(ensureDb);
+
+// ── Public APIs (no JWT) ──────────────────────────────────────────────────────
+
+app.get("/api/share/:token/pdf", async (req, res) => {
+  try {
+    const raw = req.params.token;
+    const data = await getCertificateShareByToken(raw);
+    if (!data) return res.status(404).type("text/plain; charset=utf-8").send("הקישור פג תוקף או לא נמצא.");
+    const settings = await getSettings();
+    const pdf = await buildCertificatePdfBuffer({
+      certificate: data.certificate,
+      inspector: inspectorForPdf(settings),
+    });
+    const id = data.certificate.id;
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="certificate-${id}.pdf"`
+    );
+    res.send(pdf);
+  } catch (e) {
+    console.error("[GET /api/share/:token/pdf]", e.message);
+    res.status(500).type("text/plain; charset=utf-8").send("שגיאת שרת.");
+  }
+});
+
+app.get("/api/share/:token", async (req, res) => {
+  try {
+    const data = await getCertificateShareByToken(req.params.token);
+    if (!data) return res.status(404).json({ error: "הקישור פג תוקף או לא נמצא." });
+    const settings = await getSettings();
+    res.json({
+      certificate: data.certificate,
+      inspector: {
+        name: settings.name ?? "",
+        licenseNo: settings.licenseNo ?? "",
+      },
+      expiresAt: data.share.expiresAt,
+    });
+  } catch (e) {
+    console.error("[GET /api/share/:token]", e.message);
+    res.status(500).json({ error: "שגיאת שרת." });
+  }
+});
+
+app.get("/api/cron/maintenance", async (req, res) => {
+  const secret = process.env.CRON_SECRET?.trim();
+  if (!secret) return res.status(503).json({ error: "תחזוקה מתוזמנת לא הוגדרה (CRON_SECRET)." });
+  const bearer = req.headers.authorization?.startsWith("Bearer ")
+    ? req.headers.authorization.slice(7).trim()
+    : "";
+  const got = String(req.headers["x-cron-secret"] || req.query.secret || bearer || "").trim();
+  if (got !== secret) return res.status(401).json({ error: "לא מורשה." });
+  try {
+    const prunedShares = await pruneExpiredCertificateShares();
+    res.json({ ok: true, prunedShares });
+  } catch (e) {
+    console.error("[cron/maintenance]", e.message);
+    res.status(500).json({ error: "שגיאת שרת." });
+  }
+});
 
 // ── Auth middleware ───────────────────────────────────────────────────────────
 
@@ -176,6 +277,47 @@ app.get("/api/settings", async (req, res) => {
 // ── Protected routes ──────────────────────────────────────────────────────────
 
 app.use("/api", requireAuth);
+
+app.get("/api/certificates/:id/pdf", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "מזהה לא תקין" });
+    const row = await getCertificate(id);
+    if (!row) return res.status(404).json({ error: "לא נמצא" });
+    const settings = await getSettings();
+    const pdf = await buildCertificatePdfBuffer({
+      certificate: row,
+      inspector: inspectorForPdf(settings),
+    });
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="certificate-${id}.pdf"`);
+    res.send(pdf);
+  } catch (e) {
+    console.error("[GET /api/certificates/:id/pdf]", e.message);
+    res.status(500).json({ error: "שגיאת יצירת PDF." });
+  }
+});
+
+app.post("/api/certificates/:id/share", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "מזהה לא תקין" });
+    const hours = Number(req.body?.hoursValid ?? 72);
+    const created = await createCertificateShare(id, hours);
+    if (!created) return res.status(404).json({ error: "לא נמצא" });
+    const base = publicBaseUrl(req);
+    const url = `${base}/share/${encodeURIComponent(created.token)}`;
+    res.status(201).json({
+      url,
+      token: created.token,
+      expiresAt: created.expiresAt,
+      hoursValid: created.hoursValid,
+    });
+  } catch (e) {
+    console.error("[POST /api/certificates/:id/share]", e.message);
+    res.status(500).json({ error: "שגיאת שרת." });
+  }
+});
 
 app.put("/api/settings", async (req, res) => {
   try {
@@ -384,7 +526,8 @@ app.get("/api/exports/accountant.csv", async (_req, res) => {
 });
 
 // Vercel invokes the exported app; do not bind a port there.
-if (!process.env.VERCEL) {
+// NODE_ENV=test — used by automated tests (supertest) without binding a port.
+if (!process.env.VERCEL && process.env.NODE_ENV !== "test") {
   app.listen(PORT, () =>
     console.log("\u05de\u05e2\u05e8\u05db\u05ea \u05d0\u05d9\u05e9\u05d5\u05e8\u05d9\u05dd: http://localhost:" + PORT)
   );
