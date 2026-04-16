@@ -295,29 +295,11 @@ function asMoney(n) {
   return x.toLocaleString("he-IL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-async function readImageFile(file, maxW = 800, maxH = 800, quality = 0.85) {
+async function readImageFile(file) {
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
+    fr.onload = () => resolve(String(fr.result || ""));
     fr.onerror = reject;
-    fr.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        let w = img.width, h = img.height;
-        if (w > maxW || h > maxH) {
-          const ratio = Math.min(maxW / w, maxH / h);
-          w = Math.round(w * ratio);
-          h = Math.round(h * ratio);
-        }
-        const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", quality));
-      };
-      img.onerror = reject;
-      img.src = String(fr.result || "");
-    };
     fr.readAsDataURL(file);
   });
 }
@@ -895,8 +877,8 @@ function printDoc(doc) {
   const html = `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><script src="https://cdn.tailwindcss.com"><\/script>
   <style>
     .blank-sheet{position:relative;max-width:210mm;min-height:287mm;margin:0 auto;padding:12mm}
-    .blank-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:0;transform:translate(${Number(settings.blankOffsetXmm || 0)}mm, ${Number(settings.blankOffsetYmm || 0)}mm) scale(${Math.min(1.2, Math.max(0.8, Number(settings.blankScale || 1)))});transform-origin:top right}
-    .blank-content{position:relative;z-index:1;padding-top:38mm}
+    .blank-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;transform:translate(${Number(settings.blankOffsetXmm || 0)}mm, ${Number(settings.blankOffsetYmm || 0)}mm) scale(${Math.min(1.2, Math.max(0.8, Number(settings.blankScale || 1)))});transform-origin:top right}
+    .blank-content{position:relative;z-index:1}
   </style>
   </head><body>
   ${settings.useBlankTemplate && settings.blankTemplateData ? blankLayout : standardLayout}
@@ -1142,7 +1124,7 @@ async function bindSettingsForm() {
     blankIn.addEventListener("change", async (e) => {
       const f = e.target.files?.[0];
       if (!f) return;
-      settings.blankTemplateData = await readImageFile(f, 1240, 1754, 0.82);
+      settings.blankTemplateData = await readImageFile(f);
     });
   }
   const saveBtn = $("saveSettingsBtn");
@@ -1275,4 +1257,27 @@ window.addEventListener("DOMContentLoaded", async () => {
   } catch (e) {
     document.body.classList.remove("settings-loading");
     console.error(e);
-    showToast
+    showToast(`שגיאה בטעינת הגדרות: ${e.message}`, "err", 8000);
+    return;
+  }
+  try {
+    fillProjectForm(null);
+    fillDocForm(null);
+    fillFinancialForm("invoice", null);
+    fillFinancialForm("quote", null);
+  } catch (e) {
+    console.error(e);
+    showToast(`שגיאה באתחול טפסים: ${e.message}`, "err");
+  }
+
+  // Auto-restore: if a valid token was found on startup, load portal data now
+  if (isPortalOpen) {
+    try {
+      await refreshPortalData();
+    } catch (e) {
+      // Token may be expired — force logout
+      console.warn("[auto-login] could not load portal data:", e.message);
+      logoutPortal();
+    }
+  }
+});

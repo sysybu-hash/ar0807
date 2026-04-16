@@ -16,8 +16,10 @@ npm start
 ## פריסה ל-Vercel
 
 1. ודא שקיים הקובץ `vercel.json`.
-2. ב-Vercel Project Settings -> Environment Variables הוסף:
-   - `DATABASE_URL` = Neon connection string
+2. ב-Vercel → Project → Settings → Environment Variables הוסף:
+   - `DATABASE_URL` — מחרוזת החיבור של Neon
+   - `JWT_SECRET` — **חובה בפרודקשן** (מחרוזת אקראית ארוכה; ללא זה הדיפלוי ייכשל). לדוגמה:  
+     `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`
 3. בצע Deploy מחדש.
 
 ## מה יש במערכת

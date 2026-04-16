@@ -29,11 +29,21 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3847;
 
+const IS_PRODUCTION =
+  process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+const JWT_SECRET_ENV = process.env.JWT_SECRET?.trim();
+
+if (IS_PRODUCTION && !JWT_SECRET_ENV) {
+  throw new Error(
+    "JWT_SECRET is required in production. Add it in Vercel → Settings → Environment Variables (or .env for local production)."
+  );
+}
+
 const JWT_SECRET =
-  process.env.JWT_SECRET ||
+  JWT_SECRET_ENV ||
   (() => {
     const s = Math.random().toString(36).slice(2) + Date.now().toString(36);
-    console.warn("[auth] JWT_SECRET not set — using ephemeral secret");
+    console.warn("[auth] JWT_SECRET not set — using ephemeral secret (dev only; sessions reset on restart)");
     return s;
   })();
 
@@ -373,4 +383,11 @@ app.get("/api/exports/accountant.csv", async (_req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log("\u05de\u05e2\u05e8\u05db\u05ea \u05d0\u05d9\u05e9\u05d5\u05e8\u05d9\u05dd: http://localhost:" + PORT));
+// Vercel invokes the exported app; do not bind a port there.
+if (!process.env.VERCEL) {
+  app.listen(PORT, () =>
+    console.log("\u05de\u05e2\u05e8\u05db\u05ea \u05d0\u05d9\u05e9\u05d5\u05e8\u05d9\u05dd: http://localhost:" + PORT)
+  );
+}
+
+export default app;
