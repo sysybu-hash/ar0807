@@ -1269,5 +1269,6 @@ body.focus-visible-enhanced *:focus-visible { outline: 4px solid #FF0 !important
 .advanced-home-content__body { margin-top: 0.85rem; }
 
 /* ── Settings loading fade-in ──────────────────────────────────────────────── */
-#home { transition: opacity 0.25s ease; }
-body.settings-loading #home { opacity: 0; pointer-events: none; }
+#home, .site-header__brand { transition: opacity 0.25s ease; }
+body.settings-loading #home,
+body.settings-loading .site-header__brand { opacity: 0; pointer-events: none; }

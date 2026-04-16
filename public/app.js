@@ -35,22 +35,21 @@ const DEFAULT_HOME_CONTENT = {
 };
 
 let settings = {
-  name: "אברהם רובינשטיין - חשמלאי מוסמך",
+  name: "",
   licenseNo: "",
   phone: "",
   email: "",
-  whatsapp: "+972587600807",
-  aboutText:
-    "אברהם רובינשטיין - חשמלאי מוסמך.\nמתמחה בבדיקות תקינות, תיעוד פרויקטים וניהול מלא של מסמכים פיננסיים ומקצועיים.",
+  whatsapp: "",
+  aboutText: "",
   logoData: null,
   stampData: null,
-  homeContent: { ...DEFAULT_HOME_CONTENT },
+  homeContent: {},
   useBlankTemplate: false,
   blankTemplateData: null,
   blankOffsetXmm: 0,
   blankOffsetYmm: 0,
   blankScale: 1,
-  accessCode: "1234",
+  accessCode: "",
 };
 
 let isPortalOpen = false;
@@ -393,7 +392,7 @@ function renderHomeFromSettings() {
     if (value == null || value === "") el.textContent = "";
     else el.textContent = typeof value === "string" ? value : String(value);
   };
-  setText("heroInspectorName", settings.name || "אברהם רובינשטיין — חשמלאי מוסמך");
+  setText("heroInspectorName", settings.name || "רובינשטיין חשמל");
   setText("contactName", settings.name || "—");
   setText("contactPhone", settings.phone || "—");
   setText("contactEmail", settings.email || "—");
