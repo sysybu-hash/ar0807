@@ -242,12 +242,12 @@ async function api(path, opts) {
   try {
     const token = getToken();
     const r = await fetch(API + path, {
+      ...opts,
       headers: {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(opts?.headers || {}),
       },
-      ...opts,
       body: opts?.body != null ? JSON.stringify(opts.body) : undefined,
       signal: controller.signal,
     });
