@@ -8,9 +8,10 @@
     "dev": "node --watch server.mjs",
     "build:css": "tailwindcss -i ./tailwind-input.css -o ./public/tw-built.css --minify",
     "build": "npm run build:css",
-    "test": "node --test ./test/health.test.mjs"
+    "test": "node --test ./test/*.test.mjs"
   },
   "dependencies": {
+    "archiver": "^7.0.1",
     "@sentry/node": "^10.49.0",
     "bcrypt": "^5.1.1",
     "bidi-js": "^1.0.3",

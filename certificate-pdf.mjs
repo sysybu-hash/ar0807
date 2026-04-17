@@ -170,7 +170,7 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
 
     // ── Inspector strip (RTL: text block right, logo left in reading order = logo on physical left) ─
     const logoBuf = dataUrlToBuffer(inspector?.logoData);
-    const stripH = logoBuf ? 58 : 44;
+    const stripH = logoBuf ? 78 : 64;
     doc.save();
     doc.roundedRect(left, y, contentW, stripH, 2).stroke("#cbd5e1");
     doc.restore();
@@ -198,13 +198,21 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
       align: "right",
     });
     ty += 16;
+    doc.save();
+    const licBarW = Math.min(textW, 280);
+    doc.roundedRect(left + textPad + logoSlot + textW - licBarW, ty - 2, licBarW, 20, 2).fill("#fffbeb");
+    doc.restore();
+    doc.fontSize(10.5).fillColor("#b45309");
+    doc.text(v(`מספר רישיון בודק: ${inspector?.licenseNo || "—"}`), left + textPad + logoSlot, ty, {
+      width: textW,
+      align: "right",
+    });
+    ty += 20;
     doc.fontSize(9).fillColor("#475569");
-    doc.text(
-      v(`רישיון בודק: ${inspector?.licenseNo || "—"}    ·    טלפון: ${inspector?.phone || "—"}`),
-      left + textPad + logoSlot,
-      ty,
-      { width: textW, align: "right" }
-    );
+    doc.text(v(`טלפון: ${inspector?.phone || "—"}`), left + textPad + logoSlot, ty, {
+      width: textW,
+      align: "right",
+    });
     y += stripH + 14;
 
     // ── Section: facility details (RTL table — labels on the right) ─

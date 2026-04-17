@@ -45,12 +45,16 @@ if (!token) {
       titleEl.textContent = title;
       expiryEl.textContent = `תוקף הקישור עד: ${fmtDate(data.expiresAt)}`;
       fieldsEl.innerHTML = `
+        <div style="padding:0.75rem 1rem;margin-bottom:0.75rem;border-radius:var(--radius-md);background:rgba(180,83,9,0.12);border:1px solid rgba(251,191,36,0.35);">
+          <strong style="display:block;margin-bottom:0.35rem;">בודק מוסמך</strong>
+          <span style="font-weight:700">${escapeHtml(ins.name || "—")}</span>
+          <div style="margin-top:0.35rem;font-size:1.05rem;font-weight:800;color:#b45309;">רישיון ${escapeHtml(ins.licenseNo || "—")}</div>
+        </div>
         <p><strong>שם מתקן:</strong> ${escapeHtml(c.facilityName)}</p>
         <p><strong>כתובת:</strong> ${escapeHtml(c.address || "")}</p>
         <p><strong>גודל חיבור:</strong> ${escapeHtml(c.connectionSize || "")}</p>
         <p><strong>הארקה:</strong> ${escapeHtml(c.groundingValue || "")}</p>
         <p><strong>בידוד:</strong> ${escapeHtml(c.insulation || "")}</p>
-        <p><strong>בודק:</strong> ${escapeHtml(ins.name || "")} · רישיון ${escapeHtml(ins.licenseNo || "")}</p>
         <p style="margin-top:0.75rem; white-space: pre-wrap;"><strong>הערות:</strong> ${escapeHtml(c.notes || "")}</p>
       `;
       pdfLink.href = `/api/share/${encodeURIComponent(token)}/pdf`;

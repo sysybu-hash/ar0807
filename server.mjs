@@ -29,6 +29,8 @@ import {
   createProjectFromWizard,
 } from "./db.mjs";
 import { buildCertificatePdfBuffer } from "./certificate-pdf.mjs";
+import { buildFinancialPdfBuffer } from "./financial-pdf.mjs";
+import archiver from "archiver";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -499,6 +501,30 @@ app.get("/api/financial-docs/:id", async (req, res) => {
   }
 });
 
+app.get("/api/financial-docs/:id/pdf", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "מזהה לא תקין" });
+    const row = await getFinancialDoc(id);
+    if (!row) return res.status(404).json({ error: "לא נמצא" });
+    const settings = await getSettings();
+    const pdf = await buildFinancialPdfBuffer({
+      doc: row,
+      inspector: inspectorForPdf(settings),
+    });
+    const base = row.type === "invoice" ? "invoice" : "quote";
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${base}-${String(row.docNo || id).replace(/[^\w.-]/g, "_")}.pdf"`
+    );
+    res.send(pdf);
+  } catch (e) {
+    console.error("[GET /api/financial-docs/:id/pdf]", e.message);
+    res.status(500).json({ error: "שגיאת יצירת PDF." });
+  }
+});
+
 app.post("/api/financial-docs", async (req, res) => {
   try {
     const body = req.body ?? {};
@@ -532,6 +558,60 @@ app.delete("/api/financial-docs/:id", async (req, res) => {
   } catch (e) {
     console.error("[DELETE /api/financial-docs/:id]", e.message);
     res.status(500).json({ error: "שגיאת שרת." });
+  }
+});
+
+app.get("/api/exports/documents-pack.zip", async (req, res) => {
+  try {
+    const cap = Math.min(200, Math.max(1, Number(req.query.limit) || 100));
+    const settings = await getSettings();
+    const inspector = inspectorForPdf(settings);
+    const archive = archiver("zip", { zlib: { level: 6 } });
+    archive.on("warning", (err) => console.warn("[zip]", err.message));
+    archive.on("error", (err) => {
+      console.error("[zip]", err.message);
+      if (!res.headersSent) res.status(500).json({ error: "שגיאת ארכוב" });
+    });
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename="ecs-documents-${stamp}.zip"`);
+    archive.pipe(res);
+
+    archive.append(
+      Buffer.from(
+        `ייצוא מסמכים — ${new Date().toISOString()}\nמגבלה: עד ${cap} רשומות מכל סוג (פרמטר ?limit=).\n`,
+        "utf8"
+      ),
+      { name: "readme.txt" }
+    );
+
+    const certList = await listCertificates({ limit: cap, offset: 0 });
+    for (const meta of certList.items || []) {
+      const cert = await getCertificate(meta.id);
+      if (!cert) continue;
+      try {
+        const buf = await buildCertificatePdfBuffer({ certificate: cert, inspector });
+        archive.append(buf, { name: `אישורי-תקינות/certificate-${cert.id}.pdf` });
+      } catch (e) {
+        console.warn("[zip cert]", cert.id, e.message);
+      }
+    }
+
+    const finWrap = await listFinancialDocs(undefined, { limit: cap, offset: 0 });
+    for (const doc of finWrap.items || []) {
+      try {
+        const buf = await buildFinancialPdfBuffer({ doc, inspector });
+        const folder = doc.type === "invoice" ? "חשבוניות" : "הצעות-מחיר";
+        archive.append(buf, { name: `${folder}/${doc.type}-${doc.id}.pdf` });
+      } catch (e) {
+        console.warn("[zip fin]", doc.id, e.message);
+      }
+    }
+
+    await archive.finalize();
+  } catch (e) {
+    console.error("[GET /api/exports/documents-pack.zip]", e.message);
+    if (!res.headersSent) res.status(500).json({ error: "שגיאת שרת." });
   }
 });
 

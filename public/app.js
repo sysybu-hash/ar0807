@@ -53,6 +53,25 @@ const DEFAULT_HOME_CONTENT = {
   galleryLabel3: "תאורה וחשמל במגורים",
 };
 
+const DEFAULT_SITE_EXTRAS = {
+  serviceArea: "",
+  emergencyNote: "",
+  emergencyWhatsapp: "",
+  complianceTrust: "",
+  faq: [],
+  privacyText: "",
+  contactFormEnabled: true,
+};
+
+function normalizeSiteExtras(raw) {
+  const o = {
+    ...DEFAULT_SITE_EXTRAS,
+    ...(raw && typeof raw === "object" ? raw : {}),
+  };
+  if (!Array.isArray(o.faq)) o.faq = [];
+  return o;
+}
+
 let settings = {
   name: "",
   licenseNo: "",
@@ -63,6 +82,7 @@ let settings = {
   logoData: null,
   stampData: null,
   homeContent: {},
+  siteExtras: { ...DEFAULT_SITE_EXTRAS },
   useBlankTemplate: false,
   blankTemplateData: null,
   blankOffsetXmm: 0,
@@ -81,6 +101,10 @@ function mergeServerSettings(data) {
     if (data[k] === undefined) continue;
     if (k === "homeContent" && data.homeContent && typeof data.homeContent === "object") {
       settings.homeContent = { ...settings.homeContent, ...data.homeContent };
+      continue;
+    }
+    if (k === "siteExtras" && data.siteExtras && typeof data.siteExtras === "object") {
+      settings.siteExtras = normalizeSiteExtras({ ...settings.siteExtras, ...data.siteExtras });
       continue;
     }
     settings[k] = data[k];
@@ -370,7 +394,11 @@ class ProjectWizard {
       if (netFail) {
         try {
           await enqueueProjectWizardPayload(payload);
-          showToast("אין רשת — הנתונים נשמרו במכשיר ויסונכרנו אוטומטית.", "ok");
+          const pending = await countPendingWizard();
+          showToast(
+            `אין רשת — הנתונים נשמרו במכשיר ויסונכרנו כשהחיבור יחזור. פריטים בתור: ${pending}`,
+            "ok"
+          );
           this.close();
         } catch (e2) {
           showToast(e2.message || "שגיאת שמירה מקומית", "err");
@@ -499,6 +527,27 @@ function triggerFileDownload(url) {
   document.body.appendChild(a);
   a.click();
   a.remove();
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function parseFaqJson(str) {
+  try {
+    const p = JSON.parse(str || "[]");
+    return Array.isArray(p) ? p : [];
+  } catch {
+    return [];
+  }
 }
 
 function escapeHtml(s) {
@@ -639,7 +688,7 @@ async function readImageFile(file, maxW = 800, maxH = 800, quality = 0.85) {
 }
 
 function setSection(section) {
-  ["home", "about", "contact", "portal"].forEach((s) => {
+  ["home", "about", "contact", "faq", "privacy", "portal"].forEach((s) => {
     const el = $(`section-${s}`);
     if (el) el.classList.toggle("section-hidden", s !== section);
   });
@@ -732,6 +781,92 @@ function renderHomeHeroChips(hc) {
     .join("");
 }
 
+function renderPublicExtras() {
+  const ex = normalizeSiteExtras(settings.siteExtras);
+  const licEl = $("headerLicenseLine");
+  if (licEl) {
+    if (settings.licenseNo && String(settings.licenseNo).trim()) {
+      licEl.textContent = `רישיון בודק מוסמך · ${String(settings.licenseNo).trim()}`;
+      licEl.classList.remove("hidden");
+    } else {
+      licEl.textContent = "";
+      licEl.classList.add("hidden");
+    }
+  }
+
+  const strip = $("publicTrustStrip");
+  const hasStrip = !!(
+    ex.serviceArea?.trim() ||
+    ex.emergencyNote?.trim() ||
+    ex.emergencyWhatsapp?.trim() ||
+    ex.complianceTrust?.trim()
+  );
+  if (strip) strip.classList.toggle("hidden", !hasStrip);
+
+  const sa = $("publicServiceArea");
+  if (sa) {
+    sa.innerHTML = ex.serviceArea?.trim()
+      ? `<strong>אזור שירות</strong><span style="display:block;margin-top:0.25rem;white-space:pre-wrap;">${escapeHtml(ex.serviceArea)}</span>`
+      : "";
+  }
+  const em = $("publicEmergency");
+  if (em) {
+    const wa = ex.emergencyWhatsapp?.trim();
+    const waHref = wa ? toWaHref(wa) : "#";
+    const waBlock =
+      wa
+        ? `<a href="${waHref}" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="margin-top:0.45rem;display:inline-block">WhatsApp דחוף</a>`
+        : "";
+    em.innerHTML =
+      ex.emergencyNote?.trim() || wa
+        ? `<strong>חירום / זמינות</strong><span style="display:block;margin-top:0.25rem;white-space:pre-wrap;">${escapeHtml(ex.emergencyNote || "")}</span>${waBlock}`
+        : "";
+  }
+  const co = $("publicCompliance");
+  if (co) {
+    co.innerHTML = ex.complianceTrust?.trim()
+      ? `<strong>אמון ותקינות</strong><span style="display:block;margin-top:0.35rem;font-size:0.82rem;line-height:1.55;">${escapeHtml(ex.complianceTrust)}</span>`
+      : "";
+  }
+
+  const faqList = $("faqList");
+  const faqEmpty = $("faqEmpty");
+  if (faqList && faqEmpty) {
+    const faq = (ex.faq || []).filter((x) => x && (String(x.q || "").trim() || String(x.a || "").trim()));
+    faqEmpty.classList.toggle("hidden", faq.length > 0);
+    faqList.innerHTML = faq
+      .map(
+        (x) =>
+          `<dt>${escapeHtml(String(x.q || "").trim())}</dt><dd>${escapeHtml(String(x.a || "").trim())}</dd>`
+      )
+      .join("");
+  }
+
+  const pb = $("privacyBody");
+  const pe = $("privacyEmpty");
+  if (pb && pe) {
+    const t = ex.privacyText?.trim() || "";
+    pb.textContent = t;
+    pe.classList.toggle("hidden", !!t);
+    pb.classList.toggle("hidden", !t);
+  }
+
+  const enabled = ex.contactFormEnabled !== false;
+  $("contactFormFields")?.classList.toggle("hidden", !enabled);
+  $("contactMailtoBtn")?.classList.toggle("hidden", !enabled);
+  $("contactMailOnlyHint")?.classList.toggle("hidden", enabled);
+
+  const ewl = $("emergencyWhatsappLink");
+  if (ewl) {
+    if (ex.emergencyWhatsapp?.trim()) {
+      ewl.href = toWaHref(ex.emergencyWhatsapp.trim());
+      ewl.classList.remove("hidden");
+    } else {
+      ewl.classList.add("hidden");
+    }
+  }
+}
+
 function renderHomeFromSettings() {
   const hc = { ...DEFAULT_HOME_CONTENT, ...(settings.homeContent || {}) };
   const getEl = (id) => $(id);
@@ -777,6 +912,7 @@ function renderHomeFromSettings() {
   });
   // Update about text
   setText("aboutText", settings.aboutText || "");
+  renderPublicExtras();
 }
 
 function readAccessPrefs() {
@@ -1461,11 +1597,24 @@ async function loadFinancial(type) {
       <td>${escapeHtml(row.customerName || "")}</td>
       <td>₪${asMoney(row.totalAmount)}</td>
       <td>${escapeHtml(row.status || "")}</td>
+      <td>
+        <button type="button" class="tbl-btn tbl-btn-edit pdfdl" aria-label="הורד PDF">PDF</button>
+      </td>
       <td style="display:flex;gap:0.35rem;flex-wrap:wrap;">
         <button type="button" class="tbl-btn tbl-btn-edit edit" aria-label="ערוך ${type === "invoice" ? "חשבונית" : "הצעה"}">עריכה</button>
         <button type="button" class="tbl-btn tbl-btn-del del" aria-label="מחק ${type === "invoice" ? "חשבונית" : "הצעה"}">מחיקה</button>
       </td>`;
     tr.querySelector(".edit").onclick = () => fillFinancialForm(type, row);
+    tr.querySelector(".pdfdl").onclick = async () => {
+      try {
+        const blob = await apiBlob(`/api/financial-docs/${row.id}/pdf`);
+        const prefix = type === "invoice" ? "חשבונית" : "הצעה";
+        const safe = String(row.docNo || row.id).replace(/[^\w.-]/g, "_");
+        downloadBlob(blob, `${prefix}-${safe}.pdf`);
+      } catch (e) {
+        showToast(e.message || "שגיאת PDF", "err");
+      }
+    };
     tr.querySelector(".del").onclick = async () => {
       if (!await confirmDialog("למחוק את הרשומה?")) return;
       await api(`/api/financial-docs/${row.id}`, { method: "DELETE" });
@@ -1602,6 +1751,18 @@ async function loadSettings() {
   setInputValue("setInspectorDeclaration", settings.inspectorDeclarationText || "");
   setInputValue("setStampOffsetX", String(Number(settings.stampOffsetXmm || 0)));
   setInputValue("setStampOffsetY", String(Number(settings.stampOffsetYmm || 0)));
+  const sx = normalizeSiteExtras(settings.siteExtras);
+  setInputValue("setServiceArea", sx.serviceArea || "");
+  setInputValue("setEmergencyNote", sx.emergencyNote || "");
+  setInputValue("setEmergencyWhatsapp", sx.emergencyWhatsapp || "");
+  setInputValue("setComplianceTrust", sx.complianceTrust || "");
+  try {
+    setInputValue("setFaqJson", JSON.stringify(sx.faq || [], null, 2));
+  } catch {
+    setInputValue("setFaqJson", "[]");
+  }
+  setInputValue("setPrivacyText", sx.privacyText || "");
+  setChecked("setContactFormEnabled", sx.contactFormEnabled !== false);
 }
 
 async function bindSettingsForm() {
@@ -1686,6 +1847,15 @@ async function bindSettingsForm() {
       settings.inspectorDeclarationText = inputTrim("setInspectorDeclaration");
       settings.stampOffsetXmm = Number(inputRaw("setStampOffsetX") || 0);
       settings.stampOffsetYmm = Number(inputRaw("setStampOffsetY") || 0);
+      settings.siteExtras = normalizeSiteExtras({
+        serviceArea: inputTrim("setServiceArea"),
+        emergencyNote: inputTrim("setEmergencyNote"),
+        emergencyWhatsapp: inputTrim("setEmergencyWhatsapp"),
+        complianceTrust: inputTrim("setComplianceTrust"),
+        faq: parseFaqJson(inputRaw("setFaqJson")),
+        privacyText: inputTrim("setPrivacyText"),
+        contactFormEnabled: !!$("setContactFormEnabled")?.checked,
+      });
       mergeServerSettings(await api("/api/settings", { method: "PUT", body: settings }));
       renderHomeFromSettings();
       showMsg("settingsMsg", "הגדרות נשמרו בהצלחה", true);
@@ -1700,6 +1870,37 @@ function setupExport() {
   if (!btn) return;
   btn.onclick = () => {
     triggerFileDownload("/api/exports/accountant.csv");
+  };
+}
+
+function setupExportDocumentsZip() {
+  const btn = $("exportDocumentsZipBtn");
+  if (!btn) return;
+  btn.onclick = async () => {
+    try {
+      showToast("מכין ארכיון…", "ok");
+      const blob = await apiBlob("/api/exports/documents-pack.zip");
+      downloadBlob(blob, `ecs-documents-${new Date().toISOString().slice(0, 10)}.zip`);
+    } catch (e) {
+      showToast(e.message || "שגיאת ארכיון", "err");
+    }
+  };
+}
+
+function setupContactMailto() {
+  const btn = $("contactMailtoBtn");
+  if (!btn) return;
+  btn.onclick = () => {
+    const to = String(settings.email || "").trim();
+    if (!to) {
+      showToast("לא הוגדר דוא״ל בהגדרות האתר.", "warn");
+      return;
+    }
+    const name = inputTrim("contactFormName");
+    const body = inputTrim("contactFormBody");
+    const subj = encodeURIComponent(`פנייה מהאתר — ${name || "לקוח"}`);
+    const b = encodeURIComponent(body || "");
+    window.location.href = `mailto:${encodeURIComponent(to)}?subject=${subj}&body=${b}`;
   };
 }
 
@@ -1759,6 +1960,8 @@ window.addEventListener("DOMContentLoaded", async () => {
   renderFinancialForm("quote");
   bindSettingsForm();
   setupExport();
+  setupExportDocumentsZip();
+  setupContactMailto();
   setupPwaInstall();
   registerServiceWorker();
   document.body.classList.add("settings-loading");

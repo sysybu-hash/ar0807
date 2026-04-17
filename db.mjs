@@ -136,6 +136,7 @@ async function migrate() {
   await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS inspector_declaration_text TEXT DEFAULT '';`);
   await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS stamp_offset_x_mm NUMERIC(8,2) NOT NULL DEFAULT 0;`);
   await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS stamp_offset_y_mm NUMERIC(8,2) NOT NULL DEFAULT 0;`);
+  await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS site_extras_json JSONB DEFAULT '{}'::jsonb;`);
   await q(`
     INSERT INTO inspector_settings (id, name, whatsapp, access_code)
     VALUES (1, 'אברהם רובינשטיין - חשמלאי מוסמך', '+972587600807', '1234')
@@ -259,6 +260,7 @@ export async function getSettings() {
     inspectorDeclarationText: row.inspector_declaration_text ?? "",
     stampOffsetXmm: Number(row.stamp_offset_x_mm || 0),
     stampOffsetYmm: Number(row.stamp_offset_y_mm || 0),
+    siteExtras: safeJson(row.site_extras_json, {}),
     accessCode: "",
     updatedAt: row.updated_at ?? null,
   };
@@ -297,6 +299,7 @@ export async function saveSettings(payload) {
       inspector_declaration_text = $16,
       stamp_offset_x_mm = $17,
       stamp_offset_y_mm = $18,
+      site_extras_json = $19::jsonb,
       updated_at = now()
     WHERE id = 1`,
     [
@@ -318,6 +321,7 @@ export async function saveSettings(payload) {
       payload.inspectorDeclarationText ?? "",
       Number(payload.stampOffsetXmm || 0),
       Number(payload.stampOffsetYmm || 0),
+      JSON.stringify(payload.siteExtras ?? {}),
     ]
   );
   return getSettings();
