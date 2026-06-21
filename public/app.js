@@ -664,6 +664,68 @@ function triggerBlobDownload(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
+let docPreviewObjectUrl = null;
+
+function closeDocPreviewModal() {
+  const modal = $("docPreviewModal");
+  const frame = $("docPreviewFrame");
+  const hint = $("docPreviewModalHint");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.setAttribute("aria-hidden", "true");
+  }
+  if (frame) {
+    frame.removeAttribute("src");
+    frame.removeAttribute("srcdoc");
+  }
+  if (hint) {
+    hint.textContent = "";
+    hint.classList.add("hidden");
+  }
+  if (docPreviewObjectUrl) {
+    URL.revokeObjectURL(docPreviewObjectUrl);
+    docPreviewObjectUrl = null;
+  }
+}
+
+function openDocPreviewModal({ title, html, pdfBlob, hint }) {
+  closeDocPreviewModal();
+  const modal = $("docPreviewModal");
+  const frame = $("docPreviewFrame");
+  const titleEl = $("docPreviewModalTitle");
+  const hintEl = $("docPreviewModalHint");
+  if (!modal || !frame) return;
+  if (titleEl) titleEl.textContent = title || "תצוגה מקדימה";
+  if (hintEl) {
+    if (hint) {
+      hintEl.textContent = hint;
+      hintEl.classList.remove("hidden");
+    } else {
+      hintEl.textContent = "";
+      hintEl.classList.add("hidden");
+    }
+  }
+  if (pdfBlob) {
+    docPreviewObjectUrl = URL.createObjectURL(pdfBlob);
+    frame.src = docPreviewObjectUrl;
+  } else if (html) {
+    frame.srcdoc = html;
+  }
+  modal.classList.remove("hidden");
+  modal.setAttribute("aria-hidden", "false");
+  $("docPreviewModalClose")?.focus();
+}
+
+function setupDocPreviewModal() {
+  $("docPreviewModalClose")?.addEventListener("click", closeDocPreviewModal);
+  $("docPreviewModalBackdrop")?.addEventListener("click", closeDocPreviewModal);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !$("docPreviewModal")?.classList.contains("hidden")) {
+      closeDocPreviewModal();
+    }
+  });
+}
+
 function normalizeWhatsapp(raw) {
   const x = String(raw || "").replace(/[^\d+]/g, "");
   if (x.startsWith("+")) return x;
@@ -1341,12 +1403,14 @@ async function bindDocForm() {
   if (statusFilterEl) statusFilterEl.addEventListener("change", renderDocsTable);
   const newBtn = $("newDocBtn");
   const saveBtn = $("saveDocBtn");
+  const previewBtn = $("previewDocBtn");
   const printBtn = $("printDocBtn");
   const downloadBtn = $("downloadPdfBtn");
   const shareBtn = $("shareDocBtn");
   const finalizeBtn = $("finalizeDocBtn");
   if (newBtn) newBtn.onclick = () => fillDocForm(null);
   if (saveBtn) saveBtn.onclick = saveDoc;
+  if (previewBtn) previewBtn.onclick = () => previewCurrentDoc();
   if (printBtn) printBtn.onclick = printCurrentDoc;
   if (downloadBtn) downloadBtn.onclick = () => downloadServerPdf();
   if (shareBtn) shareBtn.onclick = () => shareCurrentDoc();
@@ -1649,7 +1713,7 @@ function printDocTypeBody(doc) {
     <p class="print-banner">${escapeHtml(ex.finalStatusBanner || "תקין — המתקן מאושר לשימוש")}</p>`;
 }
 
-function printDoc(doc) {
+function buildPrintDocHtml(doc, { autoPrint = false } = {}) {
   const when = fmtDate(doc.updatedAt || doc.createdAt || new Date().toISOString());
   const title = certTypeLabel(doc.docType);
   const ex = doc.extra && typeof doc.extra === "object" ? doc.extra : {};
@@ -1731,7 +1795,8 @@ function printDoc(doc) {
         </div>
       </div>
     </div>`;
-  const html = `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><link rel="stylesheet" href="/tw-built.css" />
+  const printScript = autoPrint ? `<script>window.onload=()=>{window.print()};<\/script>` : "";
+  return `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><link rel="stylesheet" href="/tw-built.css" />
   <style>
     .blank-sheet{position:relative;max-width:210mm;min-height:287mm;margin:0 auto;padding:12mm}
     .blank-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:0;transform:translate(${Number(settings.blankOffsetXmm || 0)}mm, ${Number(settings.blankOffsetYmm || 0)}mm) scale(${Math.min(1.2, Math.max(0.8, Number(settings.blankScale || 1)))});transform-origin:top right}
@@ -1744,8 +1809,48 @@ function printDoc(doc) {
   </style>
   </head><body>
   ${settings.useBlankTemplate && settings.blankTemplateData ? blankLayout : standardLayout}
-  <script>window.onload=()=>{window.print()};<\/script></body></html>`;
-  openPrintableHtml(html);
+  ${printScript}</body></html>`;
+}
+
+function printDoc(doc) {
+  openPrintableHtml(buildPrintDocHtml(doc, { autoPrint: true }));
+}
+
+async function previewCertificateDoc(doc) {
+  const title = certTypeLabel(doc.docType);
+  const docId = doc.id != null ? String(doc.id) : "";
+  try {
+    if (docId) {
+      const blob = await apiBlob(`/api/certificates/${docId}/pdf`);
+      openDocPreviewModal({ title, pdfBlob: blob });
+      return;
+    }
+    openDocPreviewModal({
+      title: `${title} (טיוטה)`,
+      html: buildPrintDocHtml(doc, { autoPrint: false }),
+      hint: "תצוגה מהטופס — שמור את המסמך כדי לראות PDF זהה להורדה מהשרת.",
+    });
+  } catch (e) {
+    showToast(e.message || "לא ניתן לטעון תצוגה מקדימה", "err");
+  }
+}
+
+async function previewCurrentDoc() {
+  const id = inputTrim("docId");
+  if (id) {
+    await previewCertificateDoc(await api(`/api/certificates/${id}`));
+    return;
+  }
+  try {
+    const doc = {
+      ...buildDocPayload(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await previewCertificateDoc(doc);
+  } catch (e) {
+    showToast(e.message || "שגיאת נתונים", "warn");
+  }
 }
 
 async function printCurrentDoc() {
@@ -1786,10 +1891,12 @@ function renderDocsTable() {
       <td>${escapeHtml(fmtDate(row.updatedAt))}</td>
       <td style="display:flex;gap:0.35rem;flex-wrap:wrap;">
         <button type="button" class="tbl-btn tbl-btn-edit edit" aria-label="ערוך מסמך">עריכה</button>
+        <button type="button" class="tbl-btn tbl-btn-edit preview" aria-label="תצוגה מקדימה">תצוגה</button>
         <button type="button" class="tbl-btn tbl-btn-print print" aria-label="הדפס מסמך">הדפסה</button>
         <button type="button" class="tbl-btn tbl-btn-del del" aria-label="מחק מסמך">מחיקה</button>
       </td>`;
     tr.querySelector(".edit").onclick = async () => fillDocForm(await api(`/api/certificates/${row.id}`));
+    tr.querySelector(".preview").onclick = async () => previewCertificateDoc(await api(`/api/certificates/${row.id}`));
     tr.querySelector(".print").onclick = async () => printDoc(await api(`/api/certificates/${row.id}`));
     tr.querySelector(".del").onclick = async () => {
       if (!await confirmDialog("למחוק את המסמך?")) return;
@@ -2267,6 +2374,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupAccessibilityToolbar();
   setupPortalWizard();
   setupProjectWizardModal();
+  setupDocPreviewModal();
   setupPortalAuth();
   window.addEventListener("online", () => {
     void syncWizardOutbox();

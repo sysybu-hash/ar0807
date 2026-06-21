@@ -748,6 +748,10 @@
               <div class="form-actions doc-form-actions">
                 <button id="saveDocBtn" type="button" class="btn-portal-primary">שמירת מסמך</button>
                 <button id="finalizeDocBtn" type="button" class="btn-portal-secondary">סמן כסופי</button>
+                <button id="previewDocBtn" type="button" class="btn-portal-secondary" aria-label="תצוגה מקדימה של המסמך">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  תצוגה מקדימה
+                </button>
                 <button id="printDocBtn" type="button" class="btn-portal-secondary">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                   הדפסה / PDF
@@ -1058,6 +1062,21 @@
   <div id="toastContainer"
        role="status" aria-live="polite" aria-atomic="false"
        aria-label="הודעות מערכת"></div>
+
+  <!-- ================================================================
+       DOCUMENT PREVIEW MODAL
+       ================================================================ -->
+  <div id="docPreviewModal" class="doc-preview-modal hidden" role="dialog" aria-modal="true" aria-labelledby="docPreviewModalTitle" aria-hidden="true">
+    <div class="doc-preview-modal__backdrop" id="docPreviewModalBackdrop" tabindex="-1"></div>
+    <div class="doc-preview-modal__panel">
+      <header class="doc-preview-modal__header">
+        <h2 id="docPreviewModalTitle">תצוגה מקדימה</h2>
+        <button id="docPreviewModalClose" type="button" class="doc-preview-modal__close" aria-label="סגור תצוגה מקדימה">×</button>
+      </header>
+      <p id="docPreviewModalHint" class="doc-preview-modal__hint hidden"></p>
+      <iframe id="docPreviewFrame" class="doc-preview-modal__frame" title="תצוגה מקדימה של מסמך"></iframe>
+    </div>
+  </div>
 
   <!-- ================================================================
        CONFIRM DIALOG
