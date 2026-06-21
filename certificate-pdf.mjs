@@ -1,6 +1,7 @@
 import PDFDocument from "pdfkit";
 import path from "path";
 import { fileURLToPath } from "url";
+import bidiFactory from "bidi-js";
 import {
   CERT_TYPES,
   mergeExtraForType,
@@ -8,6 +9,8 @@ import {
   defaultVisualChecklist,
   defaultTechRows,
 } from "./lib/cert-types.mjs";
+
+const bidi = bidiFactory();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const HEBREW_FONT = path.join(__dirname, "public", "fonts", "NotoSansHebrew-Regular.ttf");
@@ -57,17 +60,23 @@ function splitScriptRuns(text) {
   return runs;
 }
 
-/** PDFKit is LTR — keep logical order; Hebrew runs use OpenType rtla shaping. */
-function buildLogicalRuns(text) {
-  return splitScriptRuns(normalizePdfText(text)).map((run) => ({
+/** PDFKit draws LTR — reorder with bidi-js to visual order (no rtla; avoids garbled letters). */
+function toVisualLine(text) {
+  const str = normalizePdfText(text);
+  if (!str) return "";
+  return bidi.getReorderedString(str, bidi.getEmbeddingLevels(str));
+}
+
+function buildVisualRuns(text) {
+  return splitScriptRuns(toVisualLine(text)).map((run) => ({
     kind: run.kind,
     font: run.kind === "hebrew" ? "Hebrew" : "Latin",
     text: run.text,
   }));
 }
 
-function runTextOpts(run) {
-  return run.kind === "hebrew" ? { features: ["rtla"] } : {};
+function runTextOpts() {
+  return {};
 }
 
 function measureRunWidth(doc, run, fontSize) {
@@ -82,7 +91,7 @@ function drawLogicalRtlLine(doc, text, x, y, width, opts = {}) {
   const normalized = normalizePdfText(text);
   doc.fontSize(fontSize).fillColor(fillColor);
 
-  const runs = buildLogicalRuns(normalized);
+  const runs = buildVisualRuns(normalized);
   const sized = runs.map((run) => ({
     ...run,
     w: measureRunWidth(doc, run, fontSize),
@@ -104,7 +113,52 @@ function drawLogicalRtlLine(doc, text, x, y, width, opts = {}) {
 
 function measureLogicalLine(doc, text, opts = {}) {
   const fontSize = resolveFontSize(doc, opts);
-  return buildLogicalRuns(text).reduce((sum, run) => sum + measureRunWidth(doc, run, fontSize), 0);
+  return buildVisualRuns(text).reduce((sum, run) => sum + measureRunWidth(doc, run, fontSize), 0);
+}
+
+/** Break a single paragraph into lines that fit within `width`. */
+function wrapLogicalLines(doc, text, width, opts = {}) {
+  const normalized = normalizePdfText(text);
+  if (!normalized) return [""];
+  if (!width || width <= 0) return [normalized];
+  if (measureLogicalLine(doc, normalized, opts) <= width) return [normalized];
+
+  const tokens = normalized.split(/(\s+)/).filter((t) => t.length > 0);
+  const lines = [];
+  let current = "";
+  for (const token of tokens) {
+    if (/^\s+$/.test(token)) {
+      if (current) current += token;
+      continue;
+    }
+    const trial = current ? `${current}${token}` : token;
+    if (current.trim() && measureLogicalLine(doc, trial, opts) > width) {
+      lines.push(current.trim());
+      current = token.trim() ? token : "";
+    } else {
+      current = trial;
+    }
+  }
+  if (current.trim()) lines.push(current.trim());
+  return lines.length ? lines : [normalized];
+}
+
+function expandWrappedLines(doc, text, width, opts = {}) {
+  const { wrap = true, ...rest } = opts;
+  const paragraphs = normalizePdfText(text).split("\n");
+  const lines = [];
+  for (const para of paragraphs) {
+    if (!para.trim()) {
+      lines.push("");
+      continue;
+    }
+    if (wrap && width > 0) {
+      lines.push(...wrapLogicalLines(doc, para, width, rest));
+    } else {
+      lines.push(para);
+    }
+  }
+  return lines.length ? lines : [""];
 }
 
 function lineHeight(doc, fontSize, opts = {}) {
@@ -204,20 +258,18 @@ function rtlBlock(doc, text, x, y, width, opts = {}) {
 
 function measureRtl(doc, text, width, opts = {}) {
   const fontSize = resolveFontSize(doc, opts);
-  const lines = normalizePdfText(text).split("\n");
+  const lines = expandWrappedLines(doc, text, width, opts);
   let h = 0;
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
     h += lineHeight(doc, fontSize, opts);
-    if (measureLogicalLine(doc, line, opts) > width) {
-      h += lineHeight(doc, fontSize, opts);
-    }
+    if (i < lines.length - 1) h += opts.lineGap ?? 0;
   }
-  return Math.max(h - (opts.lineGap ?? 0), lineHeight(doc, fontSize, opts));
+  return Math.max(h, lineHeight(doc, fontSize, opts));
 }
 
 function pdfText(doc, text, x, y, width, opts = {}) {
-  const { lineGap = 0, ...rest } = opts;
-  const lines = normalizePdfText(text).split("\n");
+  const { lineGap = 0, wrap = true, ...rest } = opts;
+  const lines = expandWrappedLines(doc, text, width, { ...rest, wrap });
   let cy = y;
   for (let i = 0; i < lines.length; i++) {
     cy = drawLogicalRtlLine(doc, lines[i], x, cy, width, rest);
@@ -256,7 +308,7 @@ function drawCertificateHeader(doc, { left, contentW, y, inspector, mainTitle, l
 
   if (hasLogo) {
     try {
-      doc.image(logoBuf, left + contentW - logoW, y, logoW, { height: logoH, fit: [logoW, logoH] });
+      doc.image(logoBuf, left + contentW - logoW, y, { width: logoW, height: logoH, fit: [logoW, logoH] });
     } catch {
       /* skip */
     }
@@ -506,7 +558,7 @@ function renderPortableBody(doc, certificate, inspector, extra, left, contentW, 
     (extra.summary || "").trim() ||
     (certificate.notes || "").trim() ||
     "כל המכשירים שנבדקו עומדים בדרישות הבטיחות.";
-  y = ensureY(doc, y, bottomSafe, 70, m);
+  y = ensureY(doc, y, bottomSafe, 70 + estimateSignatureFooterHeight(doc, inspector, contentW), m);
   doc.fontSize(10).fillColor(BROWN_ACCENT);
   doc.moveTo(left, y).lineTo(left + 140, y).lineWidth(1).stroke(BROWN_ACCENT);
   y += 6;
@@ -530,9 +582,9 @@ function renderEvChargingBody(doc, certificate, inspector, extra, left, contentW
     `${extra.stationPowerKw || "—"} kW · ${extra.chargeType || "AC"} · ${extra.connectorType || "—"}`,
   ]);
 
-  const importerLine = `הצהרת יבואן/יצרן: ${extra.importerDeclarationRef || "—"}${extra.importerDeclarationDate ? ` (${extra.importerDeclarationDate})` : ""}`;
+  const importerVal = `${extra.importerDeclarationRef || "—"}${extra.importerDeclarationDate ? ` (${extra.importerDeclarationDate})` : ""}`;
   y = drawKeyValueTable(doc, left, contentW, y, bottomSafe, m, "פרטי עמדה ומתקין", [
-    ["הצהרת יבואן", importerLine],
+    ["הצהרת יבואן/יצרן", importerVal],
     ["מתקין", `${extra.installerName || "—"} · רישיון ${extra.installerLicense || "—"}`],
     ["תקן", extra.iec61851Ref || "IEC 61851-1 / IEC 60364-7-722"],
     ["הארקה / הגנה", certificate.groundingValue || "—"],
@@ -593,7 +645,7 @@ function renderEvChargingBody(doc, certificate, inspector, extra, left, contentW
 
   const gridBanner =
     String(extra.gridApprovalBanner || "").trim() || "מאושר לחיבור לרשת לפני הפעלה ראשונה";
-  y = ensureY(doc, y, bottomSafe, 36, m);
+  y = ensureY(doc, y, bottomSafe, 36 + estimateSignatureFooterHeight(doc, inspector, contentW), m);
   doc.save();
   doc.rect(left, y, contentW, 32).fill(BLUE);
   doc.restore();
@@ -607,9 +659,10 @@ function renderEvChargingBody(doc, certificate, inspector, extra, left, contentW
 
 function drawMultiColumnTable(doc, left, contentW, y, bottomSafe, m, title, cols, rows, rowsAreArrays = false) {
   y = ensureY(doc, y, bottomSafe, 28, m);
-  doc.fontSize(10.5).fillColor(BLUE_DARK); pdfText(doc, title, left, y, contentW, { align: "right" });
+  doc.fontSize(10.5).fillColor(BLUE_DARK);
+  pdfText(doc, title, left, y, contentW, { align: "right" });
   y += 12;
-  const rowH = 18;
+  const minRowH = 16;
   const headerH = 20;
   const widths = cols.map((c) => contentW * c.w);
   y = ensureY(doc, y, bottomSafe, headerH + 4, m);
@@ -624,21 +677,28 @@ function drawMultiColumnTable(doc, left, contentW, y, bottomSafe, m, title, cols
   }
   y += headerH;
   for (let ri = 0; ri < rows.length; ri++) {
+    const row = rows[ri];
+    let rowH = minRowH;
+    const cellTexts = [];
+    for (let ci = 0; ci < cols.length; ci++) {
+      const cell = String(rowsAreArrays ? row[ci] : row[cols[ci].key] ?? "—");
+      cellTexts.push(cell);
+      const cellH = measureRtl(doc, cell, widths[ci] - 4, { fontSize: 7.2, align: "right" }) + 8;
+      rowH = Math.max(rowH, cellH);
+    }
     y = ensureY(doc, y, bottomSafe, rowH + 2, m);
     doc.save();
     doc.rect(left, y, contentW, rowH).fill(ri % 2 === 0 ? "#f8fafc" : "#ffffff").stroke("#e2e8f0");
     doc.restore();
     doc.fontSize(7.2).fillColor("#0f172a");
-    const row = rows[ri];
     let rx = left + contentW;
     for (let ci = 0; ci < cols.length; ci++) {
       rx -= widths[ci];
-      const cell = rowsAreArrays ? row[ci] : row[cols[ci].key];
-      pdfText(doc, String(cell ?? "—"), rx + 2, y + 4, widths[ci] - 4, { align: "right" });
+      pdfText(doc, cellTexts[ci], rx + 2, y + 4, widths[ci] - 4, { align: "right" });
     }
     y += rowH;
   }
-  return y + 10;
+  return y + 8;
 }
 
 function renderInstallationBody(doc, certificate, inspector, extra, left, contentW, y, bottomSafe, m, meta) {
@@ -728,7 +788,7 @@ function renderInstallationBody(doc, certificate, inspector, extra, left, conten
   y += nh + 14;
 
   // באנר סטטוס
-  y = ensureY(doc, y, bottomSafe, 36, m);
+  y = ensureY(doc, y, bottomSafe, 36 + estimateSignatureFooterHeight(doc, inspector, contentW), m);
   doc.save();
   doc.rect(left, y, contentW, 32).fill(BLUE);
   doc.restore();
@@ -797,67 +857,80 @@ function drawTechFourColumnTable(doc, left, contentW, y, bottomSafe, m, techRows
 
 function drawKeyValueTable(doc, left, contentW, y, bottomSafe, m, title, rows) {
   y = ensureY(doc, y, bottomSafe, 28, m);
-  doc.fontSize(10.5).fillColor(BLUE_DARK); pdfText(doc, title, left, y, contentW, { align: "right" });
+  doc.fontSize(10.5).fillColor(BLUE_DARK);
+  pdfText(doc, title, left, y, contentW, { align: "right" });
   y += 12;
-  const rowH = 22;
+  const labelW = 128;
+  const valW = contentW - labelW - 16;
+  const valX = left + 8;
+  const labelX = left + contentW - labelW - 4;
   for (let i = 0; i < rows.length; i++) {
     const [label, val] = rows[i];
+    const valStr = String(val ?? "—");
+    const rowH = Math.max(22, measureRtl(doc, valStr, valW, { fontSize: 9, align: "right" }) + 10);
     y = ensureY(doc, y, bottomSafe, rowH + 2, m);
     doc.save();
     doc.rect(left, y, contentW, rowH).fill(i % 2 === 0 ? "#f8fafc" : "#fff").stroke("#e2e8f0");
     doc.restore();
     doc.fontSize(8.5).fillColor("#64748b");
-    pdfText(doc, label, left + contentW - 130, y + 6, 120, { align: "right" });
+    pdfText(doc, label, labelX, y + 6, labelW, { align: "right" });
     doc.fontSize(9).fillColor("#0f172a");
-    pdfText(doc, String(val), left + 10, y + 5, contentW - 150, { align: "right" });
+    pdfText(doc, valStr, valX, y + 5, valW, { align: "right" });
     y += rowH;
   }
   return y + 8;
 }
 
-function drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bottomSafe, m) {
-  const decl = String(inspector?.inspectorDeclarationText || "").trim();
-  const declText =
-    decl ||
-    "אני החתום מטה מצהיר כי בדקתי את המתקן האמור לעיל בהתאם להוראות חוק החשמל, תשי״ד–1954, ותקנותיו, וכי המתקן עומד בדרישות התקן הישראלי ובהנחיות רשות החשמל.";
+function defaultDeclarationText() {
+  return "אני החתום מטה מצהיר כי בדקתי את המתקן האמור לעיל בהתאם להוראות חוק החשמל, תשי״ד–1954, ותקנותיו, וכי המתקן עומד בדרישות התקן הישראלי ובהנחיות רשות החשמל.";
+}
 
-  y = ensureY(doc, y, bottomSafe, 120, m);
-  const midX = left + contentW / 2;
+function estimateSignatureFooterHeight(doc, inspector, contentW) {
+  const decl = String(inspector?.inspectorDeclarationText || "").trim() || defaultDeclarationText();
   const colW = contentW / 2 - 8;
-  doc.fontSize(10).fillColor(BLUE_DARK); pdfText(doc, "הצהרת החשמלאי", midX + 4, y, colW - 4, { align: "right", });
-  doc.fontSize(10).fillColor(BLUE_DARK); pdfText(doc, "חתימה וחותמת החשמלאי", left, y, colW - 4, { align: "right", });
-  y += 14;
+  const declH = measureRtl(doc, decl, colW - 8, { fontSize: 7.8, align: "right", lineGap: 1.5 });
+  return 14 + Math.max(declH, 78) + 16;
+}
+
+function drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bottomSafe, m) {
+  const declText = String(inspector?.inspectorDeclarationText || "").trim() || defaultDeclarationText();
+  const blockH = estimateSignatureFooterHeight(doc, inspector, contentW);
+  y = ensureY(doc, y, bottomSafe, blockH, m);
+
+  const midX = left + contentW / 2;
+  const sigColW = contentW / 2 - 8;
+  const declColW = sigColW;
+  const declOpts = { fontSize: 7.8, align: "right", lineGap: 1.5 };
+
+  doc.fontSize(10).fillColor(BLUE_DARK);
+  pdfText(doc, "הצהרת החשמלאי", midX + 4, y, declColW - 4, { align: "right" });
+  pdfText(doc, "חתימה וחותמת החשמלאי", left, y, sigColW - 4, { align: "right" });
+  const bodyY = y + 14;
 
   doc.fontSize(7.8).fillColor("#334155");
-  const declH =
-    measureRtl(doc, declText, colW - 8, { align: "right", lineGap: 1.5 }) + 4;
-  pdfText(doc, declText, midX + 4, y, colW - 8, { align: "right",
-    lineGap: 1.5, });
+  const declEndY = pdfText(doc, declText, midX + 4, bodyY, declColW - 8, declOpts);
 
   const sigBuf = dataUrlToBuffer(certificate.signatureData);
   const stampBuf = dataUrlToBuffer(inspector?.stampData);
-  const mmToPt = 2.83465;
-  const offX = Number(inspector?.stampOffsetXmm || 0) * mmToPt;
-  const offY = Number(inspector?.stampOffsetYmm || 0) * mmToPt;
-  const sigTop = y;
+  const mmToPtLocal = 2.83465;
+  const offX = Number(inspector?.stampOffsetXmm || 0) * mmToPtLocal;
+  const offY = Number(inspector?.stampOffsetYmm || 0) * mmToPtLocal;
   if (sigBuf) {
     try {
-      doc.image(sigBuf, left + 8, sigTop, { width: 130, height: 52, fit: [130, 52] });
+      doc.image(sigBuf, left + 8, bodyY, { width: 130, height: 52, fit: [130, 52] });
     } catch {
       /* skip */
     }
   }
   if (stampBuf) {
     try {
-      const stampX = left + colW - 100 - offX;
-      doc.image(stampBuf, stampX, sigTop + offY, { width: 92, height: 72, fit: [92, 72] });
+      doc.image(stampBuf, left + sigColW - 100 - offX, bodyY + offY, { width: 92, height: 72, fit: [92, 72] });
     } catch {
       /* skip */
     }
   }
   doc.fontSize(7).fillColor("#94a3b8");
-  pdfText(doc, "חתימה דיגיטלית / סריקה", left + 8, sigTop + 56, 130, { align: "center" });
+  pdfText(doc, "חתימה דיגיטלית / סריקה", left + 8, bodyY + 56, 130, { align: "center" });
 
-  y += Math.max(declH, 78) + 12;
-  return y;
+  return Math.max(declEndY, bodyY + 78) + 12;
 }

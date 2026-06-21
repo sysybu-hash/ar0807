@@ -631,7 +631,7 @@
             <div class="filter-bar" role="search" aria-label="סינון מסמכים">
               <div><label for="docsSearchInput" class="lbl">חיפוש</label><input id="docsSearchInput" class="inp" placeholder="שם / כתובת / מספר" aria-label="חיפוש מסמכים" /></div>
               <div><label for="docsStatusFilter" class="lbl">סטטוס</label><select id="docsStatusFilter" class="inp" aria-label="סינון לפי סטטוס"><option value="">כל הסטטוסים</option><option value="draft">טיוטה</option><option value="final">סופי</option></select></div>
-              <div><label for="docsTypeFilter" class="lbl">סוג</label><select id="docsTypeFilter" class="inp select" aria-label="סינון לפי סוג"><option value="">כל הסוגים</option><option value="installation">אישור תקינות מתקן</option><option value="portable">אישור תקינות צרכנים</option><option value="ev_charging">אישור תקינות עמדת טעינה</option></select></div>
+              <div><label for="docsTypeFilter" class="lbl">סוג</label><select id="docsTypeFilter" class="inp select" aria-label="סינון לפי סוג"><option value="">כל הסוגים</option><option value="installation">אישור תקינות מתקן</option><option value="portable">אישור תקינות צרכנים מיטלטלים</option><option value="ev_charging">אישור תקינות עמדת טעינה</option></select></div>
             </div>
             <form id="docForm" aria-label="טופס מסמך" novalidate>
               <input type="hidden" id="docId" />
@@ -641,7 +641,7 @@
                   <label for="docType" class="lbl">סוג מסמך</label>
                   <select id="docType" class="inp select">
                     <option value="installation">אישור תקינות מתקן</option>
-                    <option value="portable">אישור תקינות צרכנים</option>
+                    <option value="portable">אישור תקינות צרכנים מיטלטלים</option>
                     <option value="ev_charging">אישור תקינות עמדת טעינה</option>
                   </select>
                 </div>
@@ -679,7 +679,7 @@
               </div>
 
               <div id="docFieldsPortable" class="doc-type-block form-grid hidden" style="margin-bottom: 0.75rem;">
-                <div class="col-span-2 doc-type-block__title">שדות — אישור תקינות צרכנים (PAT)</div>
+                <div class="col-span-2 doc-type-block__title">שדות — אישור תקינות צרכנים מיטלטלים (PAT)</div>
                 <div><label for="docPortableEmployer" class="lbl">שם מזמין</label><input id="docPortableEmployer" class="inp" /></div>
                 <div><label for="docPortableMarking" class="lbl">שיטת סימון</label><input id="docPortableMarking" class="inp" placeholder="מדבקה עם תאריך בדיקה" /></div>
                 <div class="col-span-2"><label for="docPortableSummary" class="lbl">מסקנה כללית</label><textarea id="docPortableSummary" class="inp" rows="2"></textarea></div>

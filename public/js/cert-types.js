@@ -10,9 +10,9 @@ export const CERT_TYPES = {
   },
   portable: {
     id: "portable",
-    label: "אישור תקינות צרכנים",
-    shortLabel: "תקינות צרכנים",
-    pdfTitle: "אישור תקינות צרכנים חשמליים",
+    label: "אישור תקינות צרכנים מיטלטלים",
+    shortLabel: "צרכנים מיטלטלים",
+    pdfTitle: "אישור תקינות צרכנים מיטלטלים",
   },
   ev_charging: {
     id: "ev_charging",
