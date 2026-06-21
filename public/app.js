@@ -2,6 +2,7 @@
 import { api, apiBlob, getToken, setToken, clearToken } from "./js/api.js";
 import {
   certTypeLabel,
+  certTypeShortLabel,
   defaultPortableApplianceRow,
   defaultEvChecks,
   defaultEvPeriodicTests,
@@ -740,6 +741,15 @@ function normalizeWhatsapp(raw) {
 function toWaHref(phone) {
   const n = normalizeWhatsapp(phone).replace("+", "");
   return `https://wa.me/${n}`;
+}
+
+function fmtDateShort(iso) {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleDateString("he-IL");
+  } catch {
+    return iso;
+  }
 }
 
 function fmtDate(iso) {
@@ -1952,18 +1962,18 @@ function renderDocsTable() {
     const stLabel = isFinal ? "סופי" : "טיוטה";
     const badgeClass = isFinal ? "badge--final" : "badge--draft";
     tr.innerHTML = `
-      <td><span class="doc-list-type">${escapeHtml(certTypeLabel(row.docType))}</span></td>
-      <td>${escapeHtml(row.facilityName || "—")}</td>
-      <td><span class="badge ${badgeClass}">${escapeHtml(stLabel)}</span></td>
-      <td class="text-nowrap">${escapeHtml(fmtDate(row.updatedAt))}</td>
-      <td>
+      <td data-label="">
         <div class="doc-list-actions">
           <button type="button" class="tbl-btn tbl-btn-edit edit" aria-label="ערוך">עריכה</button>
           <button type="button" class="tbl-btn tbl-btn-edit preview" aria-label="תצוגה">תצוגה</button>
           <button type="button" class="tbl-btn tbl-btn-print print" aria-label="הדפס">הדפסה</button>
           <button type="button" class="tbl-btn tbl-btn-del del" aria-label="מחק">מחיקה</button>
         </div>
-      </td>`;
+      </td>
+      <td data-label="עודכן" class="text-nowrap doc-list-date">${escapeHtml(fmtDateShort(row.updatedAt))}</td>
+      <td data-label="סטטוס"><span class="badge ${badgeClass}">${escapeHtml(stLabel)}</span></td>
+      <td data-label="שם מתקן" class="doc-list-name">${escapeHtml(row.facilityName || "—")}</td>
+      <td data-label="סוג"><span class="doc-list-type" title="${escapeHtml(certTypeLabel(row.docType))}">${escapeHtml(certTypeShortLabel(row.docType))}</span></td>`;
     tr.querySelector(".edit").onclick = async () => fillDocForm(await api(`/api/certificates/${row.id}`));
     tr.querySelector(".preview").onclick = async () => previewCertificateDoc(await api(`/api/certificates/${row.id}`));
     tr.querySelector(".print").onclick = async () => printDoc(await api(`/api/certificates/${row.id}`));

@@ -30,6 +30,10 @@ export function certTypeLabel(docType) {
   return CERT_TYPES[docType]?.label ?? docType ?? "—";
 }
 
+export function certTypeShortLabel(docType) {
+  return CERT_TYPES[docType]?.shortLabel ?? certTypeLabel(docType);
+}
+
 export function defaultTechRows() {
   return [
     { description: "לולאת תקלה (LT)", result: "—" },
