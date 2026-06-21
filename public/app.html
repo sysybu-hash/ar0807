@@ -488,78 +488,72 @@
                PANEL: DASHBOARD
                ====================================================== -->
           <div id="portal-dashboard" class="wizard-body portal-panel" role="tabpanel" aria-labelledby="tab-dashboard">
-            <div id="dashboard-view" class="p-4 md:p-6 space-y-8 bg-gray-950/40 rounded-2xl border border-gray-800">
-              <header class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                <div>
-                  <h1 class="text-2xl font-bold text-white">שלום, <span id="dashboard-greeting-name">בודק</span></h1>
-                  <p class="text-gray-400 text-sm mt-1">הנה תמונת מצב של העסק שלך להיום</p>
+            <div class="dash">
+              <header class="dash-header">
+                <div class="dash-header__text">
+                  <h2 class="dash-header__title">שלום, <span id="dashboard-greeting-name">בודק</span></h2>
+                  <p class="dash-header__sub">סיכום פעילות העסק — פרויקטים, אישורים וחשבוניות</p>
                 </div>
-                <button type="button" id="openProjectWizardBtn" class="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg transition-all flex items-center gap-2 justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                <button type="button" id="openProjectWizardBtn" class="btn-portal-primary dash-header__cta">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
                   פרויקט חדש
                 </button>
               </header>
 
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700 hover:border-teal-500/50 transition-all group">
-                  <div class="flex justify-between items-start">
-                    <div class="p-3 bg-teal-500/10 rounded-xl text-teal-400 group-hover:bg-teal-500 group-hover:text-white transition-all">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                    </div>
+              <div class="dash-metrics">
+                <article class="dash-metric">
+                  <div class="dash-metric__icon dash-metric__icon--teal" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                   </div>
-                  <h3 class="mt-4 text-gray-400 text-sm">פרויקטים פעילים</h3>
-                  <p class="text-2xl font-bold text-white mt-1" id="stat-active-projects">0</p>
-                </div>
-                <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
-                  <div class="flex justify-between items-start">
-                    <div class="p-3 bg-blue-500/10 rounded-xl text-blue-400">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="m9 15 2 2 4-4"/></svg>
-                    </div>
+                  <p class="dash-metric__label">פרויקטים פעילים</p>
+                  <p class="dash-metric__value" id="stat-active-projects">0</p>
+                </article>
+                <article class="dash-metric">
+                  <div class="dash-metric__icon dash-metric__icon--blue" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="m9 15 2 2 4-4"/></svg>
                   </div>
-                  <h3 class="mt-4 text-gray-400 text-sm">אישורי תקינות החודש</h3>
-                  <p class="text-2xl font-bold text-white mt-1" id="stat-certs-month">0</p>
-                </div>
-                <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700">
-                  <div class="flex justify-between items-start">
-                    <div class="p-3 bg-yellow-500/10 rounded-xl text-yellow-400">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-                    </div>
+                  <p class="dash-metric__label">אישורי תקינות החודש</p>
+                  <p class="dash-metric__value" id="stat-certs-month">0</p>
+                </article>
+                <article class="dash-metric">
+                  <div class="dash-metric__icon dash-metric__icon--gold" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
                   </div>
-                  <h3 class="mt-4 text-gray-400 text-sm">הכנסות (צפי מהחשבוניות)</h3>
-                  <p class="text-2xl font-bold text-white mt-1" id="stat-revenue">₪0</p>
-                </div>
-                <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700 border-s-4 border-s-amber-500/80">
-                  <h3 class="text-gray-400 text-sm">סה״כ במערכת</h3>
-                  <p class="text-2xl font-bold text-white mt-1"><span id="statProjects">0</span> <span class="text-sm font-normal text-gray-500">פרויקטים</span></p>
-                  <p class="text-xs text-gray-500 mt-2">מסמכים: <span id="statDocs">0</span> · חשבוניות: <span id="statInvoices">0</span> · הצעות: <span id="statQuotes">0</span></p>
-                </div>
+                  <p class="dash-metric__label">הכנסות (צפי מחשבוניות)</p>
+                  <p class="dash-metric__value dash-metric__value--money" id="stat-revenue">₪0</p>
+                </article>
+                <article class="dash-metric dash-metric--summary">
+                  <p class="dash-metric__label">סה״כ במערכת</p>
+                  <p class="dash-metric__value"><span id="statProjects">0</span> <span class="dash-metric__unit">פרויקטים</span></p>
+                  <p class="dash-metric__meta">מסמכים <strong id="statDocs">0</strong> · חשבוניות <strong id="statInvoices">0</strong> · הצעות <strong id="statQuotes">0</strong></p>
+                </article>
               </div>
 
-              <div class="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden">
-                <div class="p-5 border-b border-gray-700 flex justify-between items-center flex-wrap gap-2">
-                  <h3 class="text-white font-semibold">פרויקטים אחרונים</h3>
-                  <button type="button" class="text-teal-400 text-xs hover:underline bg-transparent border-0 cursor-pointer p-0 font-sans" data-portal-tab-jump="projects">צפה בכל הפרויקטים</button>
+              <section class="dash-card">
+                <div class="dash-card__head">
+                  <h3 class="dash-card__title">פרויקטים אחרונים</h3>
+                  <button type="button" class="dash-card__link" data-portal-tab-jump="projects">צפה בכל הפרויקטים</button>
                 </div>
-                <div class="overflow-x-auto">
-                  <table class="w-full text-right text-sm">
-                    <thead class="bg-gray-900/50 text-gray-400">
+                <div class="table-wrap">
+                  <table class="table" aria-label="פרויקטים אחרונים">
+                    <thead>
                       <tr>
-                        <th class="p-4">שם הפרויקט</th>
-                        <th class="p-4">לקוח</th>
-                        <th class="p-4">סטטוס</th>
-                        <th class="p-4">עודכן</th>
+                        <th scope="col">שם הפרויקט</th>
+                        <th scope="col">לקוח</th>
+                        <th scope="col">סטטוס</th>
+                        <th scope="col">עודכן</th>
                       </tr>
                     </thead>
-                    <tbody id="recent-projects-list" class="divide-y divide-gray-700 text-gray-300"></tbody>
+                    <tbody id="recent-projects-list"></tbody>
                   </table>
                 </div>
-              </div>
+              </section>
 
-              <details class="bg-gray-900/40 rounded-xl border border-gray-700 p-4">
-                <summary class="cursor-pointer text-teal-400 font-semibold text-sm">לקוחות (CRM) ומשימות — הרחבה</summary>
-                <div class="portal-dash-grid grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-                  <div class="box bg-gray-800/80 p-4 rounded-xl border border-gray-700">
-                    <h4 class="font-extrabold text-white mb-3">לקוחות (CRM)</h4>
+              <details class="dash-expand">
+                <summary class="dash-expand__summary">לקוחות (CRM) ומשימות</summary>
+                <div class="dash-expand__grid">
+                  <div class="dash-subcard">
+                    <h4 class="dash-subcard__title">לקוחות (CRM)</h4>
                     <div class="form-grid mb-3">
                       <div><label for="customerName" class="lbl">שם לקוח *</label><input id="customerName" class="inp" /></div>
                       <div><label for="customerPhone" class="lbl">טלפון</label><input id="customerPhone" class="inp" /></div>
@@ -569,8 +563,8 @@
                       <table class="table" aria-label="רשימת לקוחות"><thead><tr><th scope="col">שם</th><th scope="col">טלפון</th><th scope="col">פעולות</th></tr></thead><tbody id="customersTable"></tbody></table>
                     </div>
                   </div>
-                  <div class="box bg-gray-800/80 p-4 rounded-xl border border-gray-700">
-                    <h4 class="font-extrabold text-white mb-3">משימות ותזכורות</h4>
+                  <div class="dash-subcard">
+                    <h4 class="dash-subcard__title">משימות ותזכורות</h4>
                     <div class="form-grid mb-3">
                       <div><label for="taskTitle" class="lbl">כותרת משימה *</label><input id="taskTitle" class="inp" /></div>
                       <div><label for="taskDueDate" class="lbl">תאריך יעד</label><input id="taskDueDate" type="date" class="inp" /></div>
@@ -627,145 +621,203 @@
                PANEL: DOCUMENTS
                ====================================================== -->
           <div id="portal-documents" class="wizard-body portal-panel hidden" role="tabpanel" aria-labelledby="tab-documents">
-            <h3 class="section-title" style="font-size: 1.2rem; margin-bottom: 1rem;">מערכת הנפקת מסמכים</h3>
-            <div class="filter-bar" role="search" aria-label="סינון מסמכים">
-              <div><label for="docsSearchInput" class="lbl">חיפוש</label><input id="docsSearchInput" class="inp" placeholder="שם / כתובת / מספר" aria-label="חיפוש מסמכים" /></div>
-              <div><label for="docsStatusFilter" class="lbl">סטטוס</label><select id="docsStatusFilter" class="inp" aria-label="סינון לפי סטטוס"><option value="">כל הסטטוסים</option><option value="draft">טיוטה</option><option value="final">סופי</option></select></div>
-              <div><label for="docsTypeFilter" class="lbl">סוג</label><select id="docsTypeFilter" class="inp select" aria-label="סינון לפי סוג"><option value="">כל הסוגים</option><option value="installation">אישור תקינות מתקן</option><option value="portable">אישור תקינות צרכנים מיטלטלים</option><option value="ev_charging">אישור תקינות עמדת טעינה</option></select></div>
-            </div>
-            <form id="docForm" aria-label="טופס מסמך" novalidate>
-              <input type="hidden" id="docId" />
-              <div class="form-grid doc-form-common" style="margin-bottom: 0.75rem;">
-                <div><label for="docNo" class="lbl">מספר מסמך</label><input id="docNo" class="inp" placeholder="אוטומטי אם ריק" /></div>
-                <div>
-                  <label for="docType" class="lbl">סוג מסמך</label>
-                  <select id="docType" class="inp select">
-                    <option value="installation">אישור תקינות מתקן</option>
-                    <option value="portable">אישור תקינות צרכנים מיטלטלים</option>
-                    <option value="ev_charging">אישור תקינות עמדת טעינה</option>
-                  </select>
-                </div>
-                <div>
-                  <label for="docWorkflowStatus" class="lbl">סטטוס</label>
-                  <select id="docWorkflowStatus" class="inp select"><option value="draft">טיוטה</option><option value="final">סופי</option></select>
-                </div>
-                <div><label for="docFacilityName" class="lbl">שם מתקן / אתר *</label><input id="docFacilityName" class="inp" aria-required="true" /></div>
-                <div><label for="docAddress" class="lbl">כתובת</label><input id="docAddress" class="inp" /></div>
-                <div><label for="docInspectionDate" class="lbl">תאריך בדיקה</label><input id="docInspectionDate" type="date" class="inp" /></div>
-                <div class="col-span-2"><label for="docNotes" class="lbl">מסקנות והערות</label><textarea id="docNotes" class="inp" rows="3"></textarea></div>
+            <div class="cert-page">
+              <header class="cert-page__header">
+                <h2 class="cert-page__title">אישורי תקינות</h2>
+                <p class="cert-page__subtitle">הנפקה, עריכה, הדפסה ושיתוף — מתקן חשמל, ציוד מיטלטל ועמדת טעינה</p>
+              </header>
+
+              <div class="filter-bar cert-page__filters" role="search" aria-label="סינון מסמכים">
+                <div><label for="docsSearchInput" class="lbl">חיפוש</label><input id="docsSearchInput" class="inp" placeholder="שם מתקן / כתובת / מספר" aria-label="חיפוש מסמכים" /></div>
+                <div><label for="docsStatusFilter" class="lbl">סטטוס</label><select id="docsStatusFilter" class="inp" aria-label="סינון לפי סטטוס"><option value="">כל הסטטוסים</option><option value="draft">טיוטה</option><option value="final">סופי</option></select></div>
+                <div><label for="docsTypeFilter" class="lbl">סוג</label><select id="docsTypeFilter" class="inp select" aria-label="סינון לפי סוג"><option value="">כל הסוגים</option><option value="installation">אישור תקינות מתקן</option><option value="portable">אישור תקינות צרכנים מיטלטלים</option><option value="ev_charging">אישור תקינות עמדת טעינה</option></select></div>
               </div>
 
-              <div id="docFieldsInstallation" class="doc-type-block form-grid" style="margin-bottom: 0.75rem;">
-                <div class="col-span-2 doc-type-block__title">שדות — אישור תקינות מתקן</div>
-                <div><label for="docClientName" class="lbl">שם לקוח (בדוח)</label><input id="docClientName" class="inp" /></div>
-                <div><label for="docInstallationType" class="lbl">סוג מתקן</label><input id="docInstallationType" class="inp" placeholder="מגורים / מסחרי / ציבורי" /></div>
-                <div><label for="docInspectionPurpose" class="lbl">מטרת בדיקה</label>
-                  <select id="docInspectionPurpose" class="inp select">
-                    <option value="מתקן חדש">מתקן חדש</option>
-                    <option value="הגדלת חיבור">הגדלת חיבור</option>
-                    <option value="בדיקה חוזרת">בדיקה חוזרת</option>
-                    <option value="שינוי במתקן">שינוי במתקן</option>
-                    <option value="חידוש אספקה">חידוש אספקה</option>
-                  </select>
-                </div>
-                <div><label for="docConnection" class="lbl">גודל חיבור (קיים)</label><input id="docConnection" class="inp" /></div>
-                <div><label for="docConnectionRequested" class="lbl">גודל חיבור מבוקש</label><input id="docConnectionRequested" class="inp" /></div>
-                <div><label for="docGrounding" class="lbl">שיטת הגנה / הארקה</label><input id="docGrounding" class="inp" /></div>
-                <div><label for="docInsulation" class="lbl">בידוד</label><input id="docInsulation" class="inp" /></div>
-                <div><label for="docPanelMeterNo" class="lbl">מספר לוח / מונה</label><input id="docPanelMeterNo" class="inp" /></div>
-                <div><label for="docFinalStatus" class="lbl">טקסט באנר סיום</label><input id="docFinalStatus" class="inp" placeholder="תקין — המתקן מאושר לשימוש" /></div>
-                <div class="col-span-2"><label for="docTechJson" class="lbl">תוצאות בדיקה טכנית (JSON)</label><textarea id="docTechJson" class="inp" dir="ltr" rows="4" placeholder='[{"description":"לולאת תקלה (LT)","result":"0.44"}]'></textarea></div>
-                <div class="col-span-2"><label for="docVisualJson" class="lbl">רשימת בדיקה ויזואלית (JSON)</label><textarea id="docVisualJson" class="inp" dir="ltr" rows="3"></textarea></div>
-              </div>
+              <div class="cert-page__layout">
+                <section class="cert-page__editor">
+                  <form id="docForm" class="cert-card" aria-label="טופס אישור תקינות" novalidate>
+                    <h3 class="cert-card__title" id="docEditorTitle">מסמך חדש</h3>
 
-              <div id="docFieldsPortable" class="doc-type-block form-grid hidden" style="margin-bottom: 0.75rem;">
-                <div class="col-span-2 doc-type-block__title">שדות — אישור תקינות צרכנים מיטלטלים (PAT)</div>
-                <div><label for="docPortableEmployer" class="lbl">שם מזמין</label><input id="docPortableEmployer" class="inp" /></div>
-                <div><label for="docPortableMarking" class="lbl">שיטת סימון</label><input id="docPortableMarking" class="inp" placeholder="מדבקה עם תאריך בדיקה" /></div>
-                <div class="col-span-2"><label for="docPortableSummary" class="lbl">מסקנה כללית</label><textarea id="docPortableSummary" class="inp" rows="2"></textarea></div>
-                <div class="col-span-2">
-                  <div class="flex-between" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
-                    <span class="lbl" style="margin:0">טבלת מכשירים</span>
-                    <button type="button" id="docPortableAddRow" class="btn-portal-secondary btn-sm">+ הוסף שורה</button>
+                    <fieldset class="cert-fieldset">
+                      <legend>פרטים כלליים</legend>
+                      <div class="form-grid">
+                        <input type="hidden" id="docId" />
+                        <div><label for="docNo" class="lbl">מספר מסמך</label><input id="docNo" class="inp" placeholder="אוטומטי אם ריק" /></div>
+                        <div>
+                          <label for="docType" class="lbl">סוג אישור</label>
+                          <select id="docType" class="inp select">
+                            <option value="installation">אישור תקינות מתקן</option>
+                            <option value="portable">אישור תקינות צרכנים מיטלטלים</option>
+                            <option value="ev_charging">אישור תקינות עמדת טעינה</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label for="docWorkflowStatus" class="lbl">סטטוס</label>
+                          <select id="docWorkflowStatus" class="inp select"><option value="draft">טיוטה</option><option value="final">סופי</option></select>
+                        </div>
+                        <div><label for="docFacilityName" class="lbl">שם מתקן / אתר *</label><input id="docFacilityName" class="inp" aria-required="true" /></div>
+                        <div><label for="docAddress" class="lbl">כתובת</label><input id="docAddress" class="inp" /></div>
+                        <div><label for="docInspectionDate" class="lbl">תאריך בדיקה</label><input id="docInspectionDate" type="date" class="inp" /></div>
+                        <div class="col-span-2"><label for="docNotes" class="lbl">מסקנות והערות</label><textarea id="docNotes" class="inp" rows="3"></textarea></div>
+                      </div>
+                    </fieldset>
+
+                    <fieldset id="docFieldsInstallation" class="cert-fieldset doc-type-block">
+                      <legend>אישור תקינות מתקן חשמל</legend>
+                      <div class="form-grid">
+                        <div><label for="docClientName" class="lbl">שם לקוח (בדוח)</label><input id="docClientName" class="inp" /></div>
+                        <div><label for="docInstallationType" class="lbl">סוג מתקן</label><input id="docInstallationType" class="inp" placeholder="מגורים / מסחרי / ציבורי" /></div>
+                        <div><label for="docInspectionPurpose" class="lbl">מטרת בדיקה</label>
+                          <select id="docInspectionPurpose" class="inp select">
+                            <option value="מתקן חדש">מתקן חדש</option>
+                            <option value="הגדלת חיבור">הגדלת חיבור</option>
+                            <option value="בדיקה חוזרת">בדיקה חוזרת</option>
+                            <option value="שינוי במתקן">שינוי במתקן</option>
+                            <option value="חידוש אספקה">חידוש אספקה</option>
+                          </select>
+                        </div>
+                        <div><label for="docConnection" class="lbl">גודל חיבור קיים</label><input id="docConnection" class="inp" placeholder="למשל 3×25A" /></div>
+                        <div><label for="docConnectionRequested" class="lbl">גודל חיבור מבוקש</label><input id="docConnectionRequested" class="inp" /></div>
+                        <div><label for="docGrounding" class="lbl">שיטת הגנה / הארקה</label><input id="docGrounding" class="inp" /></div>
+                        <div><label for="docInsulation" class="lbl">בידוד</label><input id="docInsulation" class="inp" /></div>
+                        <div><label for="docPanelMeterNo" class="lbl">מספר לוח / מונה</label><input id="docPanelMeterNo" class="inp" /></div>
+                        <div class="col-span-2"><label for="docFinalStatus" class="lbl">טקסט באנר סיום</label><input id="docFinalStatus" class="inp" placeholder="תקין — המתקן מאושר לשימוש" /></div>
+                        <div class="col-span-2">
+                          <div class="doc-section-head">
+                            <span class="lbl doc-section-head__label">בדיקות טכניות</span>
+                            <button type="button" id="docTechAddRow" class="btn-portal-secondary btn-sm">+ הוסף שורה</button>
+                          </div>
+                          <div class="table-wrap">
+                            <table class="table table-compact" aria-label="בדיקות טכניות">
+                              <thead><tr><th>תיאור הבדיקה</th><th>תוצאה</th><th></th></tr></thead>
+                              <tbody id="docTechRows"></tbody>
+                            </table>
+                          </div>
+                        </div>
+                        <div class="col-span-2">
+                          <div class="doc-section-head">
+                            <span class="lbl doc-section-head__label">בדיקה ויזואלית</span>
+                            <button type="button" id="docVisualAddRow" class="btn-portal-secondary btn-sm">+ הוסף פריט</button>
+                          </div>
+                          <div class="table-wrap">
+                            <table class="table table-compact" aria-label="בדיקה ויזואלית">
+                              <thead><tr><th>פריט לבדיקה</th><th></th></tr></thead>
+                              <tbody id="docVisualRows"></tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </fieldset>
+
+                    <fieldset id="docFieldsPortable" class="cert-fieldset doc-type-block hidden">
+                      <legend>אישור תקינות צרכנים מיטלטלים (PAT)</legend>
+                      <div class="form-grid">
+                        <div><label for="docPortableEmployer" class="lbl">שם מזמין</label><input id="docPortableEmployer" class="inp" /></div>
+                        <div><label for="docPortableMarking" class="lbl">שיטת סימון</label><input id="docPortableMarking" class="inp" placeholder="מדבקה עם תאריך בדיקה" /></div>
+                        <div class="col-span-2"><label for="docPortableSummary" class="lbl">מסקנה כללית</label><textarea id="docPortableSummary" class="inp" rows="2"></textarea></div>
+                        <div class="col-span-2">
+                          <div class="doc-section-head">
+                            <span class="lbl doc-section-head__label">טבלת מכשירים</span>
+                            <button type="button" id="docPortableAddRow" class="btn-portal-secondary btn-sm">+ הוסף שורה</button>
+                          </div>
+                          <div class="table-wrap">
+                            <table class="table table-compact" aria-label="טבלת מכשירים">
+                              <thead><tr>
+                                <th>מס׳ נכס</th><th>תיאור</th><th>מיקום</th><th>חזותי</th><th>הארקה</th><th>בידוד</th><th>זליגה</th><th>תוצאה</th><th>בדיקה הבאה</th><th></th>
+                              </tr></thead>
+                              <tbody id="docPortableAppliances"></tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </fieldset>
+
+                    <fieldset id="docFieldsEvCharging" class="cert-fieldset doc-type-block hidden">
+                      <legend>אישור תקינות עמדת טעינה (IEC 60364-7-722)</legend>
+                      <div class="form-grid">
+                        <div><label for="docEvOwner" class="lbl">שם בעלים</label><input id="docEvOwner" class="inp" /></div>
+                        <div><label for="docEvSiteKind" class="lbl">סוג אתר</label>
+                          <select id="docEvSiteKind" class="inp select"><option value="פרטי">פרטי</option><option value="משותף">משותף</option><option value="ציבורי">ציבורי</option><option value="מסחרי">מסחרי</option></select>
+                        </div>
+                        <div><label for="docEvManufacturer" class="lbl">יצרן עמדה</label><input id="docEvManufacturer" class="inp" /></div>
+                        <div><label for="docEvModel" class="lbl">דגם</label><input id="docEvModel" class="inp" /></div>
+                        <div><label for="docEvSerial" class="lbl">מס׳ סידורי</label><input id="docEvSerial" class="inp" dir="ltr" /></div>
+                        <div><label for="docEvPowerKw" class="lbl">הספק (kW)</label><input id="docEvPowerKw" class="inp" dir="ltr" /></div>
+                        <div><label for="docEvChargeType" class="lbl">AC / DC</label>
+                          <select id="docEvChargeType" class="inp select"><option value="AC">AC</option><option value="DC">DC</option><option value="AC/DC">AC/DC</option></select>
+                        </div>
+                        <div><label for="docEvConnector" class="lbl">סוג מחבר</label><input id="docEvConnector" class="inp" placeholder="Type 2 / CCS" /></div>
+                        <div><label for="docEvImporterRef" class="lbl">הצהרת יבואן — מס׳ אסמכתא</label><input id="docEvImporterRef" class="inp" /></div>
+                        <div><label for="docEvImporterDate" class="lbl">תאריך הצהרה</label><input id="docEvImporterDate" type="date" class="inp" /></div>
+                        <div><label for="docEvInstallerName" class="lbl">שם מתקין</label><input id="docEvInstallerName" class="inp" /></div>
+                        <div><label for="docEvInstallerLicense" class="lbl">רישיון מתקין</label><input id="docEvInstallerLicense" class="inp" /></div>
+                        <div><label for="docEvGrounding" class="lbl">הארקה / הגנה</label><input id="docEvGrounding" class="inp" /></div>
+                        <div class="col-span-2"><label for="docEvGridBanner" class="lbl">הצהרת חיבור לרשת</label><input id="docEvGridBanner" class="inp" placeholder="מאושר לחיבור לרשת לפני הפעלה ראשונה" /></div>
+                        <div class="col-span-2">
+                          <span class="lbl">בדיקות עמדה</span>
+                          <div id="docEvChecks" class="ev-checks-grid"></div>
+                        </div>
+                        <div class="col-span-2">
+                          <span class="lbl">טבלת תדירויות בדיקה</span>
+                          <div class="table-wrap">
+                            <table class="table table-compact" aria-label="תדירויות בדיקה">
+                              <thead><tr><th>בדיקה</th><th>תדירות</th><th>תאריך אחרון</th><th>תוצאה</th></tr></thead>
+                              <tbody id="docEvPeriodic"></tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </fieldset>
+
+                    <fieldset class="cert-fieldset">
+                      <legend>חתימה, תמונות וקבצים</legend>
+                      <div class="form-grid">
+                        <div class="col-span-2"><label for="docPhotosInput" class="lbl">תמונות מהשטח</label><input id="docPhotosInput" class="inp" type="file" accept="image/*" multiple /></div>
+                      </div>
+                      <div id="docPhotosPreview" class="photo-thumb-grid" aria-label="תצוגה מקדימה של תמונות"></div>
+                      <div class="sig-wrap">
+                        <label class="lbl" for="docSignaturePad">חתימת בודק</label>
+                        <div class="sig-box">
+                          <canvas id="docSignaturePad" class="sig" aria-label="שטח חתימה" role="img" tabindex="0"></canvas>
+                          <button id="docClearSig" type="button" class="sig-clear" aria-label="נקה חתימה">נקה</button>
+                        </div>
+                      </div>
+                    </fieldset>
+
+                    <div class="cert-actions">
+                      <div class="cert-actions__primary">
+                        <button id="saveDocBtn" type="button" class="btn-portal-primary">שמירת מסמך</button>
+                        <button id="finalizeDocBtn" type="button" class="btn-portal-secondary">סמן כסופי</button>
+                        <button id="newDocBtn" type="button" class="btn-portal-secondary">מסמך חדש</button>
+                      </div>
+                      <div class="cert-actions__secondary">
+                        <button id="previewDocBtn" type="button" class="btn-portal-secondary" aria-label="תצוגה מקדימה">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                          תצוגה מקדימה
+                        </button>
+                        <button id="printDocBtn" type="button" class="btn-portal-secondary">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                          הדפסה / PDF
+                        </button>
+                        <button id="downloadPdfBtn" type="button" class="btn-portal-secondary">הורד PDF</button>
+                        <button id="shareDocBtn" type="button" class="btn-portal-secondary">שיתוף ללקוח</button>
+                      </div>
+                    </div>
+                  </form>
+                </section>
+
+                <aside class="cert-page__list">
+                  <div class="cert-card cert-card--list">
+                    <h3 class="cert-card__title">מסמכים שמורים</h3>
+                    <div class="table-wrap">
+                      <table class="table table-compact" aria-label="רשימת מסמכים">
+                        <thead><tr><th scope="col">סוג</th><th scope="col">שם מתקן</th><th scope="col">סטטוס</th><th scope="col">עודכן</th><th scope="col">פעולות</th></tr></thead>
+                        <tbody id="docsTable"></tbody>
+                      </table>
+                    </div>
                   </div>
-                  <div class="table-wrap">
-                    <table class="table table-compact" aria-label="טבלת מכשירים">
-                      <thead><tr>
-                        <th>מס' נכס</th><th>תיאור</th><th>מיקום</th><th>חזותי</th><th>הארקה</th><th>בידוד</th><th>זליגה</th><th>תוצאה</th><th>בדיקה הבאה</th><th></th>
-                      </tr></thead>
-                      <tbody id="docPortableAppliances"></tbody>
-                    </table>
-                  </div>
-                </div>
+                </aside>
               </div>
-
-              <div id="docFieldsEvCharging" class="doc-type-block form-grid hidden" style="margin-bottom: 0.75rem;">
-                <div class="col-span-2 doc-type-block__title">שדות — אישור עמדת טעינה (IEC 60364-7-722)</div>
-                <div><label for="docEvOwner" class="lbl">שם בעלים</label><input id="docEvOwner" class="inp" /></div>
-                <div><label for="docEvSiteKind" class="lbl">סוג אתר</label>
-                  <select id="docEvSiteKind" class="inp select"><option value="פרטי">פרטי</option><option value="משותף">משותף</option><option value="ציבורי">ציבורי</option><option value="מסחרי">מסחרי</option></select>
-                </div>
-                <div><label for="docEvManufacturer" class="lbl">יצרן עמדה</label><input id="docEvManufacturer" class="inp" /></div>
-                <div><label for="docEvModel" class="lbl">דגם</label><input id="docEvModel" class="inp" /></div>
-                <div><label for="docEvSerial" class="lbl">מס' סידורי</label><input id="docEvSerial" class="inp" dir="ltr" /></div>
-                <div><label for="docEvPowerKw" class="lbl">הספק (kW)</label><input id="docEvPowerKw" class="inp" dir="ltr" /></div>
-                <div><label for="docEvChargeType" class="lbl">AC / DC</label>
-                  <select id="docEvChargeType" class="inp select"><option value="AC">AC</option><option value="DC">DC</option><option value="AC/DC">AC/DC</option></select>
-                </div>
-                <div><label for="docEvConnector" class="lbl">סוג מחבר</label><input id="docEvConnector" class="inp" placeholder="Type 2 / CCS" /></div>
-                <div><label for="docEvImporterRef" class="lbl">הצהרת יבואן — מס' אסמכתא</label><input id="docEvImporterRef" class="inp" /></div>
-                <div><label for="docEvImporterDate" class="lbl">תאריך הצהרה</label><input id="docEvImporterDate" type="date" class="inp" /></div>
-                <div><label for="docEvInstallerName" class="lbl">שם מתקין</label><input id="docEvInstallerName" class="inp" /></div>
-                <div><label for="docEvInstallerLicense" class="lbl">רישיון מתקין</label><input id="docEvInstallerLicense" class="inp" /></div>
-                <div><label for="docEvGrounding" class="lbl">הארקה / הגנה</label><input id="docEvGrounding" class="inp" /></div>
-                <div><label for="docEvGridBanner" class="lbl">הצהרת חיבור לרשת</label><input id="docEvGridBanner" class="inp" placeholder="מאושר לחיבור לרשת לפני הפעלה ראשונה" /></div>
-                <div class="col-span-2">
-                  <span class="lbl">בדיקות עמדה</span>
-                  <div id="docEvChecks" class="ev-checks-grid"></div>
-                </div>
-                <div class="col-span-2">
-                  <span class="lbl">טבלת תדירויות</span>
-                  <div class="table-wrap">
-                    <table class="table table-compact" aria-label="תדירויות בדיקה">
-                      <thead><tr><th>בדיקה</th><th>תדירות</th><th>תאריך אחרון</th><th>תוצאה</th></tr></thead>
-                      <tbody id="docEvPeriodic"></tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-
-              <div class="form-grid" style="margin-bottom: 0.75rem;">
-                <div class="col-span-2"><label for="docPhotosInput" class="lbl">תמונות</label><input id="docPhotosInput" class="inp" type="file" accept="image/*" multiple /></div>
-              </div>
-              <div id="docPhotosPreview" class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4" aria-label="תצוגה מקדימה של תמונות"></div>
-              <div style="margin-bottom: 1rem;">
-                <label class="lbl" for="docSignaturePad">חתימה</label>
-                <div style="position: relative; max-width: 600px;">
-                  <canvas id="docSignaturePad" class="sig" style="width: 100%; height: 10rem;" aria-label="שטח חתימה" role="img" tabindex="0"></canvas>
-                  <button id="docClearSig" type="button" class="sig-clear" aria-label="נקה חתימה">נקה</button>
-                </div>
-              </div>
-              <div class="form-actions doc-form-actions">
-                <button id="saveDocBtn" type="button" class="btn-portal-primary">שמירת מסמך</button>
-                <button id="finalizeDocBtn" type="button" class="btn-portal-secondary">סמן כסופי</button>
-                <button id="previewDocBtn" type="button" class="btn-portal-secondary" aria-label="תצוגה מקדימה של המסמך">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                  תצוגה מקדימה
-                </button>
-                <button id="printDocBtn" type="button" class="btn-portal-secondary">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-                  הדפסה / PDF
-                </button>
-                <button id="downloadPdfBtn" type="button" class="btn-portal-secondary" aria-label="הורד קובץ PDF מהשרת">הורד PDF</button>
-                <button id="shareDocBtn" type="button" class="btn-portal-secondary" aria-label="צור קישור צפייה ללקוח">שיתוף ללקוח</button>
-                <button id="newDocBtn" type="button" class="btn-portal-secondary">מסמך חדש</button>
-              </div>
-            </form>
-            <div class="table-wrap">
-              <table class="table" aria-label="רשימת מסמכים">
-                <thead><tr><th scope="col">סוג</th><th scope="col">שם מתקן</th><th scope="col">כתובת</th><th scope="col">עודכן</th><th scope="col">פעולות</th></tr></thead>
-                <tbody id="docsTable"></tbody>
-              </table>
             </div>
           </div>
 

@@ -30,6 +30,27 @@ export function certTypeLabel(docType) {
   return CERT_TYPES[docType]?.label ?? docType ?? "—";
 }
 
+export function defaultTechRows() {
+  return [
+    { description: "לולאת תקלה (LT)", result: "—" },
+    { description: "בידוד (L-PE)", result: "—" },
+    { description: "בידוד (N-PE)", result: "—" },
+    { description: "מפסק פחת — זמן ניתוק", result: "—" },
+    { description: "זרם הדלקה (mA)", result: "—" },
+  ];
+}
+
+export function defaultVisualChecklist() {
+  return [
+    "סימון ותיוג לוחות",
+    "גישה בטוחה ללוח",
+    "כיסוי ומגן מגע",
+    "חיווט מסודר ומבודד",
+    "רציפות הארקה",
+    "מפסק ראשי וניתוק חירום (במידת הצורך)",
+  ];
+}
+
 export function defaultPortableApplianceRow() {
   return {
     assetId: "",
