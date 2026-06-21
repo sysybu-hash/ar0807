@@ -1,4 +1,7 @@
+import { randomBytes } from "crypto";
+import bcrypt from "bcrypt";
 import { Pool } from "pg";
+import { isAllowedDocType, normalizeDocType } from "./lib/cert-types.mjs";
 
 let pool;
 
@@ -42,6 +45,10 @@ function normalizeProject(r) {
     completedOn: r.completed_on,
     description: r.description,
     photos: safeJson(r.photos_json, []),
+    systemType: r.system_type ?? "",
+    amperage: r.amperage ?? "",
+    tasks: safeJson(r.tasks_json, []),
+    wizardMeta: safeJson(r.wizard_meta_json, {}),
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
@@ -127,6 +134,10 @@ async function migrate() {
   await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS blank_offset_x_mm NUMERIC(8,2) NOT NULL DEFAULT 0;`);
   await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS blank_offset_y_mm NUMERIC(8,2) NOT NULL DEFAULT 0;`);
   await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS blank_scale NUMERIC(8,3) NOT NULL DEFAULT 1;`);
+  await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS inspector_declaration_text TEXT DEFAULT '';`);
+  await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS stamp_offset_x_mm NUMERIC(8,2) NOT NULL DEFAULT 0;`);
+  await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS stamp_offset_y_mm NUMERIC(8,2) NOT NULL DEFAULT 0;`);
+  await q(`ALTER TABLE inspector_settings ADD COLUMN IF NOT EXISTS site_extras_json JSONB DEFAULT '{}'::jsonb;`);
   await q(`
     INSERT INTO inspector_settings (id, name, whatsapp, access_code)
     VALUES (1, 'אברהם רובינשטיין - חשמלאי מוסמך', '+972587600807', '1234')
@@ -195,6 +206,36 @@ async function migrate() {
   await q(`CREATE INDEX IF NOT EXISTS idx_projects_updated_at ON projects(updated_at DESC);`);
   await q(`CREATE INDEX IF NOT EXISTS idx_financial_docs_updated_at ON financial_docs(updated_at DESC);`);
   await q(`CREATE INDEX IF NOT EXISTS idx_financial_docs_type ON financial_docs(type, updated_at DESC);`);
+
+  await q(`
+    CREATE TABLE IF NOT EXISTS certificate_shares (
+      id BIGSERIAL PRIMARY KEY,
+      certificate_id BIGINT NOT NULL REFERENCES certificates(id) ON DELETE CASCADE,
+      token TEXT NOT NULL UNIQUE,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  await q(`CREATE INDEX IF NOT EXISTS idx_certificate_shares_cert ON certificate_shares(certificate_id);`);
+  await q(`CREATE INDEX IF NOT EXISTS idx_certificate_shares_expires ON certificate_shares(expires_at);`);
+
+  await q(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS system_type TEXT DEFAULT '';`);
+  await q(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS amperage TEXT DEFAULT '';`);
+  await q(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS tasks_json JSONB DEFAULT '[]'::jsonb;`);
+  await q(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS wizard_meta_json JSONB DEFAULT '{}'::jsonb;`);
+
+  await hashPlainAccessCodeIfNeeded();
+}
+
+/** One-time per deploy: convert legacy plain-text access_code to bcrypt (idempotent). */
+async function hashPlainAccessCodeIfNeeded() {
+  const rows = await q(`SELECT access_code FROM inspector_settings WHERE id = 1`);
+  const raw = rows[0]?.access_code;
+  if (raw == null || raw === "") return;
+  const s = String(raw);
+  if (s.startsWith("$2a$") || s.startsWith("$2b$") || s.startsWith("$2y$")) return;
+  const hashed = await bcrypt.hash(s, 10);
+  await q(`UPDATE inspector_settings SET access_code = $1, updated_at = now() WHERE id = 1`, [hashed]);
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
@@ -217,12 +258,28 @@ export async function getSettings() {
     blankOffsetXmm: Number(row.blank_offset_x_mm || 0),
     blankOffsetYmm: Number(row.blank_offset_y_mm || 0),
     blankScale: Number(row.blank_scale || 1),
-    accessCode: row.access_code ?? "",
+    inspectorDeclarationText: row.inspector_declaration_text ?? "",
+    stampOffsetXmm: Number(row.stamp_offset_x_mm || 0),
+    stampOffsetYmm: Number(row.stamp_offset_y_mm || 0),
+    siteExtras: safeJson(row.site_extras_json, {}),
+    accessCode: "",
     updatedAt: row.updated_at ?? null,
   };
 }
 
 export async function saveSettings(payload) {
+  const cur = await q(`SELECT access_code FROM inspector_settings WHERE id = 1`);
+  const currentStored = String(cur[0]?.access_code ?? "");
+
+  const incoming =
+    payload.accessCode !== undefined && payload.accessCode !== null
+      ? String(payload.accessCode).trim()
+      : "";
+  let nextAccess = currentStored;
+  if (incoming.length > 0) {
+    nextAccess = await bcrypt.hash(incoming, 10);
+  }
+
   await q(
     `UPDATE inspector_settings SET
       name = $1,
@@ -240,6 +297,10 @@ export async function saveSettings(payload) {
       blank_offset_y_mm = $13,
       blank_scale = $14,
       access_code = $15,
+      inspector_declaration_text = $16,
+      stamp_offset_x_mm = $17,
+      stamp_offset_y_mm = $18,
+      site_extras_json = $19::jsonb,
       updated_at = now()
     WHERE id = 1`,
     [
@@ -257,18 +318,63 @@ export async function saveSettings(payload) {
       Number(payload.blankOffsetXmm || 0),
       Number(payload.blankOffsetYmm || 0),
       Number(payload.blankScale || 1),
-      payload.accessCode ?? "",
+      nextAccess,
+      payload.inspectorDeclarationText ?? "",
+      Number(payload.stampOffsetXmm || 0),
+      Number(payload.stampOffsetYmm || 0),
+      JSON.stringify(payload.siteExtras ?? {}),
     ]
   );
   return getSettings();
 }
 
-/** Returns true if the supplied code matches the stored access_code. */
+/** Returns true if the supplied code matches the stored access_code (bcrypt or legacy plain). */
 export async function verifyAccessCode(code) {
   const rows = await q(`SELECT access_code FROM inspector_settings WHERE id = 1`);
   if (!rows[0]) return false;
   const stored = String(rows[0].access_code || "").trim();
-  return stored !== "" && stored === String(code || "").trim();
+  if (!stored) return false;
+  const input = String(code || "").trim();
+  if (!input) return false;
+  if (stored.startsWith("$2a$") || stored.startsWith("$2b$") || stored.startsWith("$2y$")) {
+    return await bcrypt.compare(input, stored);
+  }
+  return stored === input;
+}
+
+/**
+ * Creates a project from the multi-step wizard (maps name → title).
+ * Stores optional canvas signature under wizard_meta_json.signatureBase64.
+ */
+export async function createProjectFromWizard(body) {
+  const title = String(body.name ?? "").trim();
+  if (!title) throw new Error("שם פרויקט הוא שדה חובה");
+
+  const tasks = Array.isArray(body.tasks) ? body.tasks : [];
+  const meta = {};
+  if (body.signatureBase64 && String(body.signatureBase64).trim())
+    meta.signatureBase64 = String(body.signatureBase64).trim();
+
+  const rows = await q(
+    `INSERT INTO projects (
+      title, client_name, address, status, description,
+      system_type, amperage, tasks_json, wizard_meta_json,
+      photos_json, created_at, updated_at
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::jsonb,'[]'::jsonb,now(),now())
+    RETURNING id`,
+    [
+      title,
+      body.clientName || "לקוח כללי",
+      body.address || "",
+      "active",
+      body.notes || "",
+      body.systemType || "חד-פאזי",
+      body.amperage || "",
+      JSON.stringify(tasks),
+      JSON.stringify(meta),
+    ]
+  );
+  return { id: Number(rows[0].id) };
 }
 
 // ── Certificates ──────────────────────────────────────────────────────────────
@@ -276,7 +382,7 @@ export async function verifyAccessCode(code) {
 export async function listCertificates({ limit = 500, offset = 0 } = {}) {
   const rows = await q(
     `SELECT id, doc_type, facility_name, address, connection_size, grounding_value,
-            insulation, notes, created_at, updated_at
+            insulation, notes, extra_json, created_at, updated_at
      FROM certificates
      ORDER BY updated_at DESC
      LIMIT $1 OFFSET $2`,
@@ -284,18 +390,22 @@ export async function listCertificates({ limit = 500, offset = 0 } = {}) {
   );
   const [{ count }] = await q(`SELECT COUNT(*)::int AS count FROM certificates`);
   return {
-    items: rows.map((r) => ({
-      id: Number(r.id),
-      docType: r.doc_type,
-      facilityName: r.facility_name,
-      address: r.address,
-      connectionSize: r.connection_size,
-      groundingValue: r.grounding_value,
-      insulation: r.insulation,
-      notes: r.notes,
-      createdAt: r.created_at,
-      updatedAt: r.updated_at,
-    })),
+    items: rows.map((r) => {
+      const extra = safeJson(r.extra_json, {});
+      return {
+        id: Number(r.id),
+        docType: r.doc_type,
+        facilityName: r.facility_name,
+        address: r.address,
+        connectionSize: r.connection_size,
+        groundingValue: r.grounding_value,
+        insulation: r.insulation,
+        notes: r.notes,
+        workflowStatus: extra.workflowStatus === "final" ? "final" : "draft",
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+      };
+    }),
     total: count,
     hasMore: offset + rows.length < count,
   };
@@ -313,7 +423,15 @@ export async function getCertificate(id) {
   return normalizeCertificate(rows[0]);
 }
 
+function assertValidDocType(docType) {
+  if (docType != null && String(docType).trim() !== "" && !isAllowedDocType(String(docType).trim())) {
+    throw new Error("סוג מסמך לא נתמך");
+  }
+}
+
 export async function createCertificate(body) {
+  assertValidDocType(body.docType);
+  const docType = normalizeDocType(body.docType);
   const rows = await q(
     `INSERT INTO certificates (
       doc_type, facility_name, address, connection_size, grounding_value, insulation,
@@ -321,7 +439,7 @@ export async function createCertificate(body) {
     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9,$10::jsonb,now(),now())
     RETURNING *`,
     [
-      body.docType || "installation",
+      docType,
       body.facilityName,
       body.address ?? "",
       body.connectionSize ?? "",
@@ -339,6 +457,9 @@ export async function createCertificate(body) {
 export async function updateCertificate(id, body) {
   const existing = await getCertificate(id);
   if (!existing) return null;
+  if (body.docType !== undefined) assertValidDocType(body.docType);
+  const nextDocType =
+    body.docType !== undefined ? normalizeDocType(body.docType) : existing.docType;
   const rows = await q(
     `UPDATE certificates SET
       doc_type = $1,
@@ -355,7 +476,7 @@ export async function updateCertificate(id, body) {
     WHERE id = $11
     RETURNING *`,
     [
-      body.docType ?? existing.docType,
+      nextDocType,
       body.facilityName ?? existing.facilityName,
       body.address ?? existing.address,
       body.connectionSize ?? existing.connectionSize,
@@ -381,7 +502,8 @@ export async function deleteCertificate(id) {
 export async function listProjects({ limit = 500, offset = 0 } = {}) {
   const rows = await q(
     `SELECT id, title, client_name, address, status, started_on, completed_on,
-            description, photos_json, created_at, updated_at
+            description, photos_json, system_type, amperage, tasks_json, wizard_meta_json,
+            created_at, updated_at
      FROM projects
      ORDER BY updated_at DESC
      LIMIT $1 OFFSET $2`,
@@ -398,7 +520,8 @@ export async function listProjects({ limit = 500, offset = 0 } = {}) {
 export async function getProject(id) {
   const rows = await q(
     `SELECT id, title, client_name, address, status, started_on, completed_on,
-            description, photos_json, created_at, updated_at
+            description, photos_json, system_type, amperage, tasks_json, wizard_meta_json,
+            created_at, updated_at
      FROM projects WHERE id = $1`,
     [id]
   );
@@ -574,4 +697,55 @@ export async function exportRowsForAccountant() {
   const { items: invoiceRows } = await listFinancialDocs("invoice");
   const { items: quoteRows } = await listFinancialDocs("quote");
   return { invoiceRows, quoteRows };
+}
+
+// ── Certificate share links (public token) ─────────────────────────────────────
+
+/** @param {number} certificateId @param {number} hoursValid 1–720 */
+export async function createCertificateShare(certificateId, hoursValid) {
+  const cert = await getCertificate(certificateId);
+  if (!cert) return null;
+  const h = Math.min(720, Math.max(1, Math.floor(Number(hoursValid) || 72)));
+  const token = randomBytes(24).toString("base64url");
+  const rows = await q(
+    `INSERT INTO certificate_shares (certificate_id, token, expires_at)
+     VALUES ($1, $2, now() + ($3::double precision * interval '1 hour'))
+     RETURNING token, expires_at`,
+    [certificateId, token, h]
+  );
+  const row = rows[0];
+  return {
+    token: row.token,
+    expiresAt: row.expires_at,
+    hoursValid: h,
+  };
+}
+
+/** Returns { certificate, share } or null if invalid/expired. */
+export async function getCertificateShareByToken(token) {
+  const t = String(token || "").trim();
+  if (!t) return null;
+  const rows = await q(
+    `SELECT s.id AS share_id, s.certificate_id, s.expires_at, s.created_at
+     FROM certificate_shares s
+     WHERE s.token = $1 AND s.expires_at >= now()`,
+    [t]
+  );
+  if (!rows[0]) return null;
+  const cert = await getCertificate(Number(rows[0].certificate_id));
+  if (!cert) return null;
+  return {
+    share: {
+      id: Number(rows[0].share_id),
+      certificateId: Number(rows[0].certificate_id),
+      expiresAt: rows[0].expires_at,
+      createdAt: rows[0].created_at,
+    },
+    certificate: cert,
+  };
+}
+
+export async function pruneExpiredCertificateShares() {
+  const rows = await q(`DELETE FROM certificate_shares WHERE expires_at < now() RETURNING id`);
+  return rows.length;
 }

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>צפייה במסמך — אישור תקינות</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700;800&amp;display=optional" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/tw-built.css" />
+</head>
+<body class="share-body">
+  <main class="share-main content-card">
+    <p id="shareStatus" class="msg" role="status" aria-live="polite">טוען…</p>
+    <div id="shareContent" class="hidden">
+      <p class="share-intro" style="font-size:0.92rem;color:var(--text-mid);line-height:1.65;margin-bottom:1rem;padding:0.75rem 1rem;border-radius:var(--radius-md);background:rgba(15,39,68,0.35);border:1px solid rgba(201,168,76,0.2);">
+        שלום — כאן מוצג <strong>אישור תקינות חשמל</strong> שהונפק עבורכם. ניתן לפתוח את קובץ ה־PDF להדפסה או לשליחה לגורמים מוסמכים (ביטוח, ועד בית וכו׳). הקישור מוגבל בזמן לפי תוקף שמוצג למטה.
+      </p>
+      <h1 id="shareTitle" class="content-card__title" style="margin-bottom: 1rem;">מסמך</h1>
+      <p id="shareExpiry" style="color: var(--text-light); font-size: 0.9rem; margin-bottom: 1rem;"></p>
+      <div id="shareFields" class="box" style="margin-bottom: 1rem;"></div>
+      <div class="form-actions">
+        <a id="sharePdfLink" class="btn-primary" href="#" target="_blank" rel="noopener">פתח PDF</a>
+        <a id="shareHomeLink" class="btn-secondary" href="/">חזרה לאתר</a>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="/js/share-page.js"></script>
+</body>
+</html>

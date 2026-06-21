@@ -8,8 +8,8 @@
   "scope": "/",
   "display_override": ["window-controls-overlay", "standalone"],
   "display": "standalone",
-  "background_color": "#0b2c6b",
-  "theme_color": "#0b2c6b",
+  "background_color": "#0A1628",
+  "theme_color": "#0A1628",
   "description": "מערכת ניהול פרויקטים, מסמכים, חשבוניות והצעות מחיר לחשמלאי מוסמך.",
   "icons": [
     {
