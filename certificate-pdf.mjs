@@ -1,7 +1,6 @@
 import PDFDocument from "pdfkit";
 import path from "path";
 import { fileURLToPath } from "url";
-import bidiFactory from "bidi-js";
 import {
   CERT_TYPES,
   mergeExtraForType,
@@ -9,8 +8,6 @@ import {
   defaultVisualChecklist,
   defaultTechRows,
 } from "./lib/cert-types.mjs";
-
-const bidi = bidiFactory();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const HEBREW_FONT = path.join(__dirname, "public", "fonts", "NotoSansHebrew-Regular.ttf");
@@ -60,23 +57,17 @@ function splitScriptRuns(text) {
   return runs;
 }
 
-/** PDFKit draws LTR — reorder with bidi-js to visual order (no rtla; avoids garbled letters). */
-function toVisualLine(text) {
-  const str = normalizePdfText(text);
-  if (!str) return "";
-  return bidi.getReorderedString(str, bidi.getEmbeddingLevels(str));
-}
-
-function buildVisualRuns(text) {
-  return splitScriptRuns(toVisualLine(text)).map((run) => ({
+/** PDFKit is LTR — keep logical Hebrew order; Hebrew runs use OpenType rtla shaping. */
+function buildLogicalRuns(text) {
+  return splitScriptRuns(normalizePdfText(text)).map((run) => ({
     kind: run.kind,
     font: run.kind === "hebrew" ? "Hebrew" : "Latin",
     text: run.text,
   }));
 }
 
-function runTextOpts() {
-  return {};
+function runTextOpts(run) {
+  return run.kind === "hebrew" ? { features: ["rtla"] } : {};
 }
 
 function measureRunWidth(doc, run, fontSize) {
@@ -91,7 +82,7 @@ function drawLogicalRtlLine(doc, text, x, y, width, opts = {}) {
   const normalized = normalizePdfText(text);
   doc.fontSize(fontSize).fillColor(fillColor);
 
-  const runs = buildVisualRuns(normalized);
+  const runs = buildLogicalRuns(normalized);
   const sized = runs.map((run) => ({
     ...run,
     w: measureRunWidth(doc, run, fontSize),
@@ -113,7 +104,7 @@ function drawLogicalRtlLine(doc, text, x, y, width, opts = {}) {
 
 function measureLogicalLine(doc, text, opts = {}) {
   const fontSize = resolveFontSize(doc, opts);
-  return buildVisualRuns(text).reduce((sum, run) => sum + measureRunWidth(doc, run, fontSize), 0);
+  return buildLogicalRuns(text).reduce((sum, run) => sum + measureRunWidth(doc, run, fontSize), 0);
 }
 
 /** Break a single paragraph into lines that fit within `width`. */
@@ -645,7 +636,8 @@ function renderEvChargingBody(doc, certificate, inspector, extra, left, contentW
 
   const gridBanner =
     String(extra.gridApprovalBanner || "").trim() || "מאושר לחיבור לרשת לפני הפעלה ראשונה";
-  y = ensureY(doc, y, bottomSafe, 36 + estimateSignatureFooterHeight(doc, inspector, contentW), m);
+  const closingH = 40 + estimateSignatureFooterHeight(doc, inspector, contentW);
+  y = ensureY(doc, y, bottomSafe, closingH, m);
   doc.save();
   doc.rect(left, y, contentW, 32).fill(BLUE);
   doc.restore();
@@ -653,7 +645,9 @@ function renderEvChargingBody(doc, certificate, inspector, extra, left, contentW
   pdfText(doc, gridBanner, left, y + 9, contentW, { align: "center" });
   y += 40;
 
-  y = drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bottomSafe, m);
+  y = drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bottomSafe, m, {
+    skipEnsureY: true,
+  });
   return y;
 }
 
@@ -788,7 +782,8 @@ function renderInstallationBody(doc, certificate, inspector, extra, left, conten
   y += nh + 14;
 
   // באנר סטטוס
-  y = ensureY(doc, y, bottomSafe, 36 + estimateSignatureFooterHeight(doc, inspector, contentW), m);
+  const closingH = 40 + estimateSignatureFooterHeight(doc, inspector, contentW);
+  y = ensureY(doc, y, bottomSafe, closingH, m);
   doc.save();
   doc.rect(left, y, contentW, 32).fill(BLUE);
   doc.restore();
@@ -796,7 +791,9 @@ function renderInstallationBody(doc, certificate, inspector, extra, left, conten
   pdfText(doc, meta.finalBanner, left, y + 8, contentW, { align: "center" });
   y += 40;
 
-  y = drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bottomSafe, m);
+  y = drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bottomSafe, m, {
+    skipEnsureY: true,
+  });
   return y;
 }
 
@@ -892,10 +889,12 @@ function estimateSignatureFooterHeight(doc, inspector, contentW) {
   return 14 + Math.max(declH, 78) + 16;
 }
 
-function drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bottomSafe, m) {
+function drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bottomSafe, m, opts = {}) {
   const declText = String(inspector?.inspectorDeclarationText || "").trim() || defaultDeclarationText();
   const blockH = estimateSignatureFooterHeight(doc, inspector, contentW);
-  y = ensureY(doc, y, bottomSafe, blockH, m);
+  if (!opts.skipEnsureY) {
+    y = ensureY(doc, y, bottomSafe, blockH, m);
+  }
 
   const midX = left + contentW / 2;
   const sigColW = contentW / 2 - 8;
