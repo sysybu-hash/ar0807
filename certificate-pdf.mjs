@@ -12,7 +12,6 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const HEBREW_FONT = path.join(__dirname, "public", "fonts", "NotoSansHebrew-Regular.ttf");
-
 const bidi = bidiFactory();
 
 /** Brand blue — aligned with formal inspection reports */
@@ -22,11 +21,21 @@ const GREY_PANEL = "#eceff1";
 const GREY_TABLE_HEAD = "#dde3ea";
 const BROWN_ACCENT = "#92400e";
 
+/** PDFKit is LTR: pure Hebrew lines get RTL embedding; mixed lines use bidi visual order. */
 function v(s) {
   if (s == null || s === "") return "";
-  const str = String(s).replace(/\r\n/g, "\n");
-  const emb = bidi.getEmbeddingLevels(str);
-  return bidi.getReorderedString(str, emb);
+  return String(s)
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => {
+      if (!/[\u0590-\u05FF]/.test(line)) return line;
+      if (/[A-Za-z0-9@.]/.test(line)) {
+        const emb = bidi.getEmbeddingLevels(line);
+        return bidi.getReorderedString(line, emb);
+      }
+      return `\u202B${line}\u202C`;
+    })
+    .join("\n");
 }
 
 function dataUrlToBuffer(dataUrl) {

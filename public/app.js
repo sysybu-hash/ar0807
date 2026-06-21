@@ -1711,15 +1711,14 @@ function printDoc(doc) {
       ${settings.blankTemplateData ? `<img src="${settings.blankTemplateData}" class="blank-bg" alt="">` : ""}
       <div class="blank-content">
         <div class="grid grid-cols-2 gap-2 text-sm border rounded p-3 bg-white/90 mb-4">
-          <div><b>סוג מסמך:</b> ${title}</div>
+          <div><b>סוג מסמך:</b> ${escapeHtml(title)}</div>
           <div><b>תאריך:</b> ${escapeHtml(when)}</div>
           <div><b>שם מתקן:</b> ${escapeHtml(doc.facilityName)}</div>
           <div><b>כתובת:</b> ${escapeHtml(doc.address || "")}</div>
-          <div><b>גודל חיבור:</b> ${escapeHtml(doc.connectionSize || "")}</div>
-          <div><b>הארקה:</b> ${escapeHtml(doc.groundingValue || "")}</div>
-          <div><b>בידוד:</b> ${escapeHtml(doc.insulation || "")}</div>
+          <div><b>תאריך בדיקה:</b> ${escapeHtml(ex.inspectionDate || "")}</div>
           <div><b>בודק:</b> ${escapeHtml(settings.name || "")}</div>
         </div>
+        <div class="mb-4 print-type-body bg-white/90">${typeBody}</div>
         <div class="mb-4 bg-white/90 border rounded p-2 min-h-[40px] whitespace-pre-wrap"><b>הערות:</b> ${escapeHtml(doc.notes || "")}</div>
         ${photosBlock}
         ${declBlock}
@@ -1732,7 +1731,7 @@ function printDoc(doc) {
         </div>
       </div>
     </div>`;
-  const html = `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><link rel="stylesheet" href="/tw-built.css" />
+  const html = `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><link rel="stylesheet" href="/tw-built.css" />
   <style>
     .blank-sheet{position:relative;max-width:210mm;min-height:287mm;margin:0 auto;padding:12mm}
     .blank-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:0;transform:translate(${Number(settings.blankOffsetXmm || 0)}mm, ${Number(settings.blankOffsetYmm || 0)}mm) scale(${Math.min(1.2, Math.max(0.8, Number(settings.blankScale || 1)))});transform-origin:top right}
