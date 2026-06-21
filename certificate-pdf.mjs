@@ -1,7 +1,6 @@
 import PDFDocument from "pdfkit";
 import path from "path";
 import { fileURLToPath } from "url";
-import bidiFactory from "bidi-js";
 import {
   CERT_TYPES,
   mergeExtraForType,
@@ -12,7 +11,7 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const HEBREW_FONT = path.join(__dirname, "public", "fonts", "NotoSansHebrew-Regular.ttf");
-const bidi = bidiFactory();
+const LATIN_FONT = path.join(__dirname, "public", "fonts", "NotoSans-Regular.ttf");
 
 /** Brand blue — aligned with formal inspection reports */
 const BLUE = "#1a56b4";
@@ -27,27 +26,104 @@ function mmToPt(mm) {
   return Number(mm || 0) * MM_TO_PT;
 }
 
-/** PDFKit lays out LTR — reverse Hebrew word order; mixed lines use bidi visual order. */
+function normalizePdfText(s) {
+  if (s == null || s === "") return "";
+  return String(s)
+    .replace(/\r\n/g, "\n")
+    .replace(/\u2014/g, "-")
+    .replace(/\u00B7/g, "|")
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"');
+}
+
+function isHebrewChar(ch) {
+  return /[\u0590-\u05FF]/.test(ch);
+}
+
+function splitScriptRuns(text) {
+  const runs = [];
+  let buf = "";
+  let kind = null;
+  for (const ch of text) {
+    const k = isHebrewChar(ch) ? "hebrew" : "latin";
+    if (kind !== null && k !== kind && buf) {
+      runs.push({ kind, text: buf });
+      buf = "";
+    }
+    kind = k;
+    buf += ch;
+  }
+  if (buf) runs.push({ kind, text: buf });
+  return runs;
+}
+
+/** PDFKit is LTR — reverse Hebrew word order within each run. */
 function rtlWords(line) {
   const tokens = line.match(/\S+|\s+/g);
   if (!tokens) return line;
   return tokens.reverse().join("");
 }
 
-function v(s) {
-  if (s == null || s === "") return "";
-  return String(s)
-    .replace(/\r\n/g, "\n")
-    .split("\n")
-    .map((line) => {
-      if (!/[\u0590-\u05FF]/.test(line)) return line;
-      if (/[A-Za-z0-9@.]/.test(line)) {
-        const emb = bidi.getEmbeddingLevels(line);
-        return bidi.getReorderedString(line, emb);
-      }
-      return rtlWords(line);
-    })
-    .join("\n");
+function prepareVisualSegments(text) {
+  return splitScriptRuns(text)
+    .map((run) => ({
+      font: run.kind === "hebrew" ? "Hebrew" : "Latin",
+      text: run.kind === "hebrew" ? rtlWords(run.text) : run.text,
+    }))
+    .reverse();
+}
+
+function lineHeight(doc, fontSize, opts = {}) {
+  if (opts.lineGap != null) return fontSize + opts.lineGap;
+  return fontSize * 1.25;
+}
+
+function resolveFillColor(doc, opts) {
+  if (opts.fillColor) return opts.fillColor;
+  if (typeof doc._fillColor === "string") return doc._fillColor;
+  if (Array.isArray(doc._fillColor) && typeof doc._fillColor[0] === "string") return doc._fillColor[0];
+  return "#000000";
+}
+
+function resolveFontSize(doc, opts) {
+  const size = opts.fontSize ?? doc._fontSize ?? 12;
+  return Number.isFinite(size) ? size : 12;
+}
+
+function drawMixedRtlLine(doc, text, x, y, width, opts = {}) {
+  if (!text) return y;
+  const fontSize = resolveFontSize(doc, opts);
+  const fillColor = resolveFillColor(doc, opts);
+  doc.fontSize(fontSize).fillColor(fillColor);
+  const segs = prepareVisualSegments(text);
+  const sized = segs.map((seg) => {
+    doc.font(seg.font).fontSize(fontSize);
+    return { ...seg, w: doc.widthOfString(seg.text) };
+  });
+  const total = sized.reduce((sum, seg) => sum + seg.w, 0);
+  let px =
+    opts.align === "center" ? x + Math.max(0, (width - total) / 2) : x + Math.max(0, width - total);
+  for (const seg of sized) {
+    doc.font(seg.font).fontSize(fontSize).fillColor(fillColor);
+    if (!Number.isFinite(px) || !Number.isFinite(y) || !Number.isFinite(seg.w)) {
+      throw new Error(
+        `PDF text layout: x=${x} y=${y} width=${width} px=${px} text=${JSON.stringify(text)} seg=${JSON.stringify(seg)}`
+      );
+    }
+    doc.text(seg.text, px, y, { lineBreak: false, width: Math.max(seg.w, 1) });
+    px += seg.w;
+  }
+  return y + lineHeight(doc, fontSize, opts);
+}
+
+function measureMixedLine(doc, text, opts = {}) {
+  const fontSize = resolveFontSize(doc, opts);
+  doc.fontSize(fontSize);
+  const segs = prepareVisualSegments(text);
+  return segs.reduce((sum, seg) => {
+    doc.font(seg.font).fontSize(fontSize);
+    return sum + doc.widthOfString(seg.text);
+  }, 0);
 }
 
 function drawBlankPageBackground(doc, inspector) {
@@ -125,12 +201,33 @@ function ensureY(doc, y, minBottom, need, m) {
 
 /** Draw RTL text and return the Y position after the block. */
 function rtlBlock(doc, text, x, y, width, opts = {}) {
-  doc.text(v(text), x, y, { width, align: "right", ...opts });
-  return doc.y;
+  return pdfText(doc, text, x, y, width, { align: "right", ...opts });
 }
 
 function measureRtl(doc, text, width, opts = {}) {
-  return doc.heightOfString(v(text), { width, align: "right", ...opts });
+  const fontSize = resolveFontSize(doc, opts);
+  const lines = normalizePdfText(text).split("\n");
+  let h = 0;
+  for (const line of lines) {
+    h += lineHeight(doc, fontSize, opts);
+    if (measureMixedLine(doc, line, opts) > width) {
+      h += lineHeight(doc, fontSize, opts);
+    }
+  }
+  return Math.max(h - (opts.lineGap ?? 0), lineHeight(doc, fontSize, opts));
+}
+
+function pdfText(doc, text, x, y, width, opts = {}) {
+  const { lineGap = 0, ...rest } = opts;
+  const lines = normalizePdfText(text).split("\n");
+  let cy = y;
+  for (let i = 0; i < lines.length; i++) {
+    cy = drawMixedRtlLine(doc, lines[i], x, cy, width, rest);
+    if (i < lines.length - 1) cy += lineGap;
+  }
+  doc.y = cy;
+  doc.font("Hebrew");
+  return cy;
 }
 
 function drawGreyMetaPanel(doc, left, contentW, y, lines, fontSize = 9) {
@@ -161,7 +258,7 @@ function drawCertificateHeader(doc, { left, contentW, y, inspector, mainTitle, l
 
   if (hasLogo) {
     try {
-      doc.image(logoBuf, left + contentW - logoW, y, { width: logoW, height: logoH, fit: [logoW, logoH] });
+      doc.image(logoBuf, left + contentW - logoW, y, logoW, { height: logoH, fit: [logoW, logoH] });
     } catch {
       /* skip */
     }
@@ -262,8 +359,9 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
 
     try {
       doc.registerFont("Hebrew", HEBREW_FONT);
+      doc.registerFont("Latin", LATIN_FONT);
     } catch (e) {
-      reject(new Error(`Hebrew font missing: ${e.message}`));
+      reject(new Error(`PDF fonts missing: ${e.message}`));
       return;
     }
     doc.font("Hebrew");
@@ -353,7 +451,7 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
       if (!b) continue;
       y = ensureY(doc, y, bottomSafe, maxImgH + 36, m);
       doc.fontSize(9).fillColor("#475569");
-      doc.text(v(`תיעוד ויזואלי — תמונה ${pi + 1}`), left, y, { width: contentW, align: "right" });
+      pdfText(doc, `תיעוד ויזואלי — תמונה ${pi + 1}`, left, y, contentW, { align: "right" });
       y += 11;
       try {
         doc.image(b, left, y, { fit: [maxImgW, maxImgH], align: "center" });
@@ -370,10 +468,7 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
       doc.switchToPage(range.start + i);
       doc.font("Hebrew");
       doc.fontSize(7.2).fillColor("#94a3b8");
-      doc.text(v(`${footerBase} · עמוד ${i + 1} מתוך ${range.count}`), left, pageH - m.bottom - 10, {
-        width: contentW,
-        align: "center",
-      });
+      pdfText(doc, `${footerBase} · עמוד ${i + 1} מתוך ${range.count}`, left, pageH - m.bottom - 10, contentW, { align: "center", });
     }
 
     doc.end();
@@ -417,10 +512,10 @@ function renderPortableBody(doc, certificate, inspector, extra, left, contentW, 
   doc.fontSize(10).fillColor(BROWN_ACCENT);
   doc.moveTo(left, y).lineTo(left + 140, y).lineWidth(1).stroke(BROWN_ACCENT);
   y += 6;
-  doc.fontSize(11).fillColor("#0f172a").text(v("מסקנה כללית"), left, y, { width: contentW, align: "right" });
+  doc.fontSize(11).fillColor("#0f172a"); pdfText(doc, "מסקנה כללית", left, y, contentW, { align: "right" });
   y += 12;
   doc.fontSize(9).fillColor("#1e293b");
-  doc.text(v(summary), left + 8, y, { width: contentW - 16, align: "right", lineGap: 2 });
+  pdfText(doc, summary, left + 8, y, contentW - 16, { align: "right", lineGap: 2 });
   y = doc.y + 14;
 
   y = drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bottomSafe, m);
@@ -491,10 +586,10 @@ function renderEvChargingBody(doc, certificate, inspector, extra, left, contentW
   const notes = (certificate.notes || "").trim();
   if (notes) {
     y = ensureY(doc, y, bottomSafe, 50, m);
-    doc.fontSize(10).fillColor(BLUE_DARK).text(v("הערות"), left, y, { width: contentW, align: "right" });
+    doc.fontSize(10).fillColor(BLUE_DARK); pdfText(doc, "הערות", left, y, contentW, { align: "right" });
     y += 12;
     doc.fontSize(9).fillColor("#334155");
-    doc.text(v(notes), left, y, { width: contentW, align: "right", lineGap: 2 });
+    pdfText(doc, notes, left, y, contentW, { align: "right", lineGap: 2 });
     y = doc.y + 12;
   }
 
@@ -505,7 +600,7 @@ function renderEvChargingBody(doc, certificate, inspector, extra, left, contentW
   doc.rect(left, y, contentW, 32).fill(BLUE);
   doc.restore();
   doc.fontSize(11.5).fillColor("#ffffff");
-  doc.text(v(gridBanner), left, y + 9, { width: contentW, align: "center" });
+  pdfText(doc, gridBanner, left, y + 9, contentW, { align: "center" });
   y += 40;
 
   y = drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bottomSafe, m);
@@ -514,7 +609,7 @@ function renderEvChargingBody(doc, certificate, inspector, extra, left, contentW
 
 function drawMultiColumnTable(doc, left, contentW, y, bottomSafe, m, title, cols, rows, rowsAreArrays = false) {
   y = ensureY(doc, y, bottomSafe, 28, m);
-  doc.fontSize(10.5).fillColor(BLUE_DARK).text(v(title), left, y, { width: contentW, align: "right" });
+  doc.fontSize(10.5).fillColor(BLUE_DARK); pdfText(doc, title, left, y, contentW, { align: "right" });
   y += 12;
   const rowH = 18;
   const headerH = 20;
@@ -527,7 +622,7 @@ function drawMultiColumnTable(doc, left, contentW, y, bottomSafe, m, title, cols
   let hx = left + contentW;
   for (let i = 0; i < cols.length; i++) {
     hx -= widths[i];
-    doc.text(v(cols[i].label), hx + 2, y + 5, { width: widths[i] - 4, align: "right" });
+    pdfText(doc, cols[i].label, hx + 2, y + 5, widths[i] - 4, { align: "right" });
   }
   y += headerH;
   for (let ri = 0; ri < rows.length; ri++) {
@@ -541,7 +636,7 @@ function drawMultiColumnTable(doc, left, contentW, y, bottomSafe, m, title, cols
     for (let ci = 0; ci < cols.length; ci++) {
       rx -= widths[ci];
       const cell = rowsAreArrays ? row[ci] : row[cols[ci].key];
-      doc.text(v(String(cell ?? "—")), rx + 2, y + 4, { width: widths[ci] - 4, align: "right" });
+      pdfText(doc, String(cell ?? "—"), rx + 2, y + 4, widths[ci] - 4, { align: "right" });
     }
     y += rowH;
   }
@@ -558,7 +653,7 @@ function renderInstallationBody(doc, certificate, inspector, extra, left, conten
 
   // נתוני חיבור ואספקה
   y = ensureY(doc, y, bottomSafe, 48, m);
-  doc.fontSize(10.5).fillColor(BLUE_DARK).text(v("נתוני חיבור ואספקה"), left, y, { width: contentW, align: "right" });
+  doc.fontSize(10.5).fillColor(BLUE_DARK); pdfText(doc, "נתוני חיבור ואספקה", left, y, contentW, { align: "right" });
   y = doc.y + 8;
   doc.fontSize(9.2).fillColor("#1e293b");
   const connExisting = String(extra.connectionExisting || certificate.connectionSize || "—").trim();
@@ -587,7 +682,7 @@ function renderInstallationBody(doc, certificate, inspector, extra, left, conten
   // סיכום בדיקה ויזואלית
   const visual = parseVisualList(extra);
   y = ensureY(doc, y, bottomSafe, 28, m);
-  doc.fontSize(10.5).fillColor(BLUE_DARK).text(v("סיכום בדיקה ויזואלית"), left, y, { width: contentW, align: "right" });
+  doc.fontSize(10.5).fillColor(BLUE_DARK); pdfText(doc, "סיכום בדיקה ויזואלית", left, y, contentW, { align: "right" });
   y += 14;
   const half = Math.ceil(visual.length / 2);
   const leftCol = visual.slice(0, half);
@@ -603,11 +698,11 @@ function renderInstallationBody(doc, certificate, inspector, extra, left, conten
     const b = rightCol[i];
     if (a) {
       doc.fontSize(8.6).fillColor("#1e293b");
-      doc.text(v(`✓  ${a}`), left + innerW + colGap, yv, { width: innerW, align: "right" });
+      pdfText(doc, `+  ${a}`, left + innerW + colGap, yv, innerW, { align: "right" });
     }
     if (b) {
       doc.fontSize(8.6).fillColor("#1e293b");
-      doc.text(v(`✓  ${b}`), left, yv, { width: innerW, align: "right" });
+      pdfText(doc, `+  ${b}`, left, yv, innerW, { align: "right" });
     }
     yv += rowH;
   }
@@ -620,18 +715,18 @@ function renderInstallationBody(doc, certificate, inspector, extra, left, conten
   doc.moveTo(left, y).lineTo(left + 150, y).lineWidth(1.1).strokeColor(BROWN_ACCENT).stroke();
   doc.restore();
   y += 5;
-  doc.fontSize(11).fillColor("#0f172a").text(v("מסקנות והערות"), left, y, { width: contentW, align: "right" });
+  doc.fontSize(11).fillColor("#0f172a"); pdfText(doc, "מסקנות והערות", left, y, contentW, { align: "right" });
   y += 12;
   const nh = Math.min(
     120,
-    Math.max(36, doc.heightOfString(v(notes), { width: contentW - 20, align: "right", lineGap: 2 }) + 16)
+    Math.max(36, measureRtl(doc, notes, contentW - 20, { align: "right", lineGap: 2 }) + 16)
   );
   y = ensureY(doc, y, bottomSafe, nh + 8, m);
   doc.save();
   doc.roundedRect(left, y, contentW, nh, 2).fill("#f1f5f9").stroke("#e2e8f0");
   doc.restore();
   doc.fontSize(9).fillColor("#334155");
-  doc.text(v(notes), left + 10, y + 8, { width: contentW - 20, align: "right", lineGap: 2 });
+  pdfText(doc, notes, left + 10, y + 8, contentW - 20, { align: "right", lineGap: 2 });
   y += nh + 14;
 
   // באנר סטטוס
@@ -640,7 +735,7 @@ function renderInstallationBody(doc, certificate, inspector, extra, left, conten
   doc.rect(left, y, contentW, 32).fill(BLUE);
   doc.restore();
   doc.fontSize(12.5).fillColor("#ffffff");
-  doc.text(v(meta.finalBanner), left, y + 8, { width: contentW, align: "center" });
+  pdfText(doc, meta.finalBanner, left, y + 8, contentW, { align: "center" });
   y += 40;
 
   y = drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bottomSafe, m);
@@ -649,7 +744,7 @@ function renderInstallationBody(doc, certificate, inspector, extra, left, conten
 
 function drawTechFourColumnTable(doc, left, contentW, y, bottomSafe, m, techRows) {
   y = ensureY(doc, y, bottomSafe, 36, m);
-  doc.fontSize(10.5).fillColor(BLUE_DARK).text(v("תוצאות בדיקה טכנית"), left, y, { width: contentW, align: "right" });
+  doc.fontSize(10.5).fillColor(BLUE_DARK); pdfText(doc, "תוצאות בדיקה טכנית", left, y, contentW, { align: "right" });
   y += 14;
 
   const g = 6;
@@ -668,7 +763,7 @@ function drawTechFourColumnTable(doc, left, contentW, y, bottomSafe, m, techRows
   let hx = left + contentW;
   for (let i = 0; i < 4; i++) {
     hx -= headWs[i];
-    doc.text(v(headLabels[i]), hx + 2, y + 6, { width: headWs[i] - 4, align: "right" });
+    pdfText(doc, headLabels[i], hx + 2, y + 6, headWs[i] - 4, { align: "right" });
     hx -= g;
   }
   y += headerH;
@@ -694,7 +789,7 @@ function drawTechFourColumnTable(doc, left, contentW, y, bottomSafe, m, techRows
     let rx = left + contentW;
     for (const c of cells) {
       rx -= c.w;
-      doc.text(v(c.t || "—"), rx + 2, y + 5, { width: c.w - 4, align: "right" });
+      pdfText(doc, c.t || "—", rx + 2, y + 5, c.w - 4, { align: "right" });
       rx -= g;
     }
     y += rowH;
@@ -704,7 +799,7 @@ function drawTechFourColumnTable(doc, left, contentW, y, bottomSafe, m, techRows
 
 function drawKeyValueTable(doc, left, contentW, y, bottomSafe, m, title, rows) {
   y = ensureY(doc, y, bottomSafe, 28, m);
-  doc.fontSize(10.5).fillColor(BLUE_DARK).text(v(title), left, y, { width: contentW, align: "right" });
+  doc.fontSize(10.5).fillColor(BLUE_DARK); pdfText(doc, title, left, y, contentW, { align: "right" });
   y += 12;
   const rowH = 22;
   for (let i = 0; i < rows.length; i++) {
@@ -714,9 +809,9 @@ function drawKeyValueTable(doc, left, contentW, y, bottomSafe, m, title, rows) {
     doc.rect(left, y, contentW, rowH).fill(i % 2 === 0 ? "#f8fafc" : "#fff").stroke("#e2e8f0");
     doc.restore();
     doc.fontSize(8.5).fillColor("#64748b");
-    doc.text(v(label), left + contentW - 130, y + 6, { width: 120, align: "right" });
+    pdfText(doc, label, left + contentW - 130, y + 6, 120, { align: "right" });
     doc.fontSize(9).fillColor("#0f172a");
-    doc.text(v(String(val)), left + 10, y + 5, { width: contentW - 150, align: "right" });
+    pdfText(doc, String(val), left + 10, y + 5, contentW - 150, { align: "right" });
     y += rowH;
   }
   return y + 8;
@@ -731,24 +826,15 @@ function drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bot
   y = ensureY(doc, y, bottomSafe, 120, m);
   const midX = left + contentW / 2;
   const colW = contentW / 2 - 8;
-  doc.fontSize(10).fillColor(BLUE_DARK).text(v("הצהרת החשמלאי"), midX + 4, y, {
-    width: colW - 4,
-    align: "right",
-  });
-  doc.fontSize(10).fillColor(BLUE_DARK).text(v("חתימה וחותמת החשמלאי"), left, y, {
-    width: colW - 4,
-    align: "right",
-  });
+  doc.fontSize(10).fillColor(BLUE_DARK); pdfText(doc, "הצהרת החשמלאי", midX + 4, y, colW - 4, { align: "right", });
+  doc.fontSize(10).fillColor(BLUE_DARK); pdfText(doc, "חתימה וחותמת החשמלאי", left, y, colW - 4, { align: "right", });
   y += 14;
 
   doc.fontSize(7.8).fillColor("#334155");
   const declH =
-    doc.heightOfString(v(declText), { width: colW - 8, align: "right", lineGap: 1.5 }) + 4;
-  doc.text(v(declText), midX + 4, y, {
-    width: colW - 8,
-    align: "right",
-    lineGap: 1.5,
-  });
+    measureRtl(doc, declText, colW - 8, { align: "right", lineGap: 1.5 }) + 4;
+  pdfText(doc, declText, midX + 4, y, colW - 8, { align: "right",
+    lineGap: 1.5, });
 
   const sigBuf = dataUrlToBuffer(certificate.signatureData);
   const stampBuf = dataUrlToBuffer(inspector?.stampData);
@@ -772,7 +858,7 @@ function drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bot
     }
   }
   doc.fontSize(7).fillColor("#94a3b8");
-  doc.text(v("חתימה דיגיטלית / סריקה"), left + 8, sigTop + 56, { width: 130, align: "center" });
+  pdfText(doc, "חתימה דיגיטלית / סריקה", left + 8, sigTop + 56, 130, { align: "center" });
 
   y += Math.max(declH, 78) + 12;
   return y;
