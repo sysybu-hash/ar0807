@@ -62,6 +62,11 @@ function inspectorForPdf(settings) {
     inspectorDeclarationText: settings.inspectorDeclarationText ?? "",
     stampOffsetXmm: Number(settings.stampOffsetXmm || 0),
     stampOffsetYmm: Number(settings.stampOffsetYmm || 0),
+    useBlankTemplate: !!settings.useBlankTemplate,
+    blankTemplateData: settings.blankTemplateData ?? null,
+    blankOffsetXmm: Number(settings.blankOffsetXmm || 0),
+    blankOffsetYmm: Number(settings.blankOffsetYmm || 0),
+    blankScale: Number(settings.blankScale || 1),
   };
 }
 

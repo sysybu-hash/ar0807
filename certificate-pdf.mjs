@@ -21,7 +21,19 @@ const GREY_PANEL = "#eceff1";
 const GREY_TABLE_HEAD = "#dde3ea";
 const BROWN_ACCENT = "#92400e";
 
-/** PDFKit is LTR: pure Hebrew lines get RTL embedding; mixed lines use bidi visual order. */
+const MM_TO_PT = 72 / 25.4;
+
+function mmToPt(mm) {
+  return Number(mm || 0) * MM_TO_PT;
+}
+
+/** PDFKit lays out LTR — reverse Hebrew word order; mixed lines use bidi visual order. */
+function rtlWords(line) {
+  const tokens = line.match(/\S+|\s+/g);
+  if (!tokens) return line;
+  return tokens.reverse().join("");
+}
+
 function v(s) {
   if (s == null || s === "") return "";
   return String(s)
@@ -33,9 +45,25 @@ function v(s) {
         const emb = bidi.getEmbeddingLevels(line);
         return bidi.getReorderedString(line, emb);
       }
-      return `\u202B${line}\u202C`;
+      return rtlWords(line);
     })
     .join("\n");
+}
+
+function drawBlankPageBackground(doc, inspector) {
+  const buf = dataUrlToBuffer(inspector?.blankTemplateData);
+  if (!inspector?.useBlankTemplate || !buf) return false;
+  const pageW = doc.page.width;
+  const pageH = doc.page.height;
+  const scale = Math.min(1.2, Math.max(0.8, Number(inspector.blankScale || 1)));
+  const ox = mmToPt(inspector.blankOffsetXmm || 0);
+  const oy = mmToPt(inspector.blankOffsetYmm || 0);
+  const boxW = pageW * scale;
+  const boxH = pageH * scale;
+  doc.save();
+  doc.image(buf, pageW - boxW - ox, oy, { fit: [boxW, boxH], align: "right", valign: "top" });
+  doc.restore();
+  return true;
 }
 
 function dataUrlToBuffer(dataUrl) {
@@ -92,7 +120,7 @@ function ensureY(doc, y, minBottom, need, m) {
   if (y + need <= minBottom) return y;
   doc.addPage();
   doc.font("Hebrew");
-  return m.top;
+  return doc._pdfContentTop ?? m.top;
 }
 
 /** Draw RTL text and return the Y position after the block. */
@@ -125,10 +153,10 @@ function drawGreyMetaPanel(doc, left, contentW, y, lines, fontSize = 9) {
   return y + boxH + 12;
 }
 
-function drawCertificateHeader(doc, { left, contentW, y, inspector, mainTitle, legalSubtitle, logoBuf }) {
+function drawCertificateHeader(doc, { left, contentW, y, inspector, mainTitle, legalSubtitle, logoBuf, skipLetterhead }) {
   const logoW = 52;
   const logoH = 52;
-  const hasLogo = Boolean(logoBuf);
+  const hasLogo = Boolean(logoBuf) && !skipLetterhead;
   const textW = hasLogo ? contentW - logoW - 12 : contentW;
 
   if (hasLogo) {
@@ -139,14 +167,17 @@ function drawCertificateHeader(doc, { left, contentW, y, inspector, mainTitle, l
     }
   }
 
-  doc.fontSize(10).fillColor(BLUE_DARK);
-  rtlBlock(doc, inspector?.name || "—", left, y + 2, textW);
-  doc.fontSize(8.8).fillColor("#334155");
-  rtlBlock(doc, `רישיון מס': ${inspector?.licenseNo || "—"}`, left, doc.y + 2, textW);
-  rtlBlock(doc, `טלפון: ${inspector?.phone || "—"}`, left, doc.y + 2, textW);
-  const em = String(inspector?.email || "").trim();
-  if (em) rtlBlock(doc, `דוא"ל: ${em}`, left, doc.y + 2, textW);
-  let cursorY = Math.max(doc.y, y + (hasLogo ? logoH : 0)) + 12;
+  let cursorY = y;
+  if (!skipLetterhead) {
+    doc.fontSize(10).fillColor(BLUE_DARK);
+    rtlBlock(doc, inspector?.name || "—", left, y + 2, textW);
+    doc.fontSize(8.8).fillColor("#334155");
+    rtlBlock(doc, `רישיון מס': ${inspector?.licenseNo || "—"}`, left, doc.y + 2, textW);
+    rtlBlock(doc, `טלפון: ${inspector?.phone || "—"}`, left, doc.y + 2, textW);
+    const em = String(inspector?.email || "").trim();
+    if (em) rtlBlock(doc, `דוא"ל: ${em}`, left, doc.y + 2, textW);
+    cursorY = Math.max(doc.y, y + (hasLogo ? logoH : 0)) + 12;
+  }
 
   const titleFs = String(mainTitle).length > 26 ? 14 : 16;
   doc.fontSize(titleFs).fillColor(BLUE);
@@ -242,7 +273,12 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
     const left = m.left;
     const contentW = doc.page.width - m.left - m.right;
     const bottomSafe = pageH - m.bottom - 48;
-    let y = m.top;
+    const useBlank = drawBlankPageBackground(doc, inspector);
+    if (useBlank) {
+      doc.on("pageAdded", () => drawBlankPageBackground(doc, inspector));
+      doc._pdfContentTop = mmToPt(38);
+    }
+    let y = doc._pdfContentTop ?? m.top;
 
     const extra = mergeExtraForType(docType, safeExtra(certificate));
     const docNo = String(extra.docNo || "").trim();
@@ -269,6 +305,7 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
       mainTitle,
       legalSubtitle,
       logoBuf,
+      skipLetterhead: useBlank,
     });
 
     if (docType === "portable") {

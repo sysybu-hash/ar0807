@@ -101,3 +101,25 @@ test("ev_charging certificate PDF builds", async () => {
   assert.ok(buf.length > 2000);
   assert.equal(buf.slice(0, 4).toString(), "%PDF");
 });
+
+test("certificate PDF with blank letterhead builds", async () => {
+  const blankPng =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  const buf = await buildCertificatePdfBuffer({
+    certificate: {
+      ...baseCert,
+      docType: "ev_charging",
+      extra: { ...defaultExtraForType("ev_charging"), inspectionDate: "2026-06-01" },
+    },
+    inspector: {
+      ...inspector,
+      useBlankTemplate: true,
+      blankTemplateData: blankPng,
+      blankOffsetXmm: 0,
+      blankOffsetYmm: 0,
+      blankScale: 1,
+    },
+  });
+  assert.ok(buf.length > 2000);
+  assert.equal(buf.slice(0, 4).toString(), "%PDF");
+});
