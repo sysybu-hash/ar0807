@@ -57,20 +57,54 @@ function splitScriptRuns(text) {
   return runs;
 }
 
-/** PDFKit is LTR — reverse Hebrew word order within each run. */
-function rtlWords(line) {
-  const tokens = line.match(/\S+|\s+/g);
-  if (!tokens) return line;
-  return tokens.reverse().join("");
+/** PDFKit is LTR — keep logical order; Hebrew runs use OpenType rtla shaping. */
+function buildLogicalRuns(text) {
+  return splitScriptRuns(normalizePdfText(text)).map((run) => ({
+    kind: run.kind,
+    font: run.kind === "hebrew" ? "Hebrew" : "Latin",
+    text: run.text,
+  }));
 }
 
-function prepareVisualSegments(text) {
-  return splitScriptRuns(text)
-    .map((run) => ({
-      font: run.kind === "hebrew" ? "Hebrew" : "Latin",
-      text: run.kind === "hebrew" ? rtlWords(run.text) : run.text,
-    }))
-    .reverse();
+function runTextOpts(run) {
+  return run.kind === "hebrew" ? { features: ["rtla"] } : {};
+}
+
+function measureRunWidth(doc, run, fontSize) {
+  doc.font(run.font).fontSize(fontSize);
+  return doc.widthOfString(run.text, runTextOpts(run));
+}
+
+function drawLogicalRtlLine(doc, text, x, y, width, opts = {}) {
+  if (!text) return y;
+  const fontSize = resolveFontSize(doc, opts);
+  const fillColor = resolveFillColor(doc, opts);
+  const normalized = normalizePdfText(text);
+  doc.fontSize(fontSize).fillColor(fillColor);
+
+  const runs = buildLogicalRuns(normalized);
+  const sized = runs.map((run) => ({
+    ...run,
+    w: measureRunWidth(doc, run, fontSize),
+  }));
+  const total = sized.reduce((sum, run) => sum + run.w, 0);
+  let px =
+    opts.align === "center" ? x + Math.max(0, (width - total) / 2) : x + Math.max(0, width - total);
+  for (const run of sized) {
+    doc.font(run.font).fontSize(fontSize).fillColor(fillColor);
+    doc.text(run.text, px, y, {
+      lineBreak: false,
+      width: Math.max(run.w, 1),
+      ...runTextOpts(run),
+    });
+    px += run.w;
+  }
+  return y + lineHeight(doc, fontSize, opts);
+}
+
+function measureLogicalLine(doc, text, opts = {}) {
+  const fontSize = resolveFontSize(doc, opts);
+  return buildLogicalRuns(text).reduce((sum, run) => sum + measureRunWidth(doc, run, fontSize), 0);
 }
 
 function lineHeight(doc, fontSize, opts = {}) {
@@ -88,42 +122,6 @@ function resolveFillColor(doc, opts) {
 function resolveFontSize(doc, opts) {
   const size = opts.fontSize ?? doc._fontSize ?? 12;
   return Number.isFinite(size) ? size : 12;
-}
-
-function drawMixedRtlLine(doc, text, x, y, width, opts = {}) {
-  if (!text) return y;
-  const fontSize = resolveFontSize(doc, opts);
-  const fillColor = resolveFillColor(doc, opts);
-  doc.fontSize(fontSize).fillColor(fillColor);
-  const segs = prepareVisualSegments(text);
-  const sized = segs.map((seg) => {
-    doc.font(seg.font).fontSize(fontSize);
-    return { ...seg, w: doc.widthOfString(seg.text) };
-  });
-  const total = sized.reduce((sum, seg) => sum + seg.w, 0);
-  let px =
-    opts.align === "center" ? x + Math.max(0, (width - total) / 2) : x + Math.max(0, width - total);
-  for (const seg of sized) {
-    doc.font(seg.font).fontSize(fontSize).fillColor(fillColor);
-    if (!Number.isFinite(px) || !Number.isFinite(y) || !Number.isFinite(seg.w)) {
-      throw new Error(
-        `PDF text layout: x=${x} y=${y} width=${width} px=${px} text=${JSON.stringify(text)} seg=${JSON.stringify(seg)}`
-      );
-    }
-    doc.text(seg.text, px, y, { lineBreak: false, width: Math.max(seg.w, 1) });
-    px += seg.w;
-  }
-  return y + lineHeight(doc, fontSize, opts);
-}
-
-function measureMixedLine(doc, text, opts = {}) {
-  const fontSize = resolveFontSize(doc, opts);
-  doc.fontSize(fontSize);
-  const segs = prepareVisualSegments(text);
-  return segs.reduce((sum, seg) => {
-    doc.font(seg.font).fontSize(fontSize);
-    return sum + doc.widthOfString(seg.text);
-  }, 0);
 }
 
 function drawBlankPageBackground(doc, inspector) {
@@ -210,7 +208,7 @@ function measureRtl(doc, text, width, opts = {}) {
   let h = 0;
   for (const line of lines) {
     h += lineHeight(doc, fontSize, opts);
-    if (measureMixedLine(doc, line, opts) > width) {
+    if (measureLogicalLine(doc, line, opts) > width) {
       h += lineHeight(doc, fontSize, opts);
     }
   }
@@ -222,7 +220,7 @@ function pdfText(doc, text, x, y, width, opts = {}) {
   const lines = normalizePdfText(text).split("\n");
   let cy = y;
   for (let i = 0; i < lines.length; i++) {
-    cy = drawMixedRtlLine(doc, lines[i], x, cy, width, rest);
+    cy = drawLogicalRtlLine(doc, lines[i], x, cy, width, rest);
     if (i < lines.length - 1) cy += lineGap;
   }
   doc.y = cy;
