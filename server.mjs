@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import { readFile } from "fs/promises";
 import { fileURLToPath } from "url";
 import { createHmac, timingSafeEqual } from "crypto";
 import {
@@ -33,6 +34,7 @@ import { buildFinancialPdfBuffer } from "./financial-pdf.mjs";
 import archiver from "archiver";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const APP_HTML_ABS = path.join(__dirname, "public", "app.html");
 const app = express();
 const PORT = process.env.PORT || 3847;
 
@@ -53,6 +55,7 @@ function inspectorForPdf(settings) {
     name: settings.name ?? "",
     licenseNo: settings.licenseNo ?? "",
     phone: settings.phone ?? "",
+    email: settings.email ?? "",
     logoData: settings.logoData ?? null,
     stampData: settings.stampData ?? null,
     inspectorDeclarationText: settings.inspectorDeclarationText ?? "",
@@ -138,15 +141,65 @@ const authLimiter    = makeRateLimiter(10,  15 * 60 * 1000, "יותר מדי נ�
 // ── DB lazy init ──────────────────────────────────────────────────────────────
 
 let _dbReady = false;
-async function ensureDb(req, res, next) {
-  if (_dbReady) return next();
+
+async function ensureDbReady() {
+  if (_dbReady) return true;
   try {
     await initDb();
     _dbReady = true;
-    next();
+    return true;
   } catch (err) {
     console.error("[db] init failed:", err.message);
-    res.status(503).json({ error: "שירות לא זמין כרגע — נסה שוב." });
+    return false;
+  }
+}
+
+async function ensureDb(req, res, next) {
+  if (await ensureDbReady()) return next();
+  res.status(503).json({ error: "שירות לא זמין כרגע — נסה שוב." });
+}
+
+/** אותו חיתוך כמו ב־GET /api/settings ללא JWT — ללא שדות תבנית/חתימה פנימית */
+function stripAuthedOnlySettingsFields(full) {
+  const {
+    accessCode: _a,
+    blankTemplateData: _b,
+    useBlankTemplate: _u,
+    blankOffsetXmm: _bx,
+    blankOffsetYmm: _by,
+    blankScale: _bs,
+    inspectorDeclarationText: _d,
+    stampOffsetXmm: _sx,
+    stampOffsetYmm: _sy,
+    ...pub
+  } = full;
+  return pub;
+}
+
+/** מונע HTML ענק — לוגו/חותמת נטענים אחרי התחברות */
+function stripHeavyMediaForBoot(pub) {
+  const { logoData: _lg, stampData: _st, ...light } = pub;
+  return light;
+}
+
+async function sendAppHtmlBootstrapped(_req, res) {
+  const sendRaw = () => res.sendFile(APP_HTML_ABS);
+  if (!(await ensureDbReady())) return sendRaw();
+  try {
+    const full = await getSettings();
+    const boot = stripHeavyMediaForBoot(stripAuthedOnlySettingsFields(full));
+    const json = JSON.stringify(boot).replace(/</g, "\\u003c");
+    const html = await readFile(APP_HTML_ABS, "utf8");
+    if (!html.includes("</head>")) return sendRaw();
+    const injected = html.replace(
+      "</head>",
+      `<script type="application/json" id="ecs-boot-settings">${json}</script>\n</head>`
+    );
+    res.setHeader("Cache-Control", "private, no-store, max-age=0");
+    res.type("html").send(injected);
+  } catch (e) {
+    console.error("[app.html boot]", e.message);
+    sendRaw();
   }
 }
 
@@ -165,7 +218,10 @@ app.get("/share/:token", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "share.html"));
 });
 
-app.use(express.static(path.join(__dirname, "public"), { index: "app.html" }));
+app.get("/", sendAppHtmlBootstrapped);
+app.get("/app.html", sendAppHtmlBootstrapped);
+
+app.use(express.static(path.join(__dirname, "public"), { index: false }));
 app.use(ensureDb);
 
 // ── Public APIs (no JWT) ──────────────────────────────────────────────────────
@@ -203,6 +259,7 @@ app.get("/api/share/:token", async (req, res) => {
       inspector: {
         name: settings.name ?? "",
         licenseNo: settings.licenseNo ?? "",
+        email: settings.email ?? "",
       },
       expiresAt: data.share.expiresAt,
     });
@@ -271,21 +328,7 @@ app.get("/api/settings", async (req, res) => {
     if (authed) {
       return res.json(full);
     }
-    // Public: omit fields used only for authenticated portal / print templates so the
-    // client can merge without overwriting stored blank/stamp settings when no JWT is sent.
-    const {
-      accessCode: _a,
-      blankTemplateData: _b,
-      useBlankTemplate: _u,
-      blankOffsetXmm: _bx,
-      blankOffsetYmm: _by,
-      blankScale: _bs,
-      inspectorDeclarationText: _d,
-      stampOffsetXmm: _sx,
-      stampOffsetYmm: _sy,
-      ...pub
-    } = full;
-    res.json(pub);
+    res.json(stripAuthedOnlySettingsFields(full));
   } catch (e) {
     console.error("[GET /api/settings]", e.message);
     res.status(500).json({ error: "שגיאת שרת." });

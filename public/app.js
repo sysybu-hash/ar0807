@@ -14,9 +14,10 @@ const DEFAULT_HOME_CONTENT = {
     "בדיקות תקינות, לוחות חשמל, איתור תקלות ושדרוגים — עם תיעוד מלא, עמידה בתקן IEC ובדרישות רשות החשמל, ושירות אישי לבית, לעסק ולמשרד.",
   primaryCta: "כניסה לאזור אישי",
   whatsappCta: "הצעת מחיר ב-WhatsApp",
-  chip1: "זמינות ומענה מהיר",
-  chip2: "מגורים · משרדים · עסקים",
-  chip3: "תקן מקומי ובינלאומי",
+  /** ריקים כמו ב־app.html — מונע הזרקת צ'יפים לפני שמירה בהגדרות */
+  chip1: "",
+  chip2: "",
+  chip3: "",
   sectionServicesKicker: "מה אנחנו עושים",
   sectionServicesTitle: "שירותי חשמל מקצה לקצה",
   sectionServicesSub:
@@ -36,13 +37,13 @@ const DEFAULT_HOME_CONTENT = {
   trustText3: "",
   featureTitle1: "בדיקות תקינות חשמל",
   featureText1:
-    "בדיקות מקיפות, תיעוד ממצאים והנפת אישור תקינות — לפי התקן הישראלי והאירופי IEC 60364.",
+    "בדיקות מקיפות והנפקת אישורים מקצועיים לפי דרישות תקן ישראלי ואירופאי IEC 60364.",
   featureTitle2: "איתור ותיקון תקלות",
   featureText2:
-    "אבחון מהיר עם ציוד מדידה מקצועי, תיקון בטוח ומניעת חזרת התקלה — בבית או בעסק.",
-  featureTitle3: "שדרוג לוחות ותחזוקה",
+    "אבחון מדויק וטיפול מהיר בתקלות חשמל בבית ובעסק — עם ציוד מדידה מתקדם ופתרון ביום הפנייה.",
+  featureTitle3: "שדרוג ותחזוקה",
   featureText3:
-    "שדרוג לוחות ומפסקים, הרחבות חשמל ותחזוקה שוטפת — בהתאמה לרשות החשמל ולבטיחות הדיירים.",
+    "שדרוג לוחות ותשתיות חשמל, תחזוקה תקופתית ושיפור בטיחות — התאמה לדרישות רשות החשמל.",
   processTitle: "",
   step1: "",
   step2: "",
@@ -110,6 +111,26 @@ function mergeServerSettings(data) {
     settings[k] = data[k];
   }
   settings.accessCode = "";
+}
+
+/** אחרי טעינת /api/settings — מאפשר להציג "—" בצור קשר כשאין ערך */
+let siteSettingsHydrated = false;
+
+/** הגדרות ציבוריות מוטבעות ב־HTML (server) — ללא המתנה ל־fetch */
+function applyBootSettingsFromDocument() {
+  const el = document.getElementById("ecs-boot-settings");
+  if (!el) return false;
+  const raw = el.textContent?.trim();
+  if (!raw) return false;
+  try {
+    const data = JSON.parse(raw);
+    if (!data || typeof data !== "object") return false;
+    mergeServerSettings(data);
+    siteSettingsHydrated = true;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 let isPortalOpen = false;
@@ -770,15 +791,12 @@ function renderHomeHeroChips(hc) {
   const wrap = $("homeHeroChips");
   if (!wrap) return;
   const chips = [hc.chip1, hc.chip2, hc.chip3].filter((c) => c && String(c).trim());
-  if (chips.length === 0) {
-    wrap.innerHTML = "";
-    wrap.classList.add("hidden");
-    return;
-  }
-  wrap.classList.remove("hidden");
-  wrap.innerHTML = chips
-    .map((c) => `<span class="home-hero__chip">${escapeHtml(String(c).trim())}</span>`)
-    .join("");
+  const html =
+    chips.length === 0
+      ? ""
+      : chips.map((c) => `<span class="home-hero__chip">${escapeHtml(String(c).trim())}</span>`).join("");
+  if (wrap.innerHTML === html) return;
+  wrap.innerHTML = html;
 }
 
 function renderPublicExtras() {
@@ -873,13 +891,16 @@ function renderHomeFromSettings() {
   const setText = (id, value) => {
     const el = getEl(id);
     if (!el) return;
-    if (value == null || value === "") el.textContent = "";
-    else el.textContent = typeof value === "string" ? value : String(value);
+    const next =
+      value == null || value === "" ? "" : typeof value === "string" ? value : String(value);
+    if ((el.textContent || "").trim() === next.trim()) return;
+    el.textContent = next;
   };
+  const contactFallback = siteSettingsHydrated ? "—" : "";
   setText("heroInspectorName", settings.name || "רובינשטיין חשמל");
-  setText("contactName", settings.name || "—");
-  setText("contactPhone", settings.phone || "—");
-  setText("contactEmail", settings.email || "—");
+  setText("contactName", (settings.name || "").trim() || contactFallback);
+  setText("contactPhone", (settings.phone || "").trim() || contactFallback);
+  setText("contactEmail", (settings.email || "").trim() || contactFallback);
   setText("homeHeroKickerText", hc.kicker);
   setText("homeHeroTitle", hc.title);
   setText("homeHeroSubtitle", hc.subtitle);
@@ -908,7 +929,10 @@ function renderHomeFromSettings() {
   const waIds = ["whatsappLink", "whatsappTopLink", "whatsappBannerLink", "whatsappFloatingCta"];
   waIds.forEach((id) => {
     const el = getEl(id);
-    if (el) el.href = href;
+    if (!el) return;
+    const cur = el.getAttribute("href") || "";
+    if (cur === href) return;
+    el.href = href;
   });
   // Update about text
   setText("aboutText", settings.aboutText || "");
@@ -1321,6 +1345,20 @@ function fillDocForm(doc) {
   setInputValue("docConnection", doc?.connectionSize || "");
   setInputValue("docGrounding", doc?.groundingValue || "");
   setInputValue("docInsulation", doc?.insulation || "");
+  setInputValue("docClientName", ex.clientName || "");
+  setInputValue("docInstallationType", ex.installationType || "");
+  setInputValue("docInspectionDate", ex.inspectionDate || "");
+  setInputValue("docFinalStatus", ex.finalStatusBanner || "");
+  try {
+    setInputValue("docTechJson", Array.isArray(ex.techInspection) ? JSON.stringify(ex.techInspection, null, 2) : "");
+  } catch {
+    setInputValue("docTechJson", "");
+  }
+  try {
+    setInputValue("docVisualJson", Array.isArray(ex.visualChecklist) ? JSON.stringify(ex.visualChecklist, null, 2) : "");
+  } catch {
+    setInputValue("docVisualJson", "");
+  }
   setInputValue("docNotes", doc?.notes || "");
   docPhotos = doc?.photos ? doc.photos.slice() : [];
   renderDocPhotos();
@@ -1331,6 +1369,32 @@ function fillDocForm(doc) {
 }
 
 function buildDocPayload() {
+  const extra = {
+    docNo: inputTrim("docNo"),
+    workflowStatus: inputRaw("docWorkflowStatus") || "draft",
+    clientName: inputTrim("docClientName"),
+    installationType: inputTrim("docInstallationType"),
+    inspectionDate: inputRaw("docInspectionDate"),
+    finalStatusBanner: inputTrim("docFinalStatus"),
+  };
+  const tj = inputTrim("docTechJson");
+  if (tj) {
+    try {
+      extra.techInspection = JSON.parse(tj);
+      if (!Array.isArray(extra.techInspection)) throw new Error("not array");
+    } catch {
+      throw new Error("תוצאות בדיקה טכנית — JSON לא תקין (נדרש מערך אובייקטים).");
+    }
+  }
+  const vj = inputTrim("docVisualJson");
+  if (vj) {
+    try {
+      extra.visualChecklist = JSON.parse(vj);
+      if (!Array.isArray(extra.visualChecklist)) throw new Error("not array");
+    } catch {
+      throw new Error("רשימת בדיקה ויזואלית — JSON לא תקין (נדרש מערך מחרוזות).");
+    }
+  }
   return {
     docType: inputRaw("docType"),
     facilityName: inputTrim("docFacilityName"),
@@ -1340,17 +1404,20 @@ function buildDocPayload() {
     insulation: inputTrim("docInsulation"),
     notes: inputTrim("docNotes"),
     photos: docPhotos,
-    extra: {
-      docNo: inputTrim("docNo"),
-      workflowStatus: inputRaw("docWorkflowStatus") || "draft",
-    },
+    extra,
     signatureData:
       docSignaturePad && !docSignaturePad.isEmpty() ? docSignaturePad.toDataURL("image/png") : null,
   };
 }
 
 async function saveDoc() {
-  const payload = buildDocPayload();
+  let payload;
+  try {
+    payload = buildDocPayload();
+  } catch (e) {
+    showToast(e.message || "שגיאת נתונים", "warn");
+    return;
+  }
   if (!payload.facilityName) { showToast("שם מתקן הוא שדה חובה.", "warn"); return; }
   const id = inputTrim("docId");
   if (id) await api(`/api/certificates/${id}`, { method: "PUT", body: payload });
@@ -1697,9 +1764,7 @@ function renderRecentProjects() {
   }
 }
 
-async function loadSettings() {
-  mergeServerSettings(await api("/api/settings"));
-  renderHomeFromSettings();
+function syncSettingsFormFromState() {
   setInputValue("setName", settings.name || "");
   setInputValue("setLicense", settings.licenseNo || "");
   setInputValue("setPhone", settings.phone || "");
@@ -1763,6 +1828,13 @@ async function loadSettings() {
   }
   setInputValue("setPrivacyText", sx.privacyText || "");
   setChecked("setContactFormEnabled", sx.contactFormEnabled !== false);
+}
+
+async function loadSettings() {
+  mergeServerSettings(await api("/api/settings"));
+  siteSettingsHydrated = true;
+  renderHomeFromSettings();
+  syncSettingsFormFromState();
 }
 
 async function bindSettingsForm() {
@@ -1857,6 +1929,7 @@ async function bindSettingsForm() {
         contactFormEnabled: !!$("setContactFormEnabled")?.checked,
       });
       mergeServerSettings(await api("/api/settings", { method: "PUT", body: settings }));
+      siteSettingsHydrated = true;
       renderHomeFromSettings();
       showMsg("settingsMsg", "הגדרות נשמרו בהצלחה", true);
     } catch (e) {
@@ -1941,6 +2014,8 @@ function registerServiceWorker() {
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
+  const bootApplied = applyBootSettingsFromDocument();
+
   window.addEventListener("ecs-unauthorized", () => {
     logoutPortal();
   });
@@ -1964,8 +2039,8 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupContactMailto();
   setupPwaInstall();
   registerServiceWorker();
-  document.body.classList.add("settings-loading");
   setSection("home");
+  renderHomeFromSettings();
 
   try {
     await api("/api/health");
@@ -1975,10 +2050,12 @@ window.addEventListener("DOMContentLoaded", async () => {
     return;
   }
   try {
-    await loadSettings();
-    document.body.classList.remove("settings-loading");
+    if (getToken() || !bootApplied) {
+      await loadSettings();
+    } else {
+      syncSettingsFormFromState();
+    }
   } catch (e) {
-    document.body.classList.remove("settings-loading");
     console.error(e);
     showToast(`שגיאה בטעינת הגדרות: ${e.message}`, "err", 8000);
     return;

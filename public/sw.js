@@ -1,4 +1,4 @@
-const CACHE_NAME = "ecs-pwa-v6";
+const CACHE_NAME = "ecs-pwa-v7";
 
 const CORE_ASSETS = [
   "/",
@@ -29,6 +29,7 @@ async function precacheSafe(cache) {
 
 function isNetworkFirstPath(pathname) {
   return (
+    pathname === "/" ||
     pathname === "/app.js" ||
     pathname === "/styles.css" ||
     pathname === "/app.html" ||

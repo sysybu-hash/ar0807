@@ -4,7 +4,7 @@
    RTL (Hebrew), Cross-browser compatible
    =================================================================== */
 
-@import url("https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;500;600;700;800;900&display=swap");
+/* Google Fonts — נטען מוקדם מ־app.html (preconnect + link) כדי למנוע החלפת מראה ו־FOUC */
 
 /* --- CSS Custom Properties --- */
 :root {
@@ -215,6 +215,15 @@ body {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+}
+
+/* כפתור התקנה — מחוץ לזרימת ה-header כדי שלא יזיז את הכותרת כשמופיע */
+#pwaInstallBtn:not(.hidden) {
+  position: fixed;
+  inset-block-start: max(0.55rem, env(safe-area-inset-top));
+  inset-inline-end: max(0.6rem, env(safe-area-inset-end));
+  z-index: 450;
+  box-shadow: 0 6px 24px rgba(5, 12, 28, 0.35);
 }
 
 .menu-btn {
@@ -1400,14 +1409,15 @@ body.focus-visible-enhanced *:focus-visible { outline: 4px solid #FF0 !important
 /* ===================================================================
    ANIMATIONS
    =================================================================== */
-.reveal-up { animation: revealUp 550ms cubic-bezier(0.22, 0.61, 0.36, 1) both; }
-.reveal-up-delay-05 { animation-delay: 40ms; }
-.reveal-up-delay-1 { animation-delay: 80ms; }
-.reveal-up-delay-2 { animation-delay: 160ms; }
-.reveal-up-delay-3 { animation-delay: 240ms; }
+/* אנימציה עדינה בלבד — ללא opacity:0 בהתחלה (מונעת "קפיצה" אחרי טעינה) */
+.reveal-up { animation: revealUp 420ms cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+.reveal-up-delay-05 { animation-delay: 30ms; }
+.reveal-up-delay-1 { animation-delay: 60ms; }
+.reveal-up-delay-2 { animation-delay: 120ms; }
+.reveal-up-delay-3 { animation-delay: 180ms; }
 
 @keyframes revealUp {
-  from { opacity: 0; transform: translateY(18px); }
+  from { opacity: 1; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -1581,7 +1591,3 @@ body.focus-visible-enhanced *:focus-visible { outline: 4px solid #FF0 !important
 }
 .advanced-home-content__body { margin-top: 0.85rem; }
 
-/* ── Settings loading fade-in ──────────────────────────────────────────────── */
-#home, .site-header__brand { transition: opacity 0.25s ease; }
-body.settings-loading #home,
-body.settings-loading .site-header__brand { opacity: 0; pointer-events: none; }

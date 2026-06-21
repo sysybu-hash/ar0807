@@ -13,6 +13,9 @@
   <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/icons/icon.svg" />
   <title>רובינשטיין חשמל</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700;800&amp;display=optional" />
   <!-- Tailwind (built) for print + utility classes -->
   <link rel="stylesheet" href="/tw-built.css" />
   <!-- Signature Pad -->
@@ -651,7 +654,16 @@
                 <div><label for="docConnection" class="lbl">גודל חיבור</label><input id="docConnection" class="inp" /></div>
                 <div><label for="docGrounding" class="lbl">שיטת הגנה / הארקה</label><input id="docGrounding" class="inp" /></div>
                 <div><label for="docInsulation" class="lbl">בידוד</label><input id="docInsulation" class="inp" /></div>
-                <div class="col-span-2"><label for="docNotes" class="lbl">הערות</label><textarea id="docNotes" class="inp" rows="3"></textarea></div>
+                <div class="col-span-2" style="border-top:1px solid var(--border);padding-top:0.75rem;margin-top:0.25rem;">
+                  <p class="lbl" style="margin-bottom:0.5rem;">שדות לדוח PDF (אישור תקינות מתקן)</p>
+                </div>
+                <div><label for="docClientName" class="lbl">שם לקוח (בדוח)</label><input id="docClientName" class="inp" placeholder="יוצג בכותרת הדוח" /></div>
+                <div><label for="docInstallationType" class="lbl">סוג מתקן</label><input id="docInstallationType" class="inp" placeholder="למשל: חנות / מסחרי" /></div>
+                <div><label for="docInspectionDate" class="lbl">תאריך בדיקה</label><input id="docInspectionDate" type="date" class="inp" /></div>
+                <div><label for="docFinalStatus" class="lbl">טקסט באנר סיום</label><input id="docFinalStatus" class="inp" placeholder="ברירת מחדל: תקין - המתקן מאושר לשימוש" /></div>
+                <div class="col-span-2"><label for="docTechJson" class="lbl">תוצאות בדיקה טכנית (JSON)</label><textarea id="docTechJson" class="inp" dir="ltr" rows="4" placeholder='[{"description":"לולאת תקלה (LT)","result":"0.44"}]'></textarea></div>
+                <div class="col-span-2"><label for="docVisualJson" class="lbl">רשימת בדיקה ויזואלית (JSON — מערך מחרוזות)</label><textarea id="docVisualJson" class="inp" dir="ltr" rows="3" placeholder='["פריט 1","פריט 2"]'></textarea></div>
+                <div class="col-span-2"><label for="docNotes" class="lbl">מסקנות והערות</label><textarea id="docNotes" class="inp" rows="3"></textarea></div>
                 <div class="col-span-2"><label for="docPhotosInput" class="lbl">תמונות</label><input id="docPhotosInput" class="inp" type="file" accept="image/*" multiple /></div>
               </div>
               <div id="docPhotosPreview" class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4" aria-label="תצוגה מקדימה של תמונות"></div>
