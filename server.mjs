@@ -3,6 +3,7 @@ import path from "path";
 import { readFile } from "fs/promises";
 import { fileURLToPath } from "url";
 import { createHmac, timingSafeEqual } from "crypto";
+import { isAllowedDocType } from "./lib/cert-types.mjs";
 import {
   initDb,
   getSettings,
@@ -416,6 +417,9 @@ app.post("/api/certificates", async (req, res) => {
     const body = req.body ?? {};
     if (!body.facilityName || String(body.facilityName).trim() === "")
       return res.status(400).json({ error: "שם המתקן הוא שדה חובה" });
+    if (body.docType != null && String(body.docType).trim() !== "" && !isAllowedDocType(body.docType)) {
+      return res.status(400).json({ error: "סוג מסמך לא נתמך" });
+    }
     res.status(201).json(await createCertificate(body));
   } catch (e) {
     console.error("[POST /api/certificates]", e.message);
@@ -425,7 +429,11 @@ app.post("/api/certificates", async (req, res) => {
 
 app.put("/api/certificates/:id", async (req, res) => {
   try {
-    const updated = await updateCertificate(Number(req.params.id), req.body ?? {});
+    const body = req.body ?? {};
+    if (body.docType != null && String(body.docType).trim() !== "" && !isAllowedDocType(body.docType)) {
+      return res.status(400).json({ error: "סוג מסמך לא נתמך" });
+    }
+    const updated = await updateCertificate(Number(req.params.id), body);
     if (!updated) return res.status(404).json({ error: "לא נמצא" });
     res.json(updated);
   } catch (e) {

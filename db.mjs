@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
 import bcrypt from "bcrypt";
 import { Pool } from "pg";
+import { isAllowedDocType, normalizeDocType } from "./lib/cert-types.mjs";
 
 let pool;
 
@@ -381,7 +382,7 @@ export async function createProjectFromWizard(body) {
 export async function listCertificates({ limit = 500, offset = 0 } = {}) {
   const rows = await q(
     `SELECT id, doc_type, facility_name, address, connection_size, grounding_value,
-            insulation, notes, created_at, updated_at
+            insulation, notes, extra_json, created_at, updated_at
      FROM certificates
      ORDER BY updated_at DESC
      LIMIT $1 OFFSET $2`,
@@ -389,18 +390,22 @@ export async function listCertificates({ limit = 500, offset = 0 } = {}) {
   );
   const [{ count }] = await q(`SELECT COUNT(*)::int AS count FROM certificates`);
   return {
-    items: rows.map((r) => ({
-      id: Number(r.id),
-      docType: r.doc_type,
-      facilityName: r.facility_name,
-      address: r.address,
-      connectionSize: r.connection_size,
-      groundingValue: r.grounding_value,
-      insulation: r.insulation,
-      notes: r.notes,
-      createdAt: r.created_at,
-      updatedAt: r.updated_at,
-    })),
+    items: rows.map((r) => {
+      const extra = safeJson(r.extra_json, {});
+      return {
+        id: Number(r.id),
+        docType: r.doc_type,
+        facilityName: r.facility_name,
+        address: r.address,
+        connectionSize: r.connection_size,
+        groundingValue: r.grounding_value,
+        insulation: r.insulation,
+        notes: r.notes,
+        workflowStatus: extra.workflowStatus === "final" ? "final" : "draft",
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+      };
+    }),
     total: count,
     hasMore: offset + rows.length < count,
   };
@@ -418,7 +423,15 @@ export async function getCertificate(id) {
   return normalizeCertificate(rows[0]);
 }
 
+function assertValidDocType(docType) {
+  if (docType != null && String(docType).trim() !== "" && !isAllowedDocType(String(docType).trim())) {
+    throw new Error("סוג מסמך לא נתמך");
+  }
+}
+
 export async function createCertificate(body) {
+  assertValidDocType(body.docType);
+  const docType = normalizeDocType(body.docType);
   const rows = await q(
     `INSERT INTO certificates (
       doc_type, facility_name, address, connection_size, grounding_value, insulation,
@@ -426,7 +439,7 @@ export async function createCertificate(body) {
     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9,$10::jsonb,now(),now())
     RETURNING *`,
     [
-      body.docType || "installation",
+      docType,
       body.facilityName,
       body.address ?? "",
       body.connectionSize ?? "",
@@ -444,6 +457,9 @@ export async function createCertificate(body) {
 export async function updateCertificate(id, body) {
   const existing = await getCertificate(id);
   if (!existing) return null;
+  if (body.docType !== undefined) assertValidDocType(body.docType);
+  const nextDocType =
+    body.docType !== undefined ? normalizeDocType(body.docType) : existing.docType;
   const rows = await q(
     `UPDATE certificates SET
       doc_type = $1,
@@ -460,7 +476,7 @@ export async function updateCertificate(id, body) {
     WHERE id = $11
     RETURNING *`,
     [
-      body.docType ?? existing.docType,
+      nextDocType,
       body.facilityName ?? existing.facilityName,
       body.address ?? existing.address,
       body.connectionSize ?? existing.connectionSize,

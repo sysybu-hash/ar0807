@@ -1,20 +1,36 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildCertificatePdfBuffer } from "../certificate-pdf.mjs";
+import { defaultExtraForType } from "../lib/cert-types.mjs";
+
+const inspector = {
+  name: "אברהם רובינשטיין - רובינשטיין חשמל",
+  licenseNo: "949789",
+  phone: "0587600807",
+  email: "a0587600807@gmail.com",
+  inspectorDeclarationText: "",
+};
+
+const baseCert = {
+  id: 1,
+  facilityName: "מתקן בדיקה",
+  address: "בניין דוד 18",
+  connectionSize: "3*80",
+  groundingValue: "TT",
+  insulation: "",
+  notes: "הערות בדיקה",
+  photos: [],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
 
 test("installation certificate PDF builds", async () => {
   const buf = await buildCertificatePdfBuffer({
     certificate: {
-      id: 1,
+      ...baseCert,
       docType: "installation",
-      facilityName: "מתקן",
-      address: "בניין דוד 18",
-      connectionSize: "3*80",
-      groundingValue: "TT",
-      insulation: "",
-      notes: "לוח מחומר פלסטי",
-      photos: [],
       extra: {
+        ...defaultExtraForType("installation"),
         clientName: "פיצה אורי ביתר",
         installationType: "חנות / מסחרי",
         inspectionDate: "2026-04-16",
@@ -23,16 +39,64 @@ test("installation certificate PDF builds", async () => {
           { description: "בידוד (L-PE)", result: "2.2" },
         ],
       },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     },
-    inspector: {
-      name: "אברהם רובינשטיין - רובינשטיין חשמל",
-      licenseNo: "949789",
-      phone: "0587600807",
-      email: "a0587600807@gmail.com",
-      inspectorDeclarationText: "",
+    inspector,
+  });
+  assert.ok(buf.length > 2000);
+  assert.equal(buf.slice(0, 4).toString(), "%PDF");
+});
+
+test("portable certificate PDF builds with appliance table", async () => {
+  const buf = await buildCertificatePdfBuffer({
+    certificate: {
+      ...baseCert,
+      docType: "portable",
+      facilityName: "משרדי הייטק",
+      extra: {
+        ...defaultExtraForType("portable"),
+        employerName: "חברת ABC",
+        inspectionDate: "2026-05-01",
+        appliances: [
+          {
+            assetId: "P-01",
+            description: "מחשב נייד",
+            location: "חדר 3",
+            visualOk: "תקין",
+            earthContinuity: "0.1",
+            insulation: ">1M",
+            leakage: "0.2mA",
+            result: "תקין",
+            nextTestDate: "2027-05-01",
+          },
+        ],
+      },
     },
+    inspector,
+  });
+  assert.ok(buf.length > 2000);
+  assert.equal(buf.slice(0, 4).toString(), "%PDF");
+});
+
+test("ev_charging certificate PDF builds", async () => {
+  const buf = await buildCertificatePdfBuffer({
+    certificate: {
+      ...baseCert,
+      docType: "ev_charging",
+      facilityName: "חניון בית פרטי",
+      groundingValue: "TN-S",
+      extra: {
+        ...defaultExtraForType("ev_charging"),
+        ownerName: "ישראל ישראלי",
+        stationManufacturer: "Wallbox",
+        stationModel: "Pulsar Plus",
+        stationSerial: "WB-12345",
+        stationPowerKw: "22",
+        chargeType: "AC",
+        connectorType: "Type 2",
+        inspectionDate: "2026-06-01",
+      },
+    },
+    inspector,
   });
   assert.ok(buf.length > 2000);
   assert.equal(buf.slice(0, 4).toString(), "%PDF");

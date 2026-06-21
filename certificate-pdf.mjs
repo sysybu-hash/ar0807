@@ -2,6 +2,13 @@ import PDFDocument from "pdfkit";
 import path from "path";
 import { fileURLToPath } from "url";
 import bidiFactory from "bidi-js";
+import {
+  CERT_TYPES,
+  mergeExtraForType,
+  normalizeDocType,
+  defaultVisualChecklist,
+  defaultTechRows,
+} from "./lib/cert-types.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const HEBREW_FONT = path.join(__dirname, "public", "fonts", "NotoSansHebrew-Regular.ttf");
@@ -79,24 +86,12 @@ function ensureY(doc, y, minBottom, need, m) {
   return m.top;
 }
 
-function defaultVisualChecklist() {
-  return [
-    "הידוק חיבורים בלוח",
-    "דרגת הגנה IP",
-    "אין חלקים חיים חשופים",
-    "צבעי מוליכים לפי התקן",
-    "רציפות הארקה",
-  ];
+function defaultVisualChecklistLocal() {
+  return defaultVisualChecklist();
 }
 
-function defaultTechRows() {
-  return [
-    { description: "לולאת תקלה (LT)", result: "—" },
-    { description: "בידוד (L-PE)", result: "—" },
-    { description: "בידוד (N-PE)", result: "—" },
-    { description: "ממסר פחת (זמן)", result: "—" },
-    { description: "זרם הקפצה (mA)", result: "—" },
-  ];
+function defaultTechRowsLocal() {
+  return defaultTechRows();
 }
 
 function parseTechRows(extra, certificate) {
@@ -139,14 +134,15 @@ function parseVisualList(extra) {
 export function buildCertificatePdfBuffer({ certificate, inspector }) {
   return new Promise((resolve, reject) => {
     const chunks = [];
-    const isPortable = certificate.docType === "portable";
+    const docType = normalizeDocType(certificate.docType);
+    const typeMeta = CERT_TYPES[docType];
     const doc = new PDFDocument({
       size: "A4",
       margin: 40,
       lang: "he-IL",
       bufferPages: true,
       info: {
-        Title: isPortable ? "אישור צרכנים מטלטלים" : "אישור תקינות מתקן חשמל",
+        Title: typeMeta?.pdfTitle || "אישור תקינות חשמל",
         Author: inspector?.name || "",
         Subject: "אישור תקינות חשמל",
         Keywords: "חשמל, תקינות, בודק מוסמך",
@@ -171,16 +167,19 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
     const bottomSafe = pageH - m.bottom - 48;
     let y = m.top;
 
-    const extra = safeExtra(certificate);
+    const extra = mergeExtraForType(docType, safeExtra(certificate));
     const docNo = String(extra.docNo || "").trim();
     const workflow = String(extra.workflowStatus || "").trim();
 
     const clientName = String(extra.clientName || "").trim() || "—";
     const installationType = String(extra.installationType || "").trim() || "—";
+    const inspectionPurpose = String(extra.inspectionPurpose || "").trim() || "—";
     const inspectionDate = fmtDateOnly(extra.inspectionDate, certificate.updatedAt || certificate.createdAt);
     const finalBanner =
-      String(extra.finalStatusBanner || "").trim() || "תקין - המתקן מאושר לשימוש";
-    const legalSubtitle = String(extra.legalSubtitle || "").trim() || "נערך בהתאם לחוק החשמל ותקנותיו";
+      String(extra.finalStatusBanner || "").trim() || "תקין — המתקן מאושר לשימוש";
+    const legalSubtitle =
+      String(extra.legalSubtitle || "").trim() ||
+      `הבדיקה בוצעה בהתאם ל${typeMeta?.legalRef || "חוק החשמל ותקנותיו"}`;
 
     const logoBuf = dataUrlToBuffer(inspector?.logoData);
     const logoSlot = logoBuf ? 56 : 0;
@@ -217,7 +216,7 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
     }
 
     const titleX = left + split + gap;
-    const mainTitle = isPortable ? "אישור צרכנים מטלטלים" : "אישור תקינות מתקן חשמל";
+    const mainTitle = typeMeta?.pdfTitle || "אישור תקינות חשמל";
     doc.fontSize(17).fillColor(BLUE).text(v(mainTitle), titleX, y + 6, {
       width: titleW,
       align: "right",
@@ -234,8 +233,14 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
     doc.restore();
     y += 14;
 
-    if (isPortable) {
+    if (docType === "portable") {
       y = renderPortableBody(doc, certificate, inspector, extra, left, contentW, y, bottomSafe, m, {
+        docNo,
+        workflow,
+        inspectionDate,
+      });
+    } else if (docType === "ev_charging") {
+      y = renderEvChargingBody(doc, certificate, inspector, extra, left, contentW, y, bottomSafe, m, {
         docNo,
         workflow,
         inspectionDate,
@@ -254,6 +259,7 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
         {
           clientName,
           installationType,
+          inspectionPurpose,
           inspectionDate,
           finalBanner,
           docNo,
@@ -301,7 +307,7 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
 
 function renderPortableBody(doc, certificate, inspector, extra, left, contentW, y, bottomSafe, m, meta) {
   const pad = 10;
-  const boxH = 52;
+  const boxH = 68;
   y = ensureY(doc, y, bottomSafe, boxH + 40, m);
   doc.save();
   doc.roundedRect(left, y, contentW, boxH, 3).fill(GREY_PANEL);
@@ -317,47 +323,212 @@ function renderPortableBody(doc, certificate, inspector, extra, left, contentW, 
     { width: contentW - pad * 2, align: "right" }
   );
   by += 14;
-  doc.text(v(`מתקן / ציוד: ${certificate.facilityName || "—"}`), left + pad, by, {
+  doc.text(v(`מזמין / אתר: ${extra.employerName || certificate.facilityName || "—"}`), left + pad, by, {
     width: contentW - pad * 2,
     align: "right",
   });
   by += 14;
-  doc.text(v(`כתובת / אתר: ${certificate.address || "—"}`), left + pad, by, {
+  doc.text(v(`כתובת / מיקום: ${certificate.address || "—"}`), left + pad, by, {
+    width: contentW - pad * 2,
+    align: "right",
+  });
+  by += 14;
+  doc.text(v(`שיטת סימון: ${extra.markingMethod || "מדבקה עם תאריך בדיקה"}`), left + pad, by, {
     width: contentW - pad * 2,
     align: "right",
   });
   y += boxH + 12;
 
-  const rows = [
-    ["גודל חיבור / הזנה", certificate.connectionSize || "—"],
-    ["הארקה ושיטת הגנה", certificate.groundingValue || "—"],
-    ["בידוד והגנות", certificate.insulation || "—"],
-    ["עודכן", fmtWhen(certificate.updatedAt || certificate.createdAt)],
+  const appliances = Array.isArray(extra.appliances) ? extra.appliances : [];
+  const cols = [
+    { label: "מס' נכס", key: "assetId", w: 0.1 },
+    { label: "תיאור", key: "description", w: 0.16 },
+    { label: "מיקום", key: "location", w: 0.12 },
+    { label: "חזותי", key: "visualOk", w: 0.08 },
+    { label: "הארקה", key: "earthContinuity", w: 0.1 },
+    { label: "בידוד", key: "insulation", w: 0.1 },
+    { label: "זליגה", key: "leakage", w: 0.1 },
+    { label: "תוצאה", key: "result", w: 0.1 },
+    { label: "בדיקה הבאה", key: "nextTestDate", w: 0.14 },
   ];
-  y = drawKeyValueTable(doc, left, contentW, y, bottomSafe, m, "פרטי הציוד", rows);
+  const rows =
+    appliances.length > 0
+      ? appliances.map((a) =>
+          cols.map((c) => String(a[c.key] ?? "—").trim() || "—")
+        )
+      : [["—", "לא הוזנו מכשירים", "—", "—", "—", "—", "—", "—", "—"]];
+  y = drawMultiColumnTable(doc, left, contentW, y, bottomSafe, m, "טבלת מכשירים (PAT)", cols, rows);
 
-  const notes = (certificate.notes || "").trim() || "לא צוינו הערות.";
+  const summary =
+    (extra.summary || "").trim() ||
+    (certificate.notes || "").trim() ||
+    "כל המכשירים שנבדקו עומדים בדרישות הבטיחות.";
   y = ensureY(doc, y, bottomSafe, 70, m);
   doc.fontSize(10).fillColor(BROWN_ACCENT);
   doc.moveTo(left, y).lineTo(left + 140, y).lineWidth(1).stroke(BROWN_ACCENT);
   y += 6;
-  doc.fontSize(11).fillColor("#0f172a").text(v("הערות"), left, y, { width: contentW, align: "right" });
+  doc.fontSize(11).fillColor("#0f172a").text(v("מסקנה כללית"), left, y, { width: contentW, align: "right" });
   y += 12;
-  doc.save();
-  doc.roundedRect(left, y, contentW, Math.min(100, doc.heightOfString(v(notes), { width: contentW - 16, align: "right" }) + 16), 2).fill("#f1f5f9");
-  doc.restore();
-  y += 8;
   doc.fontSize(9).fillColor("#1e293b");
-  doc.text(v(notes), left + 8, y, { width: contentW - 16, align: "right", lineGap: 2 });
+  doc.text(v(summary), left + 8, y, { width: contentW - 16, align: "right", lineGap: 2 });
   y = doc.y + 14;
 
   y = drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bottomSafe, m);
   return y;
 }
 
+function renderEvChargingBody(doc, certificate, inspector, extra, left, contentW, y, bottomSafe, m, meta) {
+  const pad = 10;
+  const boxH = 78;
+  y = ensureY(doc, y, bottomSafe, boxH + 40, m);
+  doc.save();
+  doc.roundedRect(left, y, contentW, boxH, 3).fill(GREY_PANEL);
+  doc.restore();
+  let by = y + pad;
+  doc.fontSize(9).fillColor("#334155");
+  doc.text(
+    v(
+      `תאריך בדיקה: ${meta.inspectionDate || "—"}    ·    מסמך: ${meta.docNo || "—"}    ·    ${meta.workflow ? `סטטוס: ${statusLabel(meta.workflow)}` : ""}`
+    ),
+    left + pad,
+    by,
+    { width: contentW - pad * 2, align: "right" }
+  );
+  by += 14;
+  doc.text(v(`בעלים: ${extra.ownerName || certificate.facilityName || "—"}`), left + pad, by, {
+    width: contentW - pad * 2,
+    align: "right",
+  });
+  by += 14;
+  doc.text(v(`כתובת: ${certificate.address || "—"}    ·    סוג אתר: ${extra.siteKind || "פרטי"}`), left + pad, by, {
+    width: contentW - pad * 2,
+    align: "right",
+  });
+  by += 14;
+  doc.text(
+    v(
+      `עמדה: ${extra.stationManufacturer || "—"} ${extra.stationModel || ""} · SN ${extra.stationSerial || "—"} · ${extra.stationPowerKw || "—"} kW · ${extra.chargeType || "AC"} · ${extra.connectorType || "—"}`
+    ),
+    left + pad,
+    by,
+    { width: contentW - pad * 2, align: "right" }
+  );
+  y += boxH + 12;
+
+  const importerLine = `הצהרת יבואן/יצרן: ${extra.importerDeclarationRef || "—"}${extra.importerDeclarationDate ? ` (${extra.importerDeclarationDate})` : ""}`;
+  y = drawKeyValueTable(doc, left, contentW, y, bottomSafe, m, "פרטי עמדה ומתקין", [
+    ["הצהרת יבואן", importerLine],
+    ["מתקין", `${extra.installerName || "—"} · רישיון ${extra.installerLicense || "—"}`],
+    ["תקן", extra.iec61851Ref || "IEC 61851-1 / IEC 60364-7-722"],
+    ["הארקה / הגנה", certificate.groundingValue || "—"],
+  ]);
+
+  const checks = Array.isArray(extra.checks) ? extra.checks : [];
+  const checkRows = checks.map((c) => [String(c.item || "—"), String(c.result || "—")]);
+  y = drawMultiColumnTable(
+    doc,
+    left,
+    contentW,
+    y,
+    bottomSafe,
+    m,
+    "בדיקות IEC 60364-7-722",
+    [
+      { label: "פריט", key: 0, w: 0.65 },
+      { label: "תוצאה", key: 1, w: 0.35 },
+    ],
+    checkRows.length ? checkRows : [["—", "—"]],
+    true
+  );
+
+  const periodic = Array.isArray(extra.periodicTests) ? extra.periodicTests : [];
+  const pRows = periodic.map((p) => [
+    String(p.test || "—"),
+    String(p.frequency || "—"),
+    String(p.lastDate || "—"),
+    String(p.result || "—"),
+  ]);
+  y = drawMultiColumnTable(
+    doc,
+    left,
+    contentW,
+    y,
+    bottomSafe,
+    m,
+    "טבלת תדירויות בדיקה",
+    [
+      { label: "בדיקה", key: 0, w: 0.4 },
+      { label: "תדירות", key: 1, w: 0.2 },
+      { label: "תאריך אחרון", key: 2, w: 0.2 },
+      { label: "תוצאה", key: 3, w: 0.2 },
+    ],
+    pRows.length ? pRows : [["—", "—", "—", "—"]],
+    true
+  );
+
+  const notes = (certificate.notes || "").trim();
+  if (notes) {
+    y = ensureY(doc, y, bottomSafe, 50, m);
+    doc.fontSize(10).fillColor(BLUE_DARK).text(v("הערות"), left, y, { width: contentW, align: "right" });
+    y += 12;
+    doc.fontSize(9).fillColor("#334155");
+    doc.text(v(notes), left, y, { width: contentW, align: "right", lineGap: 2 });
+    y = doc.y + 12;
+  }
+
+  const gridBanner =
+    String(extra.gridApprovalBanner || "").trim() || "מאושר לחיבור לרשת לפני הפעלה ראשונה";
+  y = ensureY(doc, y, bottomSafe, 36, m);
+  doc.save();
+  doc.rect(left, y, contentW, 32).fill(BLUE);
+  doc.restore();
+  doc.fontSize(11.5).fillColor("#ffffff");
+  doc.text(v(gridBanner), left, y + 9, { width: contentW, align: "center" });
+  y += 40;
+
+  y = drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bottomSafe, m);
+  return y;
+}
+
+function drawMultiColumnTable(doc, left, contentW, y, bottomSafe, m, title, cols, rows, rowsAreArrays = false) {
+  y = ensureY(doc, y, bottomSafe, 28, m);
+  doc.fontSize(10.5).fillColor(BLUE_DARK).text(v(title), left, y, { width: contentW, align: "right" });
+  y += 12;
+  const rowH = 18;
+  const headerH = 20;
+  const widths = cols.map((c) => contentW * c.w);
+  y = ensureY(doc, y, bottomSafe, headerH + 4, m);
+  doc.save();
+  doc.rect(left, y, contentW, headerH).fill(GREY_TABLE_HEAD).stroke("#cbd5e1");
+  doc.restore();
+  doc.fontSize(7.5).fillColor("#334155");
+  let hx = left + contentW;
+  for (let i = 0; i < cols.length; i++) {
+    hx -= widths[i];
+    doc.text(v(cols[i].label), hx + 2, y + 5, { width: widths[i] - 4, align: "right" });
+  }
+  y += headerH;
+  for (let ri = 0; ri < rows.length; ri++) {
+    y = ensureY(doc, y, bottomSafe, rowH + 2, m);
+    doc.save();
+    doc.rect(left, y, contentW, rowH).fill(ri % 2 === 0 ? "#f8fafc" : "#ffffff").stroke("#e2e8f0");
+    doc.restore();
+    doc.fontSize(7.2).fillColor("#0f172a");
+    const row = rows[ri];
+    let rx = left + contentW;
+    for (let ci = 0; ci < cols.length; ci++) {
+      rx -= widths[ci];
+      const cell = rowsAreArrays ? row[ci] : row[cols[ci].key];
+      doc.text(v(String(cell ?? "—")), rx + 2, y + 4, { width: widths[ci] - 4, align: "right" });
+    }
+    y += rowH;
+  }
+  return y + 10;
+}
+
 function renderInstallationBody(doc, certificate, inspector, extra, left, contentW, y, bottomSafe, m, meta) {
   const pad = 12;
-  const boxH = 68;
+  const boxH = 82;
   y = ensureY(doc, y, bottomSafe, boxH + 24, m);
   doc.save();
   doc.roundedRect(left, y, contentW, boxH, 3).fill(GREY_PANEL);
@@ -372,14 +543,34 @@ function renderInstallationBody(doc, certificate, inspector, extra, left, conten
   y1 += 14;
   doc.text(v(`כתובת המתקן: ${certificate.address || "—"}`), mid + pad / 2, y1, { width: colW, align: "right" });
   doc.text(v(`סוג המתקן: ${meta.installationType}`), left + pad / 2, y1, { width: colW, align: "right" });
+  y1 += 14;
+  doc.text(v(`מטרת בדיקה: ${meta.inspectionPurpose}`), mid + pad / 2, y1, { width: colW, align: "right" });
+  doc.text(
+    v(`מס׳ מסמך: ${meta.docNo || "—"}${meta.workflow ? ` · ${statusLabel(meta.workflow)}` : ""}`),
+    left + pad / 2,
+    y1,
+    { width: colW, align: "right" }
+  );
   y += boxH + 14;
 
   // נתוני חיבור ואספקה
-  y = ensureY(doc, y, bottomSafe, 36, m);
+  y = ensureY(doc, y, bottomSafe, 48, m);
   doc.fontSize(10.5).fillColor(BLUE_DARK).text(v("נתוני חיבור ואספקה"), left, y, { width: contentW, align: "right" });
   y += 13;
   doc.fontSize(9.2).fillColor("#1e293b");
-  const connLine = `גודל חיבור: ${certificate.connectionSize || "—"}    ·    שיטת הגנה: ${certificate.groundingValue || "—"}`;
+  const connExisting = String(extra.connectionExisting || certificate.connectionSize || "—").trim();
+  const connRequested = String(extra.connectionRequested || "—").trim();
+  const panelMeter = String(extra.panelMeterNo || "—").trim();
+  doc.text(
+    v(
+      `חיבור קיים: ${connExisting}    ·    חיבור מבוקש: ${connRequested}    ·    לוח/מונה: ${panelMeter}`
+    ),
+    left,
+    y,
+    { width: contentW, align: "right" }
+  );
+  y += 14;
+  const connLine = `שיטת הגנה: ${certificate.groundingValue || "—"}    ·    בידוד: ${certificate.insulation || "—"}`;
   doc.text(v(connLine), left, y, { width: contentW, align: "right" });
   y += 18;
 

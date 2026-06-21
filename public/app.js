@@ -1,6 +1,12 @@
 /* global SignaturePad */
 import { api, apiBlob, getToken, setToken, clearToken } from "./js/api.js";
 import {
+  certTypeLabel,
+  defaultPortableApplianceRow,
+  defaultEvChecks,
+  defaultEvPeriodicTests,
+} from "./js/cert-types.js";
+import {
   enqueueProjectWizardPayload,
   processPendingWizardQueue,
   countPendingWizard,
@@ -137,6 +143,9 @@ let isPortalOpen = false;
 let projectPhotos = [];
 let docPhotos = [];
 let docSignaturePad = null;
+let portableAppliances = [];
+let evChecksState = defaultEvChecks();
+let evPeriodicState = defaultEvPeriodicTests();
 let projectCache = [];
 let docsCache = [];
 let invoicesCache = [];
@@ -1315,22 +1324,130 @@ async function bindDocForm() {
       renderDocPhotos();
     });
   }
+  const docTypeEl = $("docType");
+  if (docTypeEl) docTypeEl.addEventListener("change", onDocTypeChange);
+  const addPortableRow = $("docPortableAddRow");
+  if (addPortableRow) {
+    addPortableRow.onclick = () => {
+      portableAppliances.push(defaultPortableApplianceRow());
+      renderPortableAppliancesTable();
+    };
+  }
+  const searchEl = $("docsSearchInput");
+  const typeFilterEl = $("docsTypeFilter");
+  const statusFilterEl = $("docsStatusFilter");
+  if (searchEl) searchEl.addEventListener("input", renderDocsTable);
+  if (typeFilterEl) typeFilterEl.addEventListener("change", renderDocsTable);
+  if (statusFilterEl) statusFilterEl.addEventListener("change", renderDocsTable);
   const newBtn = $("newDocBtn");
   const saveBtn = $("saveDocBtn");
   const printBtn = $("printDocBtn");
   const downloadBtn = $("downloadPdfBtn");
   const shareBtn = $("shareDocBtn");
+  const finalizeBtn = $("finalizeDocBtn");
   if (newBtn) newBtn.onclick = () => fillDocForm(null);
   if (saveBtn) saveBtn.onclick = saveDoc;
   if (printBtn) printBtn.onclick = printCurrentDoc;
   if (downloadBtn) downloadBtn.onclick = () => downloadServerPdf();
   if (shareBtn) shareBtn.onclick = () => shareCurrentDoc();
+  if (finalizeBtn) {
+    finalizeBtn.onclick = async () => {
+      setInputValue("docWorkflowStatus", "final");
+      await saveDoc();
+      showToast("המסמך סומן כסופי.", "ok");
+    };
+  }
+  onDocTypeChange();
 }
 
 function renderDocPhotos() {
   renderThumbGrid("docPhotosPreview", docPhotos, (i) => {
     docPhotos.splice(i, 1);
     renderDocPhotos();
+  });
+}
+
+function onDocTypeChange() {
+  const t = inputRaw("docType") || "installation";
+  const inst = $("docFieldsInstallation");
+  const port = $("docFieldsPortable");
+  const ev = $("docFieldsEvCharging");
+  if (inst) inst.classList.toggle("hidden", t !== "installation");
+  if (port) port.classList.toggle("hidden", t !== "portable");
+  if (ev) ev.classList.toggle("hidden", t !== "ev_charging");
+}
+
+function renderPortableAppliancesTable() {
+  const tbody = $("docPortableAppliances");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+  portableAppliances.forEach((row, idx) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input class="inp inp-compact" data-field="assetId" data-idx="${idx}" value="${escapeHtml(row.assetId || "")}" /></td>
+      <td><input class="inp inp-compact" data-field="description" data-idx="${idx}" value="${escapeHtml(row.description || "")}" /></td>
+      <td><input class="inp inp-compact" data-field="location" data-idx="${idx}" value="${escapeHtml(row.location || "")}" /></td>
+      <td><input class="inp inp-compact" data-field="visualOk" data-idx="${idx}" value="${escapeHtml(row.visualOk || "")}" /></td>
+      <td><input class="inp inp-compact" data-field="earthContinuity" data-idx="${idx}" value="${escapeHtml(row.earthContinuity || "")}" /></td>
+      <td><input class="inp inp-compact" data-field="insulation" data-idx="${idx}" value="${escapeHtml(row.insulation || "")}" /></td>
+      <td><input class="inp inp-compact" data-field="leakage" data-idx="${idx}" value="${escapeHtml(row.leakage || "")}" /></td>
+      <td><input class="inp inp-compact" data-field="result" data-idx="${idx}" value="${escapeHtml(row.result || "")}" /></td>
+      <td><input class="inp inp-compact" type="date" data-field="nextTestDate" data-idx="${idx}" value="${escapeHtml(row.nextTestDate || "")}" /></td>
+      <td><button type="button" class="tbl-btn tbl-btn-del" data-del="${idx}" aria-label="מחק שורה">×</button></td>`;
+    tr.querySelectorAll("input[data-field]").forEach((inp) => {
+      inp.addEventListener("input", () => {
+        const i = Number(inp.dataset.idx);
+        const f = inp.dataset.field;
+        if (portableAppliances[i]) portableAppliances[i][f] = inp.value;
+      });
+    });
+    tr.querySelector("[data-del]")?.addEventListener("click", () => {
+      portableAppliances.splice(idx, 1);
+      renderPortableAppliancesTable();
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+function renderEvChecksForm() {
+  const wrap = $("docEvChecks");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  evChecksState.forEach((c, idx) => {
+    const row = document.createElement("div");
+    row.className = "ev-check-row";
+    row.innerHTML = `
+      <span class="ev-check-row__label">${escapeHtml(c.item)}</span>
+      <select class="inp select inp-compact" data-ev-check="${idx}">
+        <option value="תקין" ${c.result === "תקין" ? "selected" : ""}>תקין</option>
+        <option value="לא תקין" ${c.result === "לא תקין" ? "selected" : ""}>לא תקין</option>
+        <option value="—" ${c.result === "—" ? "selected" : ""}>—</option>
+      </select>`;
+    row.querySelector("select")?.addEventListener("change", (e) => {
+      evChecksState[idx].result = e.target.value;
+    });
+    wrap.appendChild(row);
+  });
+}
+
+function renderEvPeriodicForm() {
+  const tbody = $("docEvPeriodic");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+  evPeriodicState.forEach((p, idx) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(p.test)}</td>
+      <td>${escapeHtml(p.frequency)}</td>
+      <td><input class="inp inp-compact" type="date" data-ev-date="${idx}" value="${escapeHtml(p.lastDate || "")}" /></td>
+      <td><input class="inp inp-compact" data-ev-result="${idx}" value="${escapeHtml(p.result || "")}" /></td>`;
+    tr.querySelector("[data-ev-date]")?.addEventListener("input", (e) => {
+      evPeriodicState[idx].lastDate = e.target.value;
+    });
+    tr.querySelector("[data-ev-result]")?.addEventListener("input", (e) => {
+      evPeriodicState[idx].result = e.target.value;
+    });
+    tbody.appendChild(tr);
   });
 }
 
@@ -1342,12 +1459,16 @@ function fillDocForm(doc) {
   setInputValue("docWorkflowStatus", ex.workflowStatus || "draft");
   setInputValue("docFacilityName", doc?.facilityName || "");
   setInputValue("docAddress", doc?.address || "");
-  setInputValue("docConnection", doc?.connectionSize || "");
-  setInputValue("docGrounding", doc?.groundingValue || "");
-  setInputValue("docInsulation", doc?.insulation || "");
+  setInputValue("docInspectionDate", ex.inspectionDate || "");
+  setInputValue("docNotes", doc?.notes || "");
   setInputValue("docClientName", ex.clientName || "");
   setInputValue("docInstallationType", ex.installationType || "");
-  setInputValue("docInspectionDate", ex.inspectionDate || "");
+  setInputValue("docInspectionPurpose", ex.inspectionPurpose || "מתקן חדש");
+  setInputValue("docConnection", doc?.connectionSize || ex.connectionExisting || "");
+  setInputValue("docConnectionRequested", ex.connectionRequested || "");
+  setInputValue("docGrounding", doc?.groundingValue || "");
+  setInputValue("docInsulation", doc?.insulation || "");
+  setInputValue("docPanelMeterNo", ex.panelMeterNo || "");
   setInputValue("docFinalStatus", ex.finalStatusBanner || "");
   try {
     setInputValue("docTechJson", Array.isArray(ex.techInspection) ? JSON.stringify(ex.techInspection, null, 2) : "");
@@ -1359,7 +1480,36 @@ function fillDocForm(doc) {
   } catch {
     setInputValue("docVisualJson", "");
   }
-  setInputValue("docNotes", doc?.notes || "");
+  setInputValue("docPortableEmployer", ex.employerName || "");
+  setInputValue("docPortableMarking", ex.markingMethod || "מדבקה עם תאריך בדיקה");
+  setInputValue("docPortableSummary", ex.summary || "");
+  portableAppliances = Array.isArray(ex.appliances) && ex.appliances.length
+    ? ex.appliances.map((a) => ({ ...defaultPortableApplianceRow(), ...a }))
+    : [];
+  setInputValue("docEvOwner", ex.ownerName || "");
+  setInputValue("docEvSiteKind", ex.siteKind || "פרטי");
+  setInputValue("docEvManufacturer", ex.stationManufacturer || "");
+  setInputValue("docEvModel", ex.stationModel || "");
+  setInputValue("docEvSerial", ex.stationSerial || "");
+  setInputValue("docEvPowerKw", ex.stationPowerKw || "");
+  setInputValue("docEvChargeType", ex.chargeType || "AC");
+  setInputValue("docEvConnector", ex.connectorType || "");
+  setInputValue("docEvImporterRef", ex.importerDeclarationRef || "");
+  setInputValue("docEvImporterDate", ex.importerDeclarationDate || "");
+  setInputValue("docEvInstallerName", ex.installerName || "");
+  setInputValue("docEvInstallerLicense", ex.installerLicense || "");
+  setInputValue("docEvGrounding", doc?.groundingValue || ex.groundingValue || "");
+  setInputValue("docEvGridBanner", ex.gridApprovalBanner || "");
+  evChecksState = Array.isArray(ex.checks) && ex.checks.length
+    ? ex.checks.map((c, i) => ({ ...(defaultEvChecks()[i] || { item: c.item, result: "תקין" }), ...c }))
+    : defaultEvChecks();
+  evPeriodicState = Array.isArray(ex.periodicTests) && ex.periodicTests.length
+    ? ex.periodicTests.map((p, i) => ({ ...(defaultEvPeriodicTests()[i] || {}), ...p }))
+    : defaultEvPeriodicTests();
+  renderPortableAppliancesTable();
+  renderEvChecksForm();
+  renderEvPeriodicForm();
+  onDocTypeChange();
   docPhotos = doc?.photos ? doc.photos.slice() : [];
   renderDocPhotos();
   if (docSignaturePad) {
@@ -1369,39 +1519,75 @@ function fillDocForm(doc) {
 }
 
 function buildDocPayload() {
+  const docType = inputRaw("docType") || "installation";
   const extra = {
     docNo: inputTrim("docNo"),
     workflowStatus: inputRaw("docWorkflowStatus") || "draft",
-    clientName: inputTrim("docClientName"),
-    installationType: inputTrim("docInstallationType"),
     inspectionDate: inputRaw("docInspectionDate"),
-    finalStatusBanner: inputTrim("docFinalStatus"),
   };
-  const tj = inputTrim("docTechJson");
-  if (tj) {
-    try {
-      extra.techInspection = JSON.parse(tj);
-      if (!Array.isArray(extra.techInspection)) throw new Error("not array");
-    } catch {
-      throw new Error("תוצאות בדיקה טכנית — JSON לא תקין (נדרש מערך אובייקטים).");
+  if (docType === "installation") {
+    Object.assign(extra, {
+      clientName: inputTrim("docClientName"),
+      installationType: inputTrim("docInstallationType"),
+      inspectionPurpose: inputRaw("docInspectionPurpose"),
+      connectionExisting: inputTrim("docConnection"),
+      connectionRequested: inputTrim("docConnectionRequested"),
+      panelMeterNo: inputTrim("docPanelMeterNo"),
+      finalStatusBanner: inputTrim("docFinalStatus"),
+    });
+    const tj = inputTrim("docTechJson");
+    if (tj) {
+      try {
+        extra.techInspection = JSON.parse(tj);
+        if (!Array.isArray(extra.techInspection)) throw new Error("not array");
+      } catch {
+        throw new Error("תוצאות בדיקה טכנית — JSON לא תקין (נדרש מערך אובייקטים).");
+      }
     }
-  }
-  const vj = inputTrim("docVisualJson");
-  if (vj) {
-    try {
-      extra.visualChecklist = JSON.parse(vj);
-      if (!Array.isArray(extra.visualChecklist)) throw new Error("not array");
-    } catch {
-      throw new Error("רשימת בדיקה ויזואלית — JSON לא תקין (נדרש מערך מחרוזות).");
+    const vj = inputTrim("docVisualJson");
+    if (vj) {
+      try {
+        extra.visualChecklist = JSON.parse(vj);
+        if (!Array.isArray(extra.visualChecklist)) throw new Error("not array");
+      } catch {
+        throw new Error("רשימת בדיקה ויזואלית — JSON לא תקין (נדרש מערך מחרוזות).");
+      }
     }
+  } else if (docType === "portable") {
+    Object.assign(extra, {
+      employerName: inputTrim("docPortableEmployer"),
+      markingMethod: inputTrim("docPortableMarking") || "מדבקה עם תאריך בדיקה",
+      summary: inputTrim("docPortableSummary"),
+      appliances: portableAppliances.slice(0, 50),
+    });
+  } else if (docType === "ev_charging") {
+    Object.assign(extra, {
+      ownerName: inputTrim("docEvOwner"),
+      siteKind: inputRaw("docEvSiteKind"),
+      stationManufacturer: inputTrim("docEvManufacturer"),
+      stationModel: inputTrim("docEvModel"),
+      stationSerial: inputTrim("docEvSerial"),
+      stationPowerKw: inputTrim("docEvPowerKw"),
+      chargeType: inputRaw("docEvChargeType"),
+      connectorType: inputTrim("docEvConnector"),
+      importerDeclarationRef: inputTrim("docEvImporterRef"),
+      importerDeclarationDate: inputRaw("docEvImporterDate"),
+      installerName: inputTrim("docEvInstallerName"),
+      installerLicense: inputTrim("docEvInstallerLicense"),
+      gridApprovalBanner: inputTrim("docEvGridBanner"),
+      checks: evChecksState.slice(),
+      periodicTests: evPeriodicState.slice(),
+    });
   }
+  const grounding =
+    docType === "ev_charging" ? inputTrim("docEvGrounding") : inputTrim("docGrounding");
   return {
-    docType: inputRaw("docType"),
+    docType,
     facilityName: inputTrim("docFacilityName"),
     address: inputTrim("docAddress"),
-    connectionSize: inputTrim("docConnection"),
-    groundingValue: inputTrim("docGrounding"),
-    insulation: inputTrim("docInsulation"),
+    connectionSize: docType === "installation" ? inputTrim("docConnection") : "",
+    groundingValue: grounding,
+    insulation: docType === "installation" ? inputTrim("docInsulation") : "",
     notes: inputTrim("docNotes"),
     photos: docPhotos,
     extra,
@@ -1429,12 +1615,47 @@ async function saveDoc() {
   refreshDashboardStats();
 }
 
+function printDocTypeBody(doc) {
+  const ex = doc.extra && typeof doc.extra === "object" ? doc.extra : {};
+  const t = doc.docType || "installation";
+  if (t === "portable") {
+    const rows = (ex.appliances || [])
+      .map(
+        (a) =>
+          `<tr><td>${escapeHtml(a.assetId || "")}</td><td>${escapeHtml(a.description || "")}</td><td>${escapeHtml(a.location || "")}</td><td>${escapeHtml(a.result || "")}</td><td>${escapeHtml(a.nextTestDate || "")}</td></tr>`
+      )
+      .join("");
+    return `
+      <p><b>מזמין:</b> ${escapeHtml(ex.employerName || doc.facilityName || "")}</p>
+      <p><b>שיטת סימון:</b> ${escapeHtml(ex.markingMethod || "")}</p>
+      <table class="print-table"><thead><tr><th>נכס</th><th>תיאור</th><th>מיקום</th><th>תוצאה</th><th>בדיקה הבאה</th></tr></thead><tbody>${rows || "<tr><td colspan='5'>—</td></tr>"}</tbody></table>
+      <p class="print-summary"><b>מסקנה:</b> ${escapeHtml(ex.summary || doc.notes || "")}</p>`;
+  }
+  if (t === "ev_charging") {
+    const checks = (ex.checks || [])
+      .map((c) => `<tr><td>${escapeHtml(c.item || "")}</td><td>${escapeHtml(c.result || "")}</td></tr>`)
+      .join("");
+    return `
+      <p><b>בעלים:</b> ${escapeHtml(ex.ownerName || doc.facilityName || "")} · <b>סוג אתר:</b> ${escapeHtml(ex.siteKind || "")}</p>
+      <p><b>עמדה:</b> ${escapeHtml(ex.stationManufacturer || "")} ${escapeHtml(ex.stationModel || "")} · ${escapeHtml(ex.stationPowerKw || "")} kW · ${escapeHtml(ex.chargeType || "")}</p>
+      <p><b>מתקין:</b> ${escapeHtml(ex.installerName || "")} · רישיון ${escapeHtml(ex.installerLicense || "")}</p>
+      <table class="print-table"><thead><tr><th>בדיקה</th><th>תוצאה</th></tr></thead><tbody>${checks}</tbody></table>
+      <p class="print-banner">${escapeHtml(ex.gridApprovalBanner || "מאושר לחיבור לרשת לפני הפעלה ראשונה")}</p>`;
+  }
+  return `
+    <p><b>לקוח:</b> ${escapeHtml(ex.clientName || "")} · <b>מטרת בדיקה:</b> ${escapeHtml(ex.inspectionPurpose || "")}</p>
+    <p><b>סוג מתקן:</b> ${escapeHtml(ex.installationType || "")}</p>
+    <p><b>גודל חיבור:</b> ${escapeHtml(doc.connectionSize || "")} · <b>הארקה:</b> ${escapeHtml(doc.groundingValue || "")} · <b>בידוד:</b> ${escapeHtml(doc.insulation || "")}</p>
+    <p class="print-banner">${escapeHtml(ex.finalStatusBanner || "תקין — המתקן מאושר לשימוש")}</p>`;
+}
+
 function printDoc(doc) {
   const when = fmtDate(doc.updatedAt || doc.createdAt || new Date().toISOString());
-  const title = doc.docType === "portable" ? "אישור צרכנים מטלטלים" : "אישור תקינות מתקן";
+  const title = certTypeLabel(doc.docType);
   const ex = doc.extra && typeof doc.extra === "object" ? doc.extra : {};
   const docNoStr = ex.docNo ? String(ex.docNo) : "";
   const wfStr = ex.workflowStatus === "final" ? "סופי" : ex.workflowStatus === "draft" ? "טיוטה" : "";
+  const typeBody = printDocTypeBody(doc);
   const photosHtml = (doc.photos || [])
     .map(
       (p) =>
@@ -1471,10 +1692,9 @@ function printDoc(doc) {
       <div><b>שם מתקן:</b> ${escapeHtml(doc.facilityName)}</div>
       <div><b>תאריך:</b> ${escapeHtml(when)}</div>
       <div><b>כתובת:</b> ${escapeHtml(doc.address || "")}</div>
-      <div><b>גודל חיבור:</b> ${escapeHtml(doc.connectionSize || "")}</div>
-      <div><b>הארקה:</b> ${escapeHtml(doc.groundingValue || "")}</div>
-      <div><b>בידוד:</b> ${escapeHtml(doc.insulation || "")}</div>
+      <div><b>תאריך בדיקה:</b> ${escapeHtml(ex.inspectionDate || "")}</div>
     </div>
+    <div class="mb-4 print-type-body">${typeBody}</div>
     <div class="mb-4"><h3 class="font-bold">הערות</h3><div class="border rounded p-2 min-h-[40px] whitespace-pre-wrap">${escapeHtml(doc.notes || "")}</div></div>
     ${photosBlock}
     ${declBlock}
@@ -1517,6 +1737,11 @@ function printDoc(doc) {
     .blank-sheet{position:relative;max-width:210mm;min-height:287mm;margin:0 auto;padding:12mm}
     .blank-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:0;transform:translate(${Number(settings.blankOffsetXmm || 0)}mm, ${Number(settings.blankOffsetYmm || 0)}mm) scale(${Math.min(1.2, Math.max(0.8, Number(settings.blankScale || 1)))});transform-origin:top right}
     .blank-content{position:relative;z-index:1;padding-top:38mm}
+    .print-table{width:100%;border-collapse:collapse;margin:0.75rem 0;font-size:0.85rem}
+    .print-table th,.print-table td{border:1px solid #cbd5e1;padding:0.35rem 0.5rem;text-align:right}
+    .print-table th{background:#eef1f6}
+    .print-banner{background:#1a56b4;color:#fff;padding:0.5rem 1rem;text-align:center;border-radius:0.25rem;font-weight:700;margin:0.75rem 0}
+    .print-type-body{font-size:0.9rem;line-height:1.6}
   </style>
   </head><body>
   ${settings.useBlankTemplate && settings.blankTemplateData ? blankLayout : standardLayout}
@@ -1534,16 +1759,29 @@ async function printCurrentDoc() {
   }
 }
 
-async function loadDocs() {
-  const res = await api("/api/certificates");
-  docsCache = res?.items ?? (Array.isArray(res) ? res : []);
+function filteredDocs() {
+  const q = (inputTrim("docsSearchInput") || "").toLowerCase();
+  const typeF = inputRaw("docsTypeFilter") || "";
+  const statusF = inputRaw("docsStatusFilter") || "";
+  return docsCache.filter((row) => {
+    if (typeF && row.docType !== typeF) return false;
+    const st = row.workflowStatus || "draft";
+    if (statusF && st !== statusF) return false;
+    if (!q) return true;
+    const hay = `${row.facilityName || ""} ${row.address || ""} ${row.id || ""}`.toLowerCase();
+    return hay.includes(q);
+  });
+}
+
+function renderDocsTable() {
   const tbody = $("docsTable");
   if (!tbody) return;
   tbody.innerHTML = "";
-  docsCache.forEach((row) => {
+  filteredDocs().forEach((row) => {
     const tr = document.createElement("tr");
+    const stLabel = row.workflowStatus === "final" ? "סופי" : "טיוטה";
     tr.innerHTML = `
-      <td>${row.docType === "portable" ? "צרכנים מטלטלים" : "תקינות מתקן"}</td>
+      <td>${escapeHtml(certTypeLabel(row.docType))}<br><small style="color:var(--text-light)">${escapeHtml(stLabel)}</small></td>
       <td>${escapeHtml(row.facilityName)}</td>
       <td>${escapeHtml(row.address || "")}</td>
       <td>${escapeHtml(fmtDate(row.updatedAt))}</td>
@@ -1562,6 +1800,12 @@ async function loadDocs() {
     };
     tbody.appendChild(tr);
   });
+}
+
+async function loadDocs() {
+  const res = await api("/api/certificates");
+  docsCache = res?.items ?? (Array.isArray(res) ? res : []);
+  renderDocsTable();
 }
 
 function renderFinancialForm(type) {
