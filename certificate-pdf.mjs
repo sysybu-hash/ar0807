@@ -314,8 +314,8 @@ function drawRtlHebrewLatinLine(doc, hebrewText, latinText, x, y, width, opts = 
   return y + lineHeight(doc, fontSize, opts);
 }
 
-/** Top corners: issue date (physical left) + בס"ד (physical right). */
-function drawTopMetaCorners(doc, layout, useBlank, { issueDate }) {
+/** בס"ד only — top-right, does not touch letterhead body text. */
+function drawPageBsd(doc, layout, useBlank) {
   const pageW = doc.page.width;
   const side = useBlank ? mmToPt(BLANK_LETTERHEAD.sideMm) : layout.left;
   const y = mmToPt(useBlank ? BLANK_LETTERHEAD.metaTopMm : 16);
@@ -323,14 +323,20 @@ function drawTopMetaCorners(doc, layout, useBlank, { issueDate }) {
   const metaFs = 8.5;
   const metaColor = "#475569";
   doc.fontSize(metaFs).fillColor(metaColor);
-
-  if (issueDate) {
-    pdfText(doc, `תאריך הנפקה: ${issueDate}`, side, y, bandW * 0.58, {
-      align: "left",
-      fontSize: metaFs,
-    });
-  }
   pdfText(doc, 'בס"ד', side, y, bandW, { align: "right", fontSize: metaFs });
+}
+
+/** תאריך הנפקה — below letterhead rule, physical left (not on the blank artwork). */
+function drawIssueDateBelowHeader(doc, left, contentW, y, issueDate) {
+  if (!issueDate) return y;
+  const metaFs = 10.5;
+  const metaColor = "#475569";
+  doc.fontSize(metaFs).fillColor(metaColor);
+  pdfText(doc, `תאריך הנפקה: ${issueDate}`, left, y, contentW * 0.55, {
+    align: "left",
+    fontSize: metaFs,
+  });
+  return y + lineHeight(doc, metaFs) + 6;
 }
 
 /** מס' אישור — centered below document title, prominent. */
@@ -349,8 +355,9 @@ function drawApprovalBelowTitle(doc, left, contentW, y, approvalNo) {
 
 function drawBlankDocumentTitle(doc, left, contentW, y, mainTitle, legalSubtitle, docMeta = {}) {
   const titleFs = String(mainTitle).length > 28 ? 13 : 15;
+  let cy = drawIssueDateBelowHeader(doc, left, contentW, y, docMeta.issueDate);
   doc.fontSize(titleFs).fillColor(BLUE_DARK);
-  let cy = pdfText(doc, mainTitle, left, y, contentW, { align: "center", fontSize: titleFs, lineGap: 0.5 });
+  cy = pdfText(doc, mainTitle, left, cy, contentW, { align: "center", fontSize: titleFs, lineGap: 0.5 });
   cy = drawApprovalBelowTitle(doc, left, contentW, cy, docMeta.approvalNo);
   if (legalSubtitle) {
     doc.fontSize(7).fillColor("#64748b");
@@ -539,6 +546,7 @@ function drawCertificateHeader(doc, { left, contentW, y, inspector, mainTitle, l
   doc.fontSize(titleFs).fillColor(BLUE);
   rtlBlock(doc, mainTitle, left, cursorY, contentW, { lineGap: 1 });
   cursorY = doc.y + 6;
+  cursorY = drawIssueDateBelowHeader(doc, left, contentW, cursorY, docMeta?.issueDate);
   cursorY = drawApprovalBelowTitle(doc, left, contentW, cursorY, docMeta?.approvalNo);
 
   doc.fontSize(8.2).fillColor("#475569");
@@ -648,7 +656,7 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
     );
     const workflow = String(extra.workflowStatus || "").trim();
 
-    drawTopMetaCorners(doc, layout, useBlank, { issueDate });
+    drawPageBsd(doc, layout, useBlank);
 
     const clientName = String(extra.clientName || "").trim() || "—";
     const installationType = String(extra.installationType || "").trim() || "—";
@@ -673,7 +681,7 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
       logoBuf,
       skipLetterhead: useBlank,
       blankMode: useBlank,
-      docMeta: { approvalNo },
+      docMeta: { approvalNo, issueDate },
     });
 
     if (docType === "portable") {

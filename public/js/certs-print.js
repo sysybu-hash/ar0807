@@ -189,10 +189,10 @@ export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } 
     <div class="blank-sheet">
       ${settings.blankTemplateData ? `<img src="${settings.blankTemplateData}" class="blank-bg" alt="">` : ""}
       <div class="blank-meta-top" aria-hidden="true">
-        <span class="blank-meta-issue">${issueDateFmt ? `תאריך הנפקה: ${escapeHtml(issueDateFmt)}` : ""}</span>
         <span class="blank-meta-bsd">בס"ד</span>
       </div>
       <div class="blank-content">
+        <div class="blank-doc-issue">${issueDateFmt ? `תאריך הנפקה: ${escapeHtml(issueDateFmt)}` : ""}</div>
         <h1 class="blank-doc-title">${escapeHtml(pdfTitle)}</h1>
         <div class="blank-doc-approval">${approvalNo ? `מס' אישור: ${escapeHtml(approvalNo)}` : ""}</div>
         <div class="grid grid-cols-2 gap-2 text-sm border rounded p-3 bg-white/90 mb-4">
@@ -214,9 +214,9 @@ export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } 
   <style>
     .blank-sheet{position:relative;max-width:210mm;min-height:287mm;margin:0 auto;padding:12mm}
     .blank-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:0;transform:translate(${Number(settings.blankOffsetXmm || 0)}mm, ${Number(settings.blankOffsetYmm || 0)}mm) scale(${blankScale});transform-origin:top right}
-    .blank-meta-top{position:absolute;top:11mm;left:14mm;right:14mm;z-index:2;display:flex;justify-content:space-between;align-items:flex-start;font-size:0.8rem;color:#475569;line-height:1.2}
-    .blank-meta-issue{text-align:left;max-width:58%}
+    .blank-meta-top{position:absolute;top:11mm;left:14mm;right:14mm;z-index:2;display:flex;justify-content:flex-end;font-size:0.8rem;color:#475569;line-height:1.2}
     .blank-meta-bsd{text-align:right}
+    .blank-doc-issue{text-align:left;font-size:1rem;color:#475569;margin-bottom:0.35rem}
     .blank-doc-title{text-align:center;font-size:1.2rem;font-weight:700;color:#0d3d82;margin:0 0 0.4rem;line-height:1.35}
     .blank-doc-approval{text-align:center;font-size:1.05rem;font-weight:700;color:#334155;margin-bottom:0.55rem}
     .blank-content{position:relative;z-index:1;padding-top:53mm;padding-left:14mm;padding-right:14mm;padding-bottom:28mm}
