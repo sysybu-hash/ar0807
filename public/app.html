@@ -943,7 +943,8 @@
                       </div>
                     </fieldset>
 
-                    </div><div class="certs-v2__step-panel hidden" data-step-panel="details"><fieldset id="v2DocFieldsInstallation" class="certs-v2__fieldset doc-type-block">
+                    </div><div class="certs-v2__step-panel hidden" data-step-panel="details">
+                    <fieldset id="v2DocFieldsInstallation" class="certs-v2__fieldset doc-type-block">
                       <legend>אישור תקינות מתקן חשמל</legend>
                       <div class="form-grid">
                         <div><label for="v2DocClientName" class="lbl">שם לקוח (בדוח)</label><input id="v2DocClientName" class="inp" /></div>
@@ -963,7 +964,46 @@
                         <div><label for="v2DocInsulation" class="lbl">בידוד</label><input id="v2DocInsulation" class="inp" /></div>
                         <div><label for="v2DocPanelMeterNo" class="lbl">מספר לוח / מונה</label><input id="v2DocPanelMeterNo" class="inp" /></div>
                         <div class="col-span-2"><label for="v2DocFinalStatus" class="lbl">טקסט באנר סיום</label><input id="v2DocFinalStatus" class="inp" placeholder="תקין — המתקן מאושר לשימוש" /></div>
-                        </div><div class="certs-v2__step-panel hidden" data-step-panel="checks"><div class="col-span-2">
+                      </div>
+                    </fieldset>
+
+                    <fieldset id="v2DocFieldsPortable" class="certs-v2__fieldset doc-type-block hidden">
+                      <legend>אישור תקינות צרכנים מטלטלים (PAT)</legend>
+                      <div class="form-grid">
+                        <div><label for="v2DocPortableEmployer" class="lbl">שם מזמין</label><input id="v2DocPortableEmployer" class="inp" /></div>
+                        <div><label for="v2DocPortableMarking" class="lbl">שיטת סימון</label><input id="v2DocPortableMarking" class="inp" placeholder="מדבקה עם תאריך בדיקה" /></div>
+                        <div class="col-span-2"><label for="v2DocPortableSummary" class="lbl">מסקנה כללית</label><textarea id="v2DocPortableSummary" class="inp" rows="2"></textarea></div>
+                      </div>
+                    </fieldset>
+
+                    <fieldset id="v2DocFieldsEvCharging" class="certs-v2__fieldset doc-type-block hidden">
+                      <legend>פרטי עמדת טעינה (IEC 60364-7-722)</legend>
+                      <div class="form-grid">
+                        <div><label for="v2DocEvOwner" class="lbl">שם בעלים</label><input id="v2DocEvOwner" class="inp" /></div>
+                        <div><label for="v2DocEvSiteKind" class="lbl">סוג אתר</label>
+                          <select id="v2DocEvSiteKind" class="inp select"><option value="פרטי">פרטי</option><option value="משותף">משותף</option><option value="ציבורי">ציבורי</option><option value="מסחרי">מסחרי</option></select>
+                        </div>
+                        <div><label for="v2DocEvManufacturer" class="lbl">יצרן עמדה</label><input id="v2DocEvManufacturer" class="inp" /></div>
+                        <div><label for="v2DocEvModel" class="lbl">דגם</label><input id="v2DocEvModel" class="inp" /></div>
+                        <div><label for="v2DocEvSerial" class="lbl">מס׳ סידורי</label><input id="v2DocEvSerial" class="inp" dir="ltr" /></div>
+                        <div><label for="v2DocEvPowerKw" class="lbl">הספק (kW)</label><input id="v2DocEvPowerKw" class="inp" dir="ltr" /></div>
+                        <div><label for="v2DocEvChargeType" class="lbl">AC / DC</label>
+                          <select id="v2DocEvChargeType" class="inp select"><option value="AC">AC</option><option value="DC">DC</option><option value="AC/DC">AC/DC</option></select>
+                        </div>
+                        <div><label for="v2DocEvConnector" class="lbl">סוג מחבר</label><input id="v2DocEvConnector" class="inp" placeholder="Type 2 / CCS" /></div>
+                        <div><label for="v2DocEvImporterRef" class="lbl">יבואן/יצרן — מס׳ אסמכתא</label><input id="v2DocEvImporterRef" class="inp" /></div>
+                        <div><label for="v2DocEvImporterDate" class="lbl">תאריך</label><input id="v2DocEvImporterDate" type="date" class="inp" /></div>
+                        <div><label for="v2DocEvGrounding" class="lbl">הארקה / הגנה</label><input id="v2DocEvGrounding" class="inp" /></div>
+                        <div class="col-span-2"><label for="v2DocEvGridBanner" class="lbl">הצהרת חיבור לרשת</label><input id="v2DocEvGridBanner" class="inp" placeholder="מאושר לחיבור לרשת לפני הפעלה ראשונה" /></div>
+                      </div>
+                    </fieldset>
+                    </div>
+
+                    <div class="certs-v2__step-panel hidden" data-step-panel="checks">
+                    <fieldset id="v2DocFieldsInstallationChecks" class="certs-v2__fieldset doc-type-block">
+                      <legend>בדיקות מתקן</legend>
+                      <div class="form-grid">
+                        <div class="col-span-2">
                           <div class="doc-section-head">
                             <span class="lbl doc-section-head__label">בדיקות טכניות</span>
                             <button type="button" id="v2DocTechAddRow" class="btn-portal-secondary btn-sm">+ הוסף שורה</button>
@@ -990,12 +1030,9 @@
                       </div>
                     </fieldset>
 
-                    <fieldset id="v2DocFieldsPortable" class="certs-v2__fieldset doc-type-block hidden">
-                      <legend>אישור תקינות צרכנים מטלטלים (PAT)</legend>
+                    <fieldset id="v2DocFieldsPortableChecks" class="certs-v2__fieldset doc-type-block hidden">
+                      <legend>טבלת מכשירים</legend>
                       <div class="form-grid">
-                        <div><label for="v2DocPortableEmployer" class="lbl">שם מזמין</label><input id="v2DocPortableEmployer" class="inp" /></div>
-                        <div><label for="v2DocPortableMarking" class="lbl">שיטת סימון</label><input id="v2DocPortableMarking" class="inp" placeholder="מדבקה עם תאריך בדיקה" /></div>
-                        <div class="col-span-2"><label for="v2DocPortableSummary" class="lbl">מסקנה כללית</label><textarea id="v2DocPortableSummary" class="inp" rows="2"></textarea></div>
                         <div class="col-span-2">
                           <div class="doc-section-head">
                             <span class="lbl doc-section-head__label">טבלת מכשירים</span>
@@ -1013,25 +1050,9 @@
                       </div>
                     </fieldset>
 
-                    <fieldset id="v2DocFieldsEvCharging" class="certs-v2__fieldset doc-type-block hidden">
-                      <legend>אישור תקינות עמדת טעינה (IEC 60364-7-722)</legend>
+                    <fieldset id="v2DocFieldsEvChargingChecks" class="certs-v2__fieldset doc-type-block hidden">
+                      <legend>בדיקות עמדת טעינה</legend>
                       <div class="form-grid">
-                        <div><label for="v2DocEvOwner" class="lbl">שם בעלים</label><input id="v2DocEvOwner" class="inp" /></div>
-                        <div><label for="v2DocEvSiteKind" class="lbl">סוג אתר</label>
-                          <select id="v2DocEvSiteKind" class="inp select"><option value="פרטי">פרטי</option><option value="משותף">משותף</option><option value="ציבורי">ציבורי</option><option value="מסחרי">מסחרי</option></select>
-                        </div>
-                        <div><label for="v2DocEvManufacturer" class="lbl">יצרן עמדה</label><input id="v2DocEvManufacturer" class="inp" /></div>
-                        <div><label for="v2DocEvModel" class="lbl">דגם</label><input id="v2DocEvModel" class="inp" /></div>
-                        <div><label for="v2DocEvSerial" class="lbl">מס׳ סידורי</label><input id="v2DocEvSerial" class="inp" dir="ltr" /></div>
-                        <div><label for="v2DocEvPowerKw" class="lbl">הספק (kW)</label><input id="v2DocEvPowerKw" class="inp" dir="ltr" /></div>
-                        <div><label for="v2DocEvChargeType" class="lbl">AC / DC</label>
-                          <select id="v2DocEvChargeType" class="inp select"><option value="AC">AC</option><option value="DC">DC</option><option value="AC/DC">AC/DC</option></select>
-                        </div>
-                        <div><label for="v2DocEvConnector" class="lbl">סוג מחבר</label><input id="v2DocEvConnector" class="inp" placeholder="Type 2 / CCS" /></div>
-                        <div><label for="v2DocEvImporterRef" class="lbl">יבואן/יצרן — מס׳ אסמכתא</label><input id="v2DocEvImporterRef" class="inp" /></div>
-                        <div><label for="v2DocEvImporterDate" class="lbl">תאריך</label><input id="v2DocEvImporterDate" type="date" class="inp" /></div>
-                        <div><label for="v2DocEvGrounding" class="lbl">הארקה / הגנה</label><input id="v2DocEvGrounding" class="inp" /></div>
-                        <div class="col-span-2"><label for="v2DocEvGridBanner" class="lbl">הצהרת חיבור לרשת</label><input id="v2DocEvGridBanner" class="inp" placeholder="מאושר לחיבור לרשת לפני הפעלה ראשונה" /></div>
                         <div class="col-span-2">
                           <span class="lbl">בדיקות עמדה</span>
                           <div id="v2DocEvChecks" class="ev-checks-grid"></div>
@@ -1047,8 +1068,9 @@
                         </div>
                       </div>
                     </fieldset>
+                    </div>
 
-                    </div><div class="certs-v2__step-panel hidden" data-step-panel="signature"><fieldset class="certs-v2__fieldset">
+                    <div class="certs-v2__step-panel hidden" data-step-panel="signature"><fieldset class="certs-v2__fieldset">
                       <legend>חתימה, תמונות וקבצים</legend>
                       <div class="form-grid">
                         <div class="col-span-2"><label for="v2DocPhotosInput" class="lbl">תמונות מהשטח</label><input id="v2DocPhotosInput" class="inp" type="file" accept="image/*" multiple /></div>
