@@ -265,6 +265,7 @@ app.get("/api/share/:token", async (req, res) => {
       inspector: {
         name: settings.name ?? "",
         licenseNo: settings.licenseNo ?? "",
+        phone: settings.phone ?? "",
         email: settings.email ?? "",
       },
       expiresAt: data.share.expiresAt,
