@@ -122,12 +122,18 @@ export class CertWorkspace {
 
   onDocTypeChange() {
     const t = this.inputRaw("docType") || "installation";
-    const inst = this.$("docFieldsInstallation");
-    const port = this.$("docFieldsPortable");
-    const ev = this.$("docFieldsEvCharging");
-    if (inst) inst.classList.toggle("hidden", t !== "installation");
-    if (port) port.classList.toggle("hidden", t !== "portable");
-    if (ev) ev.classList.toggle("hidden", t !== "ev_charging");
+    const typeBlocks = [
+      ["docFieldsInstallation", "installation"],
+      ["docFieldsInstallationChecks", "installation"],
+      ["docFieldsPortable", "portable"],
+      ["docFieldsPortableChecks", "portable"],
+      ["docFieldsEvCharging", "ev_charging"],
+      ["docFieldsEvChargingChecks", "ev_charging"],
+    ];
+    for (const [id, docType] of typeBlocks) {
+      const el = this.$(id);
+      if (el) el.classList.toggle("hidden", t !== docType);
+    }
     const root = this.$("docForm")?.closest(".certs-v2, .cert-page");
     root?.querySelectorAll("[data-cert-type-card]").forEach((el) => {
       el.classList.toggle("is-active", el.dataset.certTypeCard === t);
