@@ -75,36 +75,58 @@ function measureRunWidth(doc, run, fontSize) {
   return doc.widthOfString(run.text, runTextOpts(run));
 }
 
+/** Split script runs into word/space tokens so PDFKit does not lay out words LTR inside a line. */
+function buildLineTokens(text) {
+  const tokens = [];
+  for (const run of buildLogicalRuns(text)) {
+    const parts = run.text.split(/(\s+)/).filter((part) => part.length > 0);
+    for (const part of parts) {
+      tokens.push({
+        kind: /^\s+$/.test(part) ? "space" : run.kind,
+        font: run.font,
+        text: part,
+      });
+    }
+  }
+  return tokens;
+}
+
+function measureTokenWidth(doc, token, fontSize) {
+  doc.font(token.font).fontSize(fontSize);
+  return doc.widthOfString(token.text, token.kind === "hebrew" ? runTextOpts(token) : {});
+}
+
 function drawLogicalRtlLine(doc, text, x, y, width, opts = {}) {
   if (!text) return y;
   const fontSize = resolveFontSize(doc, opts);
   const fillColor = resolveFillColor(doc, opts);
-  const normalized = normalizePdfText(text);
   doc.fontSize(fontSize).fillColor(fillColor);
 
-  const runs = buildLogicalRuns(normalized);
-  const sized = runs.map((run) => ({
-    ...run,
-    w: measureRunWidth(doc, run, fontSize),
+  const tokens = buildLineTokens(text);
+  if (tokens.length === 0) return y + lineHeight(doc, fontSize, opts);
+
+  const sized = tokens.map((token) => ({
+    ...token,
+    w: measureTokenWidth(doc, token, fontSize),
   }));
-  const total = sized.reduce((sum, run) => sum + run.w, 0);
-  let px =
-    opts.align === "center" ? x + Math.max(0, (width - total) / 2) : x + Math.max(0, width - total);
-  for (const run of sized) {
-    doc.font(run.font).fontSize(fontSize).fillColor(fillColor);
-    doc.text(run.text, px, y, {
+  const total = sized.reduce((sum, token) => sum + token.w, 0);
+  let px = opts.align === "center" ? x + (width + total) / 2 : x + width;
+
+  for (const token of sized) {
+    doc.font(token.font).fontSize(fontSize).fillColor(fillColor);
+    px -= token.w;
+    doc.text(token.text, px, y, {
       lineBreak: false,
-      width: Math.max(run.w, 1),
-      ...runTextOpts(run),
+      width: Math.max(token.w, 1),
+      ...(token.kind === "hebrew" ? runTextOpts(token) : {}),
     });
-    px += run.w;
   }
   return y + lineHeight(doc, fontSize, opts);
 }
 
 function measureLogicalLine(doc, text, opts = {}) {
   const fontSize = resolveFontSize(doc, opts);
-  return buildLogicalRuns(text).reduce((sum, run) => sum + measureRunWidth(doc, run, fontSize), 0);
+  return buildLineTokens(text).reduce((sum, token) => sum + measureTokenWidth(doc, token, fontSize), 0);
 }
 
 /** Break a single paragraph into lines that fit within `width`. */
