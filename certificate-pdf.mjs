@@ -342,7 +342,7 @@ function drawIssueDateBelowHeader(doc, left, contentW, y, { gregorian, hebrew } 
   }
   if (hebrew) {
     doc.fontSize(9.5).fillColor(metaColor);
-    cy = pdfText(doc, `תאריך עברי: ${hebrew}`, left, cy, contentW * 0.95, {
+    cy = pdfText(doc, hebrew, left, cy, contentW * 0.95, {
       align: "left",
       fontSize: 9.5,
     });
