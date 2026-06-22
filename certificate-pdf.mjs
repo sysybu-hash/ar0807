@@ -57,7 +57,7 @@ function splitScriptRuns(text) {
   return runs;
 }
 
-/** PDFKit is LTR — keep logical Hebrew order; Hebrew runs use OpenType rtla shaping. */
+/** PDFKit is LTR — keep logical Hebrew in the PDF stream; Hebrew runs use OpenType rtla. */
 function buildLogicalRuns(text) {
   return splitScriptRuns(normalizePdfText(text)).map((run) => ({
     kind: run.kind,

@@ -102,6 +102,23 @@ test("ev_charging certificate PDF builds", async () => {
   assert.equal(buf.slice(0, 4).toString(), "%PDF");
 });
 
+test("ev_charging certificate PDF with Hebrew fields builds", async () => {
+  const buf = await buildCertificatePdfBuffer({
+    certificate: {
+      ...baseCert,
+      docType: "ev_charging",
+      extra: {
+        ...defaultExtraForType("ev_charging"),
+        ownerName: "ישראל ישראלי",
+        inspectionDate: "2026-06-22",
+      },
+    },
+    inspector,
+  });
+  assert.ok(buf.length > 2000);
+  assert.equal(buf.slice(0, 4).toString(), "%PDF");
+});
+
 test("certificate PDF with blank letterhead builds", async () => {
   const blankPng =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
