@@ -2368,4 +2368,25 @@ body.focus-visible-enhanced *:focus-visible { outline: 4px solid #FF0 !important
   border: 0;
   background: #e2e8f0;
 }
+.doc-preview-mobile-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem 1.25rem;
+  flex: 1;
+  justify-content: center;
+}
+.doc-preview-mobile-actions.hidden { display: none !important; }
+.doc-preview-mobile-actions__lead {
+  margin: 0;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+.doc-preview-mobile-actions__btn {
+  width: 100%;
+  text-align: center;
+  justify-content: center;
+}
 

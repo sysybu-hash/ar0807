@@ -58,18 +58,31 @@ export function initCertsV2(workspace, { getSettings, onOpenSettings, onAfterSav
     const toggle = document.getElementById("v2ListToggle");
     const drawer = document.getElementById("v2ListDrawer");
     const backdrop = document.getElementById("v2ListBackdrop");
-    const close = () => {
+    const close = (opts = {}) => {
+      const wasOpen = drawer?.classList.contains("is-open");
       drawer?.classList.remove("is-open");
       backdrop?.classList.remove("is-open");
       document.body.classList.remove("certs-v2-list-open");
+      if (opts.fromHistory) {
+        if (window.history.state?.v2List) {
+          const st = { ...(window.history.state || {}) };
+          delete st.v2List;
+          window.history.replaceState(st, "");
+        }
+      } else if (wasOpen && window.history.state?.v2List) {
+        window.history.back();
+      }
     };
-    toggle?.addEventListener("click", () => {
+    const open = () => {
       drawer?.classList.add("is-open");
       backdrop?.classList.add("is-open");
       document.body.classList.add("certs-v2-list-open");
-    });
-    backdrop?.addEventListener("click", close);
-    document.getElementById("v2ListClose")?.addEventListener("click", close);
+      window.history.pushState({ v2List: true }, "");
+    };
+    toggle?.addEventListener("click", open);
+    backdrop?.addEventListener("click", () => close());
+    document.getElementById("v2ListClose")?.addEventListener("click", () => close());
+    return { closeMobileList: close, openMobileList: open };
   }
 
   function bindBlankSettings() {
@@ -85,7 +98,7 @@ export function initCertsV2(workspace, { getSettings, onOpenSettings, onAfterSav
   };
 
   bindSteps();
-  bindMobileList();
+  const listNav = bindMobileList();
   bindBlankSettings();
   showStep(0);
   updateBlankBanner();
@@ -103,6 +116,9 @@ export function initCertsV2(workspace, { getSettings, onOpenSettings, onAfterSav
       updateBlankBanner();
       updateStats();
     },
+    showStep,
+    closeMobileList: listNav.closeMobileList,
+    openMobileList: listNav.openMobileList,
     certTypes: CERT_TYPES,
     strings: STR,
   };
