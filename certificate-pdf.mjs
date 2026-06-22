@@ -651,8 +651,11 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
     const m = doc.page.margins;
     const useBlank = drawBlankPageBackground(doc, inspector);
     const layout = buildPdfLayout(doc, useBlank);
+    layout.attachedPhotoCount = countValidPhotos(certificate.photos);
     if (useBlank) {
-      doc.on("pageAdded", () => drawBlankPageBackground(doc, inspector));
+      doc.on("pageAdded", () => {
+        if (!doc._skipBlankBackground) drawBlankPageBackground(doc, inspector);
+      });
       doc._pdfContentTop = layout.contentTop;
     }
     const left = layout.left;
@@ -732,24 +735,8 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
     }
 
     const photos = Array.isArray(certificate.photos) ? certificate.photos : [];
-    if (!layout.singlePage && photos.length > 0) {
-      const maxImgW = contentW;
-      const maxImgH = 170;
-      for (let pi = 0; pi < photos.length; pi++) {
-        const p = photos[pi];
-        const b = dataUrlToBuffer(p?.data);
-        if (!b) continue;
-        y = ensureY(doc, y, bottomSafe, maxImgH + 36, layout);
-        doc.fontSize(9).fillColor("#475569");
-        pdfText(doc, `תיעוד ויזואלי — תמונה ${pi + 1}`, left, y, contentW, { align: "right" });
-        y += 11;
-        try {
-          doc.image(b, left, y, { fit: [maxImgW, maxImgH], align: "center" });
-          y += maxImgH + 12;
-        } catch {
-          y += 8;
-        }
-      }
+    if (photos.length > 0) {
+      appendPhotoAppendix(doc, photos, inspector, certificate, { docNo });
     }
 
     const range = doc.bufferedPageRange();
@@ -1391,15 +1378,125 @@ function estimateSignatureFooterHeight(doc, inspector, contentW) {
   return 14 + Math.max(declH, 78) + 16;
 }
 
+function countValidPhotos(photos) {
+  if (!Array.isArray(photos)) return 0;
+  return photos.filter((p) => dataUrlToBuffer(p?.data)).length;
+}
+
+/** Notice on main certificate when field photos are attached. */
+function drawAttachedPhotosNotice(doc, left, contentW, y, count) {
+  if (!count) return y;
+  const boxH = 24;
+  doc.save();
+  doc.roundedRect(left, y, contentW, boxH, 4).lineWidth(1).fillAndStroke("#eff6ff", BLUE);
+  doc.fontSize(8.2).fillColor(BLUE_DARK);
+  rtlBlock(
+    doc,
+    `צורפו ${count} תמונות מהשטח — ראו נספח תיעוד ויזואלי בעמודים הבאים.`,
+    left + 10,
+    y + 7,
+    contentW - 20,
+    { fontSize: 8.2 }
+  );
+  doc.restore();
+  return y + boxH + 6;
+}
+
+/** Photo appendix on separate page(s) after the main certificate. */
+function appendPhotoAppendix(doc, photos, inspector, certificate, meta) {
+  const valid = (Array.isArray(photos) ? photos : [])
+    .map((p, i) => ({ name: p?.name || "", idx: i + 1, buf: dataUrlToBuffer(p?.data) }))
+    .filter((p) => p.buf);
+  if (!valid.length) return;
+
+  const m = doc.page.margins;
+  const pageW = doc.page.width;
+  const left = m.left;
+  const contentW = pageW - m.left - m.right;
+  const bottomSafe = doc.page.height - m.bottom - 24;
+  const perPage = 2;
+
+  doc._skipBlankBackground = true;
+  for (let start = 0; start < valid.length; start += perPage) {
+    doc.addPage();
+    doc.font("Hebrew");
+    let y = m.top;
+
+    doc.save();
+    doc.rect(left, y, contentW, 30).fill(BLUE_DARK);
+    doc.fillColor("#ffffff");
+    doc.fontSize(12);
+    pdfText(doc, "נספח — תיעוד ויזואלי מהשטח", left, y + 9, contentW, { align: "center" });
+    doc.restore();
+    y += 38;
+
+    doc.fontSize(8.5).fillColor("#475569");
+    const sub = [
+      certificate.facilityName || "",
+      meta.docNo ? `מס' אישור ${meta.docNo}` : "",
+      `${valid.length} תמונות`,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    y = rtlBlock(doc, sub, left, y, contentW) + 10;
+
+    const batch = valid.slice(start, start + perPage);
+    const imgH = batch.length > 1 ? 230 : 300;
+    for (const p of batch) {
+      const frameY = y;
+      const frameH = imgH + 22;
+      doc.save();
+      doc.roundedRect(left, frameY, contentW, frameH, 5).lineWidth(0.8).fillAndStroke("#f8fafc", "#cbd5e1");
+      doc.restore();
+      try {
+        doc.image(p.buf, left + 8, frameY + 6, {
+          fit: [contentW - 16, imgH],
+          align: "center",
+          valign: "center",
+        });
+      } catch {
+        /* skip broken image */
+      }
+      doc.fontSize(8).fillColor("#64748b");
+      rtlBlock(
+        doc,
+        `תמונה ${p.idx}${p.name ? ` — ${p.name}` : ""}`,
+        left + 10,
+        frameY + imgH + 10,
+        contentW - 20
+      );
+      y = frameY + frameH + 14;
+      if (y > bottomSafe - imgH && batch.length > 1) break;
+    }
+  }
+  doc._skipBlankBackground = false;
+}
+
 function drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bottomSafe, layout, opts = {}) {
   const compact = !!opts.compact;
   const declText = String(inspector?.inspectorDeclarationText || "").trim() || defaultDeclarationText();
   const blockH = compact ? layout.signatureReserve : estimateSignatureFooterHeight(doc, inspector, contentW);
+  const photoCount = layout?.attachedPhotoCount || 0;
+  const noticeH = photoCount > 0 ? 30 : 0;
+
+  if (layout?.attachedPhotoCount > 0) {
+    if (opts.fixedY) {
+      drawAttachedPhotosNotice(
+        doc,
+        left,
+        contentW,
+        bottomSafe - layout.signatureReserve - noticeH,
+        layout.attachedPhotoCount
+      );
+    } else {
+      y = drawAttachedPhotosNotice(doc, left, contentW, y, layout.attachedPhotoCount);
+    }
+  }
 
   if (opts.fixedY) {
     y = bottomSafe - layout.signatureReserve;
   } else if (!opts.skipEnsureY) {
-    y = ensureY(doc, y, bottomSafe, blockH, layout);
+    y = ensureY(doc, y, bottomSafe, blockH + noticeH, layout);
   }
 
   const midX = left + contentW / 2;

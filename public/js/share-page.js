@@ -97,6 +97,7 @@ function renderShareBody(c) {
       <p><strong>בידוד:</strong> ${escapeHtml(c.insulation || "")}</p>`;
   }
   const wf = ex.workflowStatus === "final" ? "סופי" : "טיוטה";
+  const photoCount = Array.isArray(c.photos) ? c.photos.filter((p) => p?.data).length : 0;
   const issueDateFmt = fmtIssueDate(ex, c);
   const issueDateHebrew = formatHebrewDateFull(ex.issueDate, c.updatedAt || c.createdAt);
   const issueDateBlock =
@@ -107,6 +108,7 @@ function renderShareBody(c) {
     <p><strong>סטטוס:</strong> ${escapeHtml(wf)}${ex.docNo ? ` · <strong>מס׳ אישור:</strong> ${escapeHtml(ex.docNo)}` : ""}</p>
     ${issueDateBlock}
     <p><strong>תאריך בדיקה:</strong> ${escapeHtml(ex.inspectionDate || fmtDate(c.updatedAt))}</p>
+    ${photoCount > 0 ? `<p><strong>תמונות מהשטח:</strong> צורפו ${photoCount} תמונות — זמינות בקובץ ה-PDF.</p>` : ""}
     ${extraHtml}
     <p style="margin-top:0.75rem; white-space: pre-wrap;"><strong>הערות:</strong> ${escapeHtml(c.notes || "")}</p>`;
 }

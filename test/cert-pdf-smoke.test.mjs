@@ -157,6 +157,33 @@ test("blank EV certificate renders on a single page", async () => {
   assert.ok(buf.length > 3000, "blank EV PDF should include title and stamp content");
 });
 
+test("blank EV certificate with photos adds appendix pages", async () => {
+  const blankPng =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  const photoPng =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAoCAYAAAAbr3KzAAAAFUlEQVR42mP8z5+hnoEIwDiqKJqQNgIA6K8B8uY7k5sAAAAASUVORK5CYII=";
+  const buf = await buildCertificatePdfBuffer({
+    certificate: {
+      ...baseCert,
+      docType: "ev_charging",
+      photos: [{ name: "שטח 1.jpg", data: photoPng }],
+      extra: {
+        ...defaultExtraForType("ev_charging"),
+        inspectionDate: "2026-06-22",
+      },
+    },
+    inspector: {
+      ...inspector,
+      useBlankTemplate: true,
+      blankTemplateData: blankPng,
+    },
+  });
+  const raw = buf.toString("latin1");
+  const pageCount = (raw.match(/\/Type\s*\/Page\b/g) || []).length;
+  assert.ok(pageCount >= 2, `photo appendix should add pages (got ${pageCount})`);
+  assert.ok(buf.length > 3500);
+});
+
 test("certificate PDF with blank letterhead builds", async () => {
   const blankPng =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
