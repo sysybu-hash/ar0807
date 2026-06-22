@@ -1402,6 +1402,51 @@ select.inp { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.
 .inp-compact { padding: 0.35rem 0.5rem; font-size: 0.82rem; }
 .table-compact th, .table-compact td { padding: 0.4rem 0.5rem; font-size: 0.82rem; }
 
+/* Editable certificate tables — readable cell inputs */
+.table-form th,
+.table-form td {
+  padding: 0.55rem 0.65rem;
+  vertical-align: middle;
+}
+
+.table-form td:has(.inp),
+.table-form td:has(select.inp) {
+  padding: 0.45rem 0.55rem;
+}
+
+.table-form .inp,
+.table-form .inp.inp-compact,
+.table-form select.inp.inp-compact {
+  min-height: 2.5rem;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.table-form input[type="date"].inp,
+.table-form input[type="date"].inp.inp-compact {
+  min-height: 2.5rem;
+  min-width: 8.5rem;
+}
+
+.table-portable-appliances {
+  min-width: 58rem;
+}
+
+.table-portable-appliances th,
+.table-portable-appliances td {
+  min-width: 4.75rem;
+}
+
+.table-portable-appliances th:nth-child(1),
+.table-portable-appliances td:nth-child(1) { min-width: 5.5rem; }
+.table-portable-appliances th:nth-child(2),
+.table-portable-appliances td:nth-child(2) { min-width: 9rem; }
+.table-portable-appliances th:nth-child(3),
+.table-portable-appliances td:nth-child(3) { min-width: 7rem; }
+.table-portable-appliances th:nth-child(9),
+.table-portable-appliances td:nth-child(9) { min-width: 9.5rem; }
+
 .ev-checks-grid { display: grid; gap: 0.5rem; margin-top: 0.35rem; }
 .ev-check-row {
   display: grid;
