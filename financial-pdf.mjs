@@ -84,7 +84,7 @@ export function buildFinancialPdfBuffer({ doc, inspector }) {
       doc.docNo ? `מספר מסמך: ${doc.docNo}` : null,
       isInvoice && doc.allocationNo ? `הקצאה: ${doc.allocationNo}` : null,
       doc.issueDate ? `תאריך הנפקה: ${fmtDate(doc.issueDate)}` : null,
-      doc.issueDate ? `תאריך עברי: ${formatHebrewDateFull(doc.issueDate)}` : null,
+      doc.issueDate ? formatHebrewDateFull(doc.issueDate) : null,
       doc.dueDate ? `תאריך יעד: ${fmtDate(doc.dueDate)}` : null,
     ]
       .filter(Boolean)
