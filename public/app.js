@@ -658,19 +658,40 @@ function triggerBlobDownload(blob, filename) {
 }
 
 let docPreviewObjectUrl = null;
+let docPreviewBlob = null;
 
-function closeDocPreviewModal() {
+function isMobileDevice() {
+  return (
+    window.matchMedia("(max-width: 768px)").matches ||
+    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+  );
+}
+
+function openBlobPdf(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const opened = window.open(url, "_blank");
+  if (!opened) {
+    downloadBlob(blob, filename);
+    showToast("ה-PDF הורד — פתח מהקבצים", "ok");
+  }
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+function closeDocPreviewModal(opts = {}) {
   const modal = $("docPreviewModal");
   const frame = $("docPreviewFrame");
   const hint = $("docPreviewModalHint");
+  const mobileActions = $("docPreviewMobileActions");
   if (modal) {
     modal.classList.add("hidden");
     modal.setAttribute("aria-hidden", "true");
   }
   if (frame) {
+    frame.classList.remove("hidden");
     frame.removeAttribute("src");
     frame.removeAttribute("srcdoc");
   }
+  if (mobileActions) mobileActions.classList.add("hidden");
   if (hint) {
     hint.textContent = "";
     hint.classList.add("hidden");
@@ -679,14 +700,27 @@ function closeDocPreviewModal() {
     URL.revokeObjectURL(docPreviewObjectUrl);
     docPreviewObjectUrl = null;
   }
+  docPreviewBlob = null;
+  if (opts.fromHistory) {
+    if (window.history.state?.docPreview) {
+      const st = { ...(window.history.state || {}) };
+      delete st.docPreview;
+      window.history.replaceState(st, "");
+    }
+  } else if (window.history.state?.docPreview) {
+    window.history.back();
+  }
 }
 
 function openDocPreviewModal({ title, html, pdfBlob, hint }) {
-  closeDocPreviewModal();
+  closeDocPreviewModal({ fromHistory: true });
   const modal = $("docPreviewModal");
   const frame = $("docPreviewFrame");
   const titleEl = $("docPreviewModalTitle");
   const hintEl = $("docPreviewModalHint");
+  const mobileActions = $("docPreviewMobileActions");
+  const openBtn = $("docPreviewOpenBtn");
+  const downloadBtn = $("docPreviewDownloadBtn");
   if (!modal || !frame) return;
   if (titleEl) titleEl.textContent = title || "תצוגה מקדימה";
   if (hintEl) {
@@ -698,14 +732,35 @@ function openDocPreviewModal({ title, html, pdfBlob, hint }) {
       hintEl.classList.add("hidden");
     }
   }
-  if (pdfBlob) {
+  if (pdfBlob && isMobileDevice()) {
+    docPreviewBlob = pdfBlob;
+    docPreviewObjectUrl = URL.createObjectURL(pdfBlob);
+    frame.classList.add("hidden");
+    frame.removeAttribute("src");
+    if (mobileActions) mobileActions.classList.remove("hidden");
+    if (openBtn) {
+      openBtn.href = docPreviewObjectUrl;
+      openBtn.onclick = (e) => {
+        e.preventDefault();
+        openBlobPdf(pdfBlob, `${title || "certificate"}.pdf`);
+      };
+    }
+    if (downloadBtn) {
+      downloadBtn.onclick = () => downloadBlob(pdfBlob, `${title || "certificate"}.pdf`);
+    }
+  } else if (pdfBlob) {
     docPreviewObjectUrl = URL.createObjectURL(pdfBlob);
     frame.src = docPreviewObjectUrl;
+    mobileActions?.classList.add("hidden");
+    frame.classList.remove("hidden");
   } else if (html) {
+    mobileActions?.classList.add("hidden");
+    frame.classList.remove("hidden");
     frame.srcdoc = html;
   }
   modal.classList.remove("hidden");
   modal.setAttribute("aria-hidden", "false");
+  window.history.pushState({ docPreview: true }, "");
   $("docPreviewModalClose")?.focus();
 }
 
@@ -1111,7 +1166,7 @@ const WIZARD_LABELS = {
   settings: "הגדרות",
 };
 
-function setWizardStepByIndex(index) {
+function setWizardStepByIndex(index, opts = {}) {
   wizardIndex = Math.max(0, Math.min(WIZARD_STEPS.length - 1, index));
   const name = WIZARD_STEPS[wizardIndex];
 
@@ -1141,6 +1196,10 @@ function setWizardStepByIndex(index) {
       ? `סיום <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`
       : `הבא <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>`;
   }
+
+  if (!opts.fromHistory && !opts.skipHistory) {
+    window.history.pushState({ portalWizard: wizardIndex }, "");
+  }
 }
 
 function setupPortalWizard() {
@@ -1154,7 +1213,27 @@ function setupPortalWizard() {
   const next = $("wizardNextBtn");
   if (prev) prev.onclick = () => setWizardStepByIndex(wizardIndex - 1);
   if (next) next.onclick = () => setWizardStepByIndex(wizardIndex + 1);
-  setWizardStepByIndex(0);
+  window.history.replaceState({ portalWizard: 0 }, "");
+  setWizardStepByIndex(0, { skipHistory: true });
+}
+
+function handlePortalPopState() {
+  if (!$("docPreviewModal")?.classList.contains("hidden")) {
+    closeDocPreviewModal({ fromHistory: true });
+    return;
+  }
+  if (document.body.classList.contains("certs-v2-list-open")) {
+    certsV2Ui?.closeMobileList?.({ fromHistory: true });
+    return;
+  }
+  const idx = window.history.state?.portalWizard;
+  if (typeof idx === "number" && idx >= 0 && idx !== wizardIndex) {
+    setWizardStepByIndex(idx, { fromHistory: true });
+  }
+}
+
+function setupPortalHistory() {
+  window.addEventListener("popstate", handlePortalPopState);
 }
 
 function ensurePortalOpen() {
@@ -1331,9 +1410,14 @@ function createCertWorkspaceDeps() {
     fmtDateShort,
     openPrintableHtml,
     openDocPreviewModal,
+    closeDocPreviewModal,
+    openBlobPdf,
+    isMobile: isMobileDevice,
     downloadBlob,
   };
 }
+
+const v2NavRef = {};
 
 function initCertWorkspaces() {
   certWorkspace = new CertWorkspace({
@@ -1349,6 +1433,11 @@ function initCertWorkspaces() {
     editorScrollSelector: ".certs-v2__editor",
     listContainerId: "v2DocsList",
     listMode: "cards",
+    onEditDoc: () => {
+      closeDocPreviewModal({ fromHistory: true });
+      v2NavRef.closeMobileList?.({ fromHistory: true });
+      v2NavRef.showStep?.(0);
+    },
   });
 }
 
@@ -1833,6 +1922,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupHomeShowcase();
   setupAccessibilityToolbar();
   setupPortalWizard();
+  setupPortalHistory();
   setupProjectWizardModal();
   setupDocPreviewModal();
   setupPortalAuth();
@@ -1852,6 +1942,10 @@ window.addEventListener("DOMContentLoaded", async () => {
     onAfterSave: async () => {
       await loadDocs();
     },
+  });
+  Object.assign(v2NavRef, {
+    closeMobileList: certsV2Ui?.closeMobileList,
+    showStep: certsV2Ui?.showStep,
   });
   renderFinancialForm("invoice");
   renderFinancialForm("quote");

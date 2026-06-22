@@ -760,7 +760,7 @@ function renderEvChargingBodyCompact(doc, certificate, inspector, extra, left, c
   );
 
   const notes = (certificate.notes || "").trim();
-  if (notes) {
+  if (notes && y < bodyBottom - 28) {
     doc.fontSize(7.2).fillColor("#334155");
     y = rtlBlock(doc, `הערות: ${notes}`, left, y, contentW) + 2;
   }
@@ -769,8 +769,10 @@ function renderEvChargingBodyCompact(doc, certificate, inspector, extra, left, c
     String(extra.gridApprovalBanner || "").trim() ||
     String(extra.finalStatusBanner || "").trim() ||
     "תקין — מאושר לשימוש";
-  doc.fontSize(7.8).fillColor(BLUE_DARK);
-  y = rtlBlock(doc, statusLine, left, y, contentW) + 2;
+  if (y < bodyBottom - 16) {
+    doc.fontSize(7.8).fillColor(BLUE_DARK);
+    y = rtlBlock(doc, statusLine, left, y, contentW) + 2;
+  }
 
   y = drawSignatureFooter(doc, certificate, inspector, left, contentW, bodyBottom, bottomSafe, layout, {
     compact: true,
@@ -889,13 +891,14 @@ function drawMultiColumnTable(
   const cellFs = compact ? 6.8 : 7.2;
   const headFs = compact ? 6.8 : 7.5;
   const titleFs = compact ? 8.5 : 10.5;
-  const titleGap = compact ? 4 : 12;
-  const tailGap = compact ? 3 : 8;
+  const titleGap = compact ? 4 : 8;
+  const tailGap = compact ? 6 : 8;
 
+  if (y >= bottomSafe - headerH - 4) return y;
   y = ensureY(doc, y, bottomSafe, 20, layout);
   doc.fontSize(titleFs).fillColor(BLUE_DARK);
-  pdfText(doc, title, left, y, contentW, { align: "right" });
-  y += titleGap;
+  const titleEndY = pdfText(doc, title, left, y, contentW, { align: "right", fontSize: titleFs });
+  y = titleEndY + titleGap;
   const widths = cols.map((c) => contentW * c.w);
   y = ensureY(doc, y, bottomSafe, headerH + 4, layout);
   doc.save();
@@ -909,6 +912,7 @@ function drawMultiColumnTable(
   }
   y += headerH;
   for (let ri = 0; ri < rows.length; ri++) {
+    if (y + minRowH > bottomSafe - 2) break;
     const row = rows[ri];
     let rowH = minRowH;
     const cellTexts = [];
@@ -1227,10 +1231,10 @@ function estimateSignatureFooterHeight(doc, inspector, contentW) {
 function drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bottomSafe, layout, opts = {}) {
   const compact = !!opts.compact;
   const declText = String(inspector?.inspectorDeclarationText || "").trim() || defaultDeclarationText();
-  const blockH = compact ? layout.signatureReserve - 4 : estimateSignatureFooterHeight(doc, inspector, contentW);
+  const blockH = compact ? layout.signatureReserve : estimateSignatureFooterHeight(doc, inspector, contentW);
 
   if (opts.fixedY) {
-    y = bottomSafe - blockH;
+    y = bottomSafe - layout.signatureReserve;
   } else if (!opts.skipEnsureY) {
     y = ensureY(doc, y, bottomSafe, blockH, layout);
   }

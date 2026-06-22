@@ -30,6 +30,10 @@ export class CertWorkspace {
    * @param {(iso: string) => string} opts.fmtDateShort
    * @param {(html: string) => void} opts.openPrintableHtml
    * @param {(opts: object) => void} opts.openDocPreviewModal
+   * @param {() => void} [opts.closeDocPreviewModal]
+   * @param {(blob: Blob, filename: string) => void} [opts.openBlobPdf]
+   * @param {() => boolean} [opts.isMobile]
+   * @param {(doc: object) => void} [opts.onEditDoc]
    * @param {(blob: Blob, name: string) => void} opts.downloadBlob
    * @param {string} [opts.editorScrollSelector]
    * @param {string} [opts.listContainerId] — מזהה רשימה (טבלה או div)
@@ -48,6 +52,10 @@ export class CertWorkspace {
     this.fmtDateShort = opts.fmtDateShort;
     this.openPrintableHtml = opts.openPrintableHtml;
     this.openDocPreviewModal = opts.openDocPreviewModal;
+    this.closeDocPreviewModal = opts.closeDocPreviewModal || (() => {});
+    this.openBlobPdf = opts.openBlobPdf || ((blob, name) => this.downloadBlob(blob, name));
+    this.isMobile = opts.isMobile || (() => false);
+    this.onEditDoc = opts.onEditDoc;
     this.downloadBlob = opts.downloadBlob;
     this.editorScrollSelector = opts.editorScrollSelector || ".cert-page__editor";
     this.listContainerId = opts.listContainerId || "docsTable";
@@ -342,6 +350,7 @@ export class CertWorkspace {
       if (doc?.signatureData) this.docSignaturePad.fromDataURL(doc.signatureData);
     }
     if (doc?.id) {
+      this.onEditDoc?.(doc);
       document.querySelector(this.editorScrollSelector)?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }
@@ -442,7 +451,20 @@ export class CertWorkspace {
     });
   }
 
-  printDoc(doc) {
+  async printDoc(doc) {
+    if (this.isMobile()) {
+      if (!doc?.id) {
+        this.showToast(STR.saveBeforePdf, "warn");
+        return;
+      }
+      try {
+        const blob = await this.apiBlob(`/api/certificates/${doc.id}/pdf`);
+        this.openBlobPdf(blob, `certificate-${doc.id}.pdf`);
+      } catch (e) {
+        this.showToast(e.message || "שגיאת הדפסה", "err");
+      }
+      return;
+    }
     this.openPrintableHtml(this.buildPrintHtml(doc, true));
   }
 
@@ -452,6 +474,10 @@ export class CertWorkspace {
     try {
       if (docId) {
         const blob = await this.apiBlob(`/api/certificates/${docId}/pdf`);
+        if (this.isMobile()) {
+          this.openBlobPdf(blob, `certificate-${docId}.pdf`);
+          return;
+        }
         this.openDocPreviewModal({ title, pdfBlob: blob });
         return;
       }
@@ -539,7 +565,10 @@ export class CertWorkspace {
     const printBtn = trOrCard.querySelector(".print");
     const delBtn = trOrCard.querySelector(".del");
     if (editBtn) {
-      editBtn.onclick = async () => this.fillDocForm(await this.api(`/api/certificates/${row.id}`));
+      editBtn.onclick = async () => {
+        this.closeDocPreviewModal();
+        await this.fillDocForm(await this.api(`/api/certificates/${row.id}`));
+      };
     }
     if (previewBtn) {
       previewBtn.onclick = async () =>
