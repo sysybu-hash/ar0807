@@ -1,6 +1,7 @@
 /** הדפסת HTML לאישורי תקינות — תוכן מלא תואם PDF */
 
 import { certTypeLabel, CERT_TYPES, normalizeDocType } from "./cert-types.js";
+import { formatHebrewDateFull } from "./hebrew-date.js";
 import { STR } from "./cert-strings.js";
 
 export function escapeHtml(s) {
@@ -141,6 +142,7 @@ export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } 
       return "";
     }
   })();
+  const issueDateHebrew = formatHebrewDateFull(ex.issueDate, doc.updatedAt || doc.createdAt);
   const pdfTitle = CERT_TYPES[normalizeDocType(doc.docType)]?.pdfTitle || title;
   const wfStr =
     ex.workflowStatus === "final"
@@ -165,6 +167,7 @@ export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } 
         ${settings.logoData ? `<img src="${settings.logoData}" style="max-height:70px" alt="">` : ""}
         <div><h1 class="text-2xl font-bold text-blue-900">${escapeHtml(title)}</h1><p class="text-sm text-slate-600">נערך בהתאם לתקנות החשמל והתקן IEC</p>
         ${docNoStr || wfStr ? `<p class="text-xs text-slate-500 mt-1">${docNoStr ? `${STR.printDocNo}: ${escapeHtml(docNoStr)}` : ""}${docNoStr && wfStr ? " · " : ""}${wfStr ? `${STR.printStatus}: ${escapeHtml(wfStr)}` : ""}</p>` : ""}
+        ${issueDateFmt || issueDateHebrew ? `<p class="text-xs text-slate-500 mt-1">${issueDateFmt ? `תאריך הנפקה: ${escapeHtml(issueDateFmt)}` : ""}${issueDateFmt && issueDateHebrew ? "<br>" : ""}${issueDateHebrew ? `תאריך עברי: ${escapeHtml(issueDateHebrew)}` : ""}</p>` : ""}
         </div>
       </div>
       <div class="text-sm shrink-0">
@@ -192,7 +195,10 @@ export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } 
         <span class="blank-meta-bsd">בס"ד</span>
       </div>
       <div class="blank-content">
-        <div class="blank-doc-issue">${issueDateFmt ? `תאריך הנפקה: ${escapeHtml(issueDateFmt)}` : ""}</div>
+        <div class="blank-doc-issue">
+          ${issueDateFmt ? `<div>תאריך הנפקה: ${escapeHtml(issueDateFmt)}</div>` : ""}
+          ${issueDateHebrew ? `<div>תאריך עברי: ${escapeHtml(issueDateHebrew)}</div>` : ""}
+        </div>
         <h1 class="blank-doc-title">${escapeHtml(pdfTitle)}</h1>
         <div class="blank-doc-approval">${approvalNo ? `מס' אישור: ${escapeHtml(approvalNo)}` : ""}</div>
         <div class="grid grid-cols-2 gap-2 text-sm border rounded p-3 bg-white/90 mb-4">
