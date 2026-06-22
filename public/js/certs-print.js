@@ -217,9 +217,9 @@ export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } 
     .blank-meta-top{position:absolute;top:11mm;left:14mm;right:14mm;z-index:2;display:flex;justify-content:space-between;align-items:flex-start;font-size:0.8rem;color:#475569;line-height:1.2}
     .blank-meta-issue{text-align:left;max-width:58%}
     .blank-meta-bsd{text-align:right}
-    .blank-doc-title{text-align:center;font-size:1.05rem;font-weight:700;color:#0d3d82;margin:0 0 0.35rem}
-    .blank-doc-approval{text-align:center;font-size:0.95rem;font-weight:600;color:#475569;margin-bottom:0.65rem}
-    .blank-content{position:relative;z-index:1;padding-top:72mm;padding-left:14mm;padding-right:14mm;padding-bottom:28mm}
+    .blank-doc-title{text-align:center;font-size:1.2rem;font-weight:700;color:#0d3d82;margin:0 0 0.4rem;line-height:1.35}
+    .blank-doc-approval{text-align:center;font-size:1.05rem;font-weight:700;color:#334155;margin-bottom:0.55rem}
+    .blank-content{position:relative;z-index:1;padding-top:53mm;padding-left:14mm;padding-right:14mm;padding-bottom:28mm}
     .print-table{width:100%;border-collapse:collapse;margin:0.75rem 0;font-size:0.85rem}
     .print-table th,.print-table td{border:1px solid #cbd5e1;padding:0.35rem 0.5rem;text-align:right}
     .print-table th{background:#eef1f6}

@@ -24,9 +24,10 @@ const MM_TO_PT = 72 / 25.4;
 
 /** Content box on Rubinstein A4 letterhead (mm from page edges). */
 const BLANK_LETTERHEAD = {
-  /** Corner meta row (בס"ד, תאריך הנפקה, מס' אישור) — above letterhead artwork */
+  /** Corner row: תאריך הנפקה (left) + בס"ד (right) */
   metaTopMm: 11,
-  contentTopMm: 72,
+  /** Document title starts just below the company header rule (~blue line) */
+  docTitleTopMm: 53,
   contentBottomMm: 28,
   sideMm: 14,
   signatureMm: 58,
@@ -53,7 +54,7 @@ function buildPdfLayout(doc, useBlank) {
     };
   }
   const side = mmToPt(BLANK_LETTERHEAD.sideMm);
-  const top = mmToPt(BLANK_LETTERHEAD.contentTopMm);
+  const top = mmToPt(BLANK_LETTERHEAD.docTitleTopMm);
   const bottom = mmToPt(BLANK_LETTERHEAD.contentBottomMm);
   return {
     useBlank: true,
@@ -332,22 +333,22 @@ function drawTopMetaCorners(doc, layout, useBlank, { issueDate }) {
   pdfText(doc, 'בס"ד', side, y, bandW, { align: "right", fontSize: metaFs });
 }
 
-/** מס' אישור — centered below document title, larger. */
+/** מס' אישור — centered below document title, prominent. */
 function drawApprovalBelowTitle(doc, left, contentW, y, approvalNo) {
   if (!approvalNo) return y;
-  const metaFs = 10.5;
-  const metaColor = "#475569";
+  const metaFs = 12;
+  const metaColor = "#334155";
   doc.fontSize(metaFs).fillColor(metaColor);
-  const rowY = y + 6;
+  const rowY = y + 8;
   pdfText(doc, `מס' אישור: ${approvalNo}`, left, rowY, contentW, {
     align: "center",
     fontSize: metaFs,
   });
-  return rowY + lineHeight(doc, metaFs) + 8;
+  return rowY + lineHeight(doc, metaFs) + 10;
 }
 
 function drawBlankDocumentTitle(doc, left, contentW, y, mainTitle, legalSubtitle, docMeta = {}) {
-  const titleFs = String(mainTitle).length > 30 ? 10.5 : 12;
+  const titleFs = String(mainTitle).length > 28 ? 13 : 15;
   doc.fontSize(titleFs).fillColor(BLUE_DARK);
   let cy = pdfText(doc, mainTitle, left, y, contentW, { align: "center", fontSize: titleFs, lineGap: 0.5 });
   cy = drawApprovalBelowTitle(doc, left, contentW, cy, docMeta.approvalNo);
