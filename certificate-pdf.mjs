@@ -151,7 +151,14 @@ function drawLogicalRtlLine(doc, text, x, y, width, opts = {}) {
     w: measureTokenWidth(doc, token, fontSize),
   }));
   const total = sized.reduce((sum, token) => sum + token.w, 0);
-  let px = opts.align === "center" ? x + (width + total) / 2 : x + width;
+  let px;
+  if (opts.align === "center") {
+    px = x + (width + total) / 2;
+  } else if (opts.align === "left") {
+    px = x + total;
+  } else {
+    px = x + width;
+  }
 
   for (const token of sized) {
     doc.font(token.font).fontSize(fontSize).fillColor(fillColor);
@@ -306,41 +313,44 @@ function drawRtlHebrewLatinLine(doc, hebrewText, latinText, x, y, width, opts = 
   return y + lineHeight(doc, fontSize, opts);
 }
 
-/** בס"ד only — top-right corner, above letterhead artwork. */
-function drawPageBsd(doc, layout, useBlank) {
+/** Top corners: issue date (physical left) + בס"ד (physical right). */
+function drawTopMetaCorners(doc, layout, useBlank, { issueDate }) {
   const pageW = doc.page.width;
   const side = useBlank ? mmToPt(BLANK_LETTERHEAD.sideMm) : layout.left;
   const y = mmToPt(useBlank ? BLANK_LETTERHEAD.metaTopMm : 16);
   const bandW = pageW - side * 2;
-  const metaFs = 7.8;
+  const metaFs = 8.5;
   const metaColor = "#475569";
   doc.fontSize(metaFs).fillColor(metaColor);
+
+  if (issueDate) {
+    pdfText(doc, `תאריך הנפקה: ${issueDate}`, side, y, bandW * 0.58, {
+      align: "left",
+      fontSize: metaFs,
+    });
+  }
   pdfText(doc, 'בס"ד', side, y, bandW, { align: "right", fontSize: metaFs });
 }
 
-/** Issue date (left) and approval number (right) — below document title. */
-function drawDocMetaRow(doc, left, contentW, y, { issueDate, approvalNo }) {
-  const metaFs = 9.2;
+/** מס' אישור — centered below document title, larger. */
+function drawApprovalBelowTitle(doc, left, contentW, y, approvalNo) {
+  if (!approvalNo) return y;
+  const metaFs = 10.5;
   const metaColor = "#475569";
-  const halfW = contentW / 2;
-  if (!issueDate && !approvalNo) return y;
-
   doc.fontSize(metaFs).fillColor(metaColor);
-  const rowY = y + 5;
-  if (issueDate) {
-    pdfText(doc, `תאריך הנפקה: ${issueDate}`, left, rowY, halfW, { align: "left", fontSize: metaFs });
-  }
-  if (approvalNo) {
-    pdfText(doc, `מס' אישור: ${approvalNo}`, left + halfW, rowY, halfW, { align: "right", fontSize: metaFs });
-  }
-  return rowY + lineHeight(doc, metaFs) + 6;
+  const rowY = y + 6;
+  pdfText(doc, `מס' אישור: ${approvalNo}`, left, rowY, contentW, {
+    align: "center",
+    fontSize: metaFs,
+  });
+  return rowY + lineHeight(doc, metaFs) + 8;
 }
 
 function drawBlankDocumentTitle(doc, left, contentW, y, mainTitle, legalSubtitle, docMeta = {}) {
   const titleFs = String(mainTitle).length > 30 ? 10.5 : 12;
   doc.fontSize(titleFs).fillColor(BLUE_DARK);
   let cy = pdfText(doc, mainTitle, left, y, contentW, { align: "center", fontSize: titleFs, lineGap: 0.5 });
-  cy = drawDocMetaRow(doc, left, contentW, cy, docMeta);
+  cy = drawApprovalBelowTitle(doc, left, contentW, cy, docMeta.approvalNo);
   if (legalSubtitle) {
     doc.fontSize(7).fillColor("#64748b");
     cy = pdfText(doc, legalSubtitle, left, cy + 3, contentW, {
@@ -528,7 +538,7 @@ function drawCertificateHeader(doc, { left, contentW, y, inspector, mainTitle, l
   doc.fontSize(titleFs).fillColor(BLUE);
   rtlBlock(doc, mainTitle, left, cursorY, contentW, { lineGap: 1 });
   cursorY = doc.y + 6;
-  cursorY = drawDocMetaRow(doc, left, contentW, cursorY, docMeta || {});
+  cursorY = drawApprovalBelowTitle(doc, left, contentW, cursorY, docMeta?.approvalNo);
 
   doc.fontSize(8.2).fillColor("#475569");
   rtlBlock(doc, legalSubtitle, left, cursorY, contentW, { lineGap: 1.5 });
@@ -637,7 +647,7 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
     );
     const workflow = String(extra.workflowStatus || "").trim();
 
-    drawPageBsd(doc, layout, useBlank);
+    drawTopMetaCorners(doc, layout, useBlank, { issueDate });
 
     const clientName = String(extra.clientName || "").trim() || "—";
     const installationType = String(extra.installationType || "").trim() || "—";
@@ -662,7 +672,7 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
       logoBuf,
       skipLetterhead: useBlank,
       blankMode: useBlank,
-      docMeta: { issueDate, approvalNo },
+      docMeta: { approvalNo },
     });
 
     if (docType === "portable") {
