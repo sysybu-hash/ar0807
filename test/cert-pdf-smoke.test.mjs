@@ -160,6 +160,8 @@ test("blank EV certificate renders on a single page", async () => {
 test("certificate PDF with blank letterhead builds", async () => {
   const blankPng =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  const stampPng =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAoCAYAAAAbr3KzAAAAFUlEQVR42mP8z5+hnoEIwDiqKJqQNgIA6K8B8uY7k5sAAAAASUVORK5CYII=";
   const buf = await buildCertificatePdfBuffer({
     certificate: {
       ...baseCert,
@@ -173,6 +175,7 @@ test("certificate PDF with blank letterhead builds", async () => {
       blankOffsetXmm: 0,
       blankOffsetYmm: 0,
       blankScale: 1,
+      stampData: stampPng,
     },
   });
   assert.ok(buf.length > 2000);
