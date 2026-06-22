@@ -268,8 +268,9 @@ export async function getSettings() {
 }
 
 export async function saveSettings(payload) {
-  const cur = await q(`SELECT access_code FROM inspector_settings WHERE id = 1`);
-  const currentStored = String(cur[0]?.access_code ?? "");
+  const cur = await getSettings();
+  const curAccessRows = await q(`SELECT access_code FROM inspector_settings WHERE id = 1`);
+  const currentStored = String(curAccessRows[0]?.access_code ?? "");
 
   const incoming =
     payload.accessCode !== undefined && payload.accessCode !== null
@@ -279,6 +280,9 @@ export async function saveSettings(payload) {
   if (incoming.length > 0) {
     nextAccess = await bcrypt.hash(incoming, 10);
   }
+
+  const keepMediaField = (incoming, current) =>
+    typeof incoming === "string" && incoming.length > 0 ? incoming : current ?? null;
 
   await q(
     `UPDATE inspector_settings SET
@@ -310,11 +314,11 @@ export async function saveSettings(payload) {
       payload.email ?? "",
       payload.whatsapp ?? "",
       payload.aboutText ?? "",
-      payload.logoData ?? null,
-      payload.stampData ?? null,
+      keepMediaField(payload.logoData, cur.logoData),
+      keepMediaField(payload.stampData, cur.stampData),
       JSON.stringify(payload.homeContent ?? {}),
       !!payload.useBlankTemplate,
-      payload.blankTemplateData ?? null,
+      keepMediaField(payload.blankTemplateData, cur.blankTemplateData),
       Number(payload.blankOffsetXmm || 0),
       Number(payload.blankOffsetYmm || 0),
       Number(payload.blankScale || 1),

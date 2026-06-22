@@ -31,12 +31,12 @@ const DEFAULT_HOME_CONTENT = {
   ctaTitle: "רוצים הצעת מחיר או בדיקת תקינות?",
   ctaSubtitle:
     "נשמח לשמוע על הפרויקט — מענה מהיר ב-WhatsApp או דרך צור קשר.",
-  trustTitle1: "",
-  trustText1: "",
-  trustTitle2: "",
-  trustText2: "",
-  trustTitle3: "",
-  trustText3: "",
+  trustTitle1: "ניסיון בשטח",
+  trustText1: "שנים של עבודה מול בתים, עסקים ופרויקטים מורכבים — עם ידע מעשי ולא רק על הנייר.",
+  trustTitle2: "עמידה בתקן",
+  trustText2: "IEC 60364 ודרישות רשות החשמל — בכל פרויקט, עם תיעוד מלא ואישורים מקצועיים.",
+  trustTitle3: "שירות אישי",
+  trustText3: "מענה מהיר, שקיפות מלאה ותיאום מול כל הגורמים — מהפנייה ועד המסירה.",
   featureTitle1: "בדיקות תקינות חשמל",
   featureText1:
     "בדיקות מקיפות והנפקת אישורים מקצועיים לפי דרישות תקן ישראלי ואירופאי IEC 60364.",
@@ -46,11 +46,11 @@ const DEFAULT_HOME_CONTENT = {
   featureTitle3: "שדרוג ותחזוקה",
   featureText3:
     "שדרוג לוחות ותשתיות חשמל, תחזוקה תקופתית ושיפור בטיחות — התאמה לדרישות רשות החשמל.",
-  processTitle: "",
-  step1: "",
-  step2: "",
-  step3: "",
-  step4: "",
+  processTitle: "איך זה עובד",
+  step1: "פנייה וייעוץ ראשוני — הבנת הצורך והיקף העבודה",
+  step2: "בדיקה מקצועית בשטח עם ציוד מדידה מתקדם",
+  step3: "תיעוד ממצאים והנפקת אישור תקינות לפי הצורך",
+  step4: "מסירה, הסבר ללקוח וליווי עד הפעלה בטוחה",
   galleryLabel1: "לוח חשמל מסודר ומקצועי",
   galleryLabel2: "בדיקות תקינות בשטח",
   galleryLabel3: "תאורה וחשמל במגורים",
@@ -927,6 +927,86 @@ function renderHomeHeroChips(hc) {
   wrap.innerHTML = html;
 }
 
+function renderHomeProcess(hc) {
+  const section = $("homeProcessSection");
+  const titleEl = $("homeProcessTitle");
+  const stepsEl = $("homeProcessSteps");
+  if (!section || !stepsEl) return;
+  const steps = [hc.step1, hc.step2, hc.step3, hc.step4].filter((s) => s && String(s).trim());
+  const hasContent = steps.length > 0 || (hc.processTitle && String(hc.processTitle).trim());
+  section.classList.toggle("hidden", !hasContent);
+  if (!hasContent) return;
+  if (titleEl) titleEl.textContent = hc.processTitle || "איך זה עובד";
+  stepsEl.innerHTML = steps
+    .map(
+      (text, i) =>
+        `<li class="home-process__step"><span class="home-process__step-num">${String(i + 1).padStart(2, "0")}</span><span class="home-process__step-text">${escapeHtml(String(text).trim())}</span></li>`
+    )
+    .join("");
+}
+
+function renderHomeTrust(hc) {
+  const section = $("homeTrustSection");
+  const grid = $("homeTrustGrid");
+  if (!section || !grid) return;
+  const items = [
+    { title: hc.trustTitle1, text: hc.trustText1 },
+    { title: hc.trustTitle2, text: hc.trustText2 },
+    { title: hc.trustTitle3, text: hc.trustText3 },
+  ].filter((x) => x.title?.trim() || x.text?.trim());
+  section.classList.toggle("hidden", items.length === 0);
+  if (items.length === 0) return;
+  grid.innerHTML = items
+    .map(
+      (x) =>
+        `<article class="home-trust-ed__item"><h4 class="home-trust-ed__title">${escapeHtml(String(x.title || "").trim())}</h4><p class="home-trust-ed__text">${escapeHtml(String(x.text || "").trim())}</p></article>`
+    )
+    .join("");
+}
+
+function renderHomeFaqPreview(faq) {
+  const section = $("homeFaqPreview");
+  const list = $("homeFaqPreviewList");
+  if (!section || !list) return;
+  const items = (faq || [])
+    .filter((x) => x && (String(x.q || "").trim() || String(x.a || "").trim()))
+    .slice(0, 3);
+  section.classList.toggle("hidden", items.length === 0);
+  if (items.length === 0) return;
+  list.innerHTML = items
+    .map(
+      (x, i) => `
+      <div class="home-faq-preview__item" id="homeFaqItem${i}">
+        <button type="button" class="home-faq-preview__q" aria-expanded="false" aria-controls="homeFaqAns${i}" id="homeFaqBtn${i}">
+          <span>${escapeHtml(String(x.q || "").trim())}</span>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="home-faq-preview__a" id="homeFaqAns${i}" role="region" aria-labelledby="homeFaqBtn${i}">${escapeHtml(String(x.a || "").trim())}</div>
+      </div>`
+    )
+    .join("");
+}
+
+function setupHomeFaqPreview() {
+  const list = $("homeFaqPreviewList");
+  if (!list) return;
+  list.addEventListener("click", (ev) => {
+    const btn = ev.target.closest(".home-faq-preview__q");
+    if (!btn) return;
+    const item = btn.closest(".home-faq-preview__item");
+    const open = item?.classList.contains("is-open");
+    list.querySelectorAll(".home-faq-preview__item").forEach((el) => {
+      el.classList.remove("is-open");
+      el.querySelector(".home-faq-preview__q")?.setAttribute("aria-expanded", "false");
+    });
+    if (!open && item) {
+      item.classList.add("is-open");
+      btn.setAttribute("aria-expanded", "true");
+    }
+  });
+  $("homeFaqPreviewMore")?.addEventListener("click", () => setSection("faq"));
+}
+
 function renderPublicExtras() {
   const ex = normalizeSiteExtras(settings.siteExtras);
   const licEl = $("headerLicenseLine");
@@ -941,18 +1021,20 @@ function renderPublicExtras() {
   }
 
   const strip = $("publicTrustStrip");
-  const hasStrip = !!(
-    ex.serviceArea?.trim() ||
-    ex.emergencyNote?.trim() ||
-    ex.emergencyWhatsapp?.trim() ||
-    ex.complianceTrust?.trim()
-  );
-  if (strip) strip.classList.toggle("hidden", !hasStrip);
+  if (strip) strip.classList.add("hidden");
+
+  const hasServiceArea = !!ex.serviceArea?.trim();
+  const hasEmergency = !!(ex.emergencyNote?.trim() || ex.emergencyWhatsapp?.trim());
+  const hasCompliance = !!ex.complianceTrust?.trim();
+
+  $("homeBentoServiceArea")?.classList.toggle("hidden", !hasServiceArea);
+  $("homeBentoEmergency")?.classList.toggle("hidden", !hasEmergency);
+  $("homeBentoCompliance")?.classList.toggle("hidden", !hasCompliance);
 
   const sa = $("publicServiceArea");
   if (sa) {
-    sa.innerHTML = ex.serviceArea?.trim()
-      ? `<strong>אזור שירות</strong><span style="display:block;margin-top:0.25rem;white-space:pre-wrap;">${escapeHtml(ex.serviceArea)}</span>`
+    sa.innerHTML = hasServiceArea
+      ? `<span style="display:block;white-space:pre-wrap;">${escapeHtml(ex.serviceArea)}</span>`
       : "";
   }
   const em = $("publicEmergency");
@@ -965,13 +1047,13 @@ function renderPublicExtras() {
         : "";
     em.innerHTML =
       ex.emergencyNote?.trim() || wa
-        ? `<strong>חירום / זמינות</strong><span style="display:block;margin-top:0.25rem;white-space:pre-wrap;">${escapeHtml(ex.emergencyNote || "")}</span>${waBlock}`
+        ? `<span style="display:block;white-space:pre-wrap;">${escapeHtml(ex.emergencyNote || "")}</span>${waBlock}`
         : "";
   }
   const co = $("publicCompliance");
   if (co) {
-    co.innerHTML = ex.complianceTrust?.trim()
-      ? `<strong>אמון ותקינות</strong><span style="display:block;margin-top:0.35rem;font-size:0.82rem;line-height:1.55;">${escapeHtml(ex.complianceTrust)}</span>`
+    co.innerHTML = hasCompliance
+      ? `<span style="display:block;font-size:0.88rem;line-height:1.55;">${escapeHtml(ex.complianceTrust)}</span>`
       : "";
   }
 
@@ -1052,6 +1134,11 @@ function renderHomeFromSettings() {
   setText("homeGalleryLabel1", hc.galleryLabel1);
   setText("homeGalleryLabel2", hc.galleryLabel2);
   setText("homeGalleryLabel3", hc.galleryLabel3);
+
+  renderHomeProcess(hc);
+  renderHomeTrust(hc);
+  const ex = normalizeSiteExtras(settings.siteExtras);
+  renderHomeFaqPreview(ex.faq);
 
   const href = toWaHref(settings.whatsapp || settings.phone);
   const waIds = ["whatsappLink", "whatsappTopLink", "whatsappBannerLink", "whatsappFloatingCta"];
@@ -1725,6 +1812,43 @@ function syncSettingsFormFromState() {
   }
   setInputValue("setPrivacyText", sx.privacyText || "");
   setChecked("setContactFormEnabled", sx.contactFormEnabled !== false);
+  syncSettingsMediaPreview();
+}
+
+function syncSettingsMediaPreview() {
+  const stampHint = $("stampHint");
+  const stampPreview = $("stampPreviewImg");
+  const stampWrap = $("stampPreviewWrap");
+  if (settings.stampData) {
+    if (stampHint) stampHint.textContent = "חותמת שמורה במערכת — ניתן להחליף בקובץ חדש";
+    if (stampPreview) stampPreview.src = settings.stampData;
+    if (stampWrap) stampWrap.style.display = "block";
+  } else {
+    if (stampHint) stampHint.textContent = "PNG/JPG — מוצגת במסמך; מיקום למטה";
+    if (stampPreview) stampPreview.removeAttribute("src");
+    if (stampWrap) stampWrap.style.display = "none";
+  }
+  const logoHint = $("logoHint");
+  const logoPreview = $("logoPreviewImg");
+  const logoWrap = $("logoPreviewWrap");
+  if (settings.logoData) {
+    if (logoHint) logoHint.textContent = "לוגו שמור במערכת — ניתן להחליף בקובץ חדש";
+    if (logoPreview) logoPreview.src = settings.logoData;
+    if (logoWrap) logoWrap.style.display = "block";
+  } else {
+    if (logoHint) logoHint.textContent = "PNG/JPG עד 2MB";
+    if (logoPreview) logoPreview.removeAttribute("src");
+    if (logoWrap) logoWrap.style.display = "none";
+  }
+}
+
+async function ingestSettingsMediaFromInputs() {
+  const logoFile = $("setLogoInput")?.files?.[0];
+  if (logoFile) settings.logoData = await readImageFile(logoFile);
+  const stampFile = $("setStampInput")?.files?.[0];
+  if (stampFile) settings.stampData = await readImageFile(stampFile);
+  const blankFile = $("setBlankTemplateInput")?.files?.[0];
+  if (blankFile) settings.blankTemplateData = await readImageFile(blankFile, 1240, 1754, 0.82);
 }
 
 async function loadSettings() {
@@ -1742,6 +1866,7 @@ async function bindSettingsForm() {
       const f = e.target.files?.[0];
       if (!f) return;
       settings.logoData = await readImageFile(f);
+      syncSettingsMediaPreview();
     });
   }
   const stampIn = $("setStampInput");
@@ -1749,7 +1874,14 @@ async function bindSettingsForm() {
     stampIn.addEventListener("change", async (e) => {
       const f = e.target.files?.[0];
       if (!f) return;
-      settings.stampData = await readImageFile(f);
+      const hint = $("stampHint");
+      if (hint) hint.textContent = "טוען חותמת…";
+      try {
+        settings.stampData = await readImageFile(f);
+        syncSettingsMediaPreview();
+      } catch {
+        if (hint) hint.textContent = "שגיאה בטעינת החותמת — נסה קובץ אחר";
+      }
     });
   }
   const blankIn = $("setBlankTemplateInput");
@@ -1764,6 +1896,8 @@ async function bindSettingsForm() {
   if (!saveBtn) return;
   saveBtn.onclick = async () => {
     try {
+      saveBtn.disabled = true;
+      await ingestSettingsMediaFromInputs();
       settings.name = inputTrim("setName");
       settings.licenseNo = inputTrim("setLicense");
       settings.phone = inputTrim("setPhone");
@@ -1828,11 +1962,14 @@ async function bindSettingsForm() {
       });
       mergeServerSettings(await api("/api/settings", { method: "PUT", body: settings }));
       siteSettingsHydrated = true;
+      syncSettingsFormFromState();
       renderHomeFromSettings();
       certsV2Ui?.refreshUi?.();
       showMsg("settingsMsg", "הגדרות נשמרו בהצלחה", true);
     } catch (e) {
       showMsg("settingsMsg", e.message, false);
+    } finally {
+      saveBtn.disabled = false;
     }
   };
 }
@@ -1920,6 +2057,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   });
   setupDrawer();
   setupHomeShowcase();
+  setupHomeFaqPreview();
   setupAccessibilityToolbar();
   setupPortalWizard();
   setupPortalHistory();

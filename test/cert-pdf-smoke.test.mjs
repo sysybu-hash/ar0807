@@ -154,6 +154,7 @@ test("blank EV certificate renders on a single page", async () => {
   });
   const raw = buf.toString("latin1");
   assert.ok(!raw.includes("\u05DE\u05EA\u05D5\u05DA 2"), "blank EV PDF should not span 2 pages");
+  assert.ok(buf.length > 3000, "blank EV PDF should include title and stamp content");
 });
 
 test("certificate PDF with blank letterhead builds", async () => {

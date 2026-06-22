@@ -257,6 +257,114 @@ function dataUrlToBuffer(dataUrl) {
   }
 }
 
+function formatIsraelPhone(phone) {
+  const digits = String(phone || "").replace(/\D/g, "");
+  if (digits.length === 10 && digits.startsWith("05")) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  if (digits.length === 9 && digits.startsWith("0")) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+  const trimmed = String(phone || "").trim();
+  return trimmed || "—";
+}
+
+function inspectorStampName(inspector) {
+  const full = String(inspector?.name || "").trim();
+  if (!full) return "—";
+  const parts = full.split(/\s*[-–—]\s*/).map((p) => p.trim()).filter(Boolean);
+  if (parts.length > 1) {
+    const personal = parts.find((p) => !/חשמל|בע[\"']?מ|electric/i.test(p));
+    if (personal) return personal;
+  }
+  return parts[0] || full;
+}
+
+/** Center a Hebrew label with a Latin value for RTL stamp lines (phone, license no.). */
+function drawRtlHebrewLatinLine(doc, hebrewText, latinText, x, y, width, opts = {}) {
+  const fontSize = opts.fontSize ?? 6.4;
+  const fillColor = opts.fillColor ?? BLUE_DARK;
+  const gap = 4;
+  const latin = String(latinText || "").trim() || "—";
+  doc.fontSize(fontSize).fillColor(fillColor);
+  doc.font("Hebrew");
+  const hebW = doc.widthOfString(hebrewText, { features: ["rtla"] });
+  doc.font("Latin");
+  const latW = doc.widthOfString(latin);
+  const total = hebW + gap + latW;
+  const blockRight = x + (width + total) / 2;
+  doc.font("Hebrew").fillColor(fillColor);
+  doc.text(hebrewText, blockRight - hebW, y, {
+    lineBreak: false,
+    width: Math.max(hebW, 1),
+    features: ["rtla"],
+  });
+  doc.font("Latin").fillColor(fillColor);
+  doc.text(latin, blockRight - hebW - gap - latW, y, {
+    lineBreak: false,
+    width: Math.max(latW, 1),
+  });
+  doc.font("Hebrew");
+  return y + lineHeight(doc, fontSize, opts);
+}
+
+function drawBlankDocumentTitle(doc, left, contentW, y, mainTitle, legalSubtitle) {
+  const titleFs = String(mainTitle).length > 30 ? 10.5 : 12;
+  doc.fontSize(titleFs).fillColor(BLUE_DARK);
+  let cy = pdfText(doc, mainTitle, left, y, contentW, { align: "center", fontSize: titleFs, lineGap: 0.5 });
+  if (legalSubtitle) {
+    doc.fontSize(7).fillColor("#64748b");
+    cy = pdfText(doc, legalSubtitle, left, cy + 3, contentW, {
+      align: "center",
+      fontSize: 7,
+      lineGap: 0.5,
+    });
+  }
+  doc.save();
+  doc.moveTo(left + contentW * 0.12, cy + 6)
+    .lineTo(left + contentW * 0.88, cy + 6)
+    .lineWidth(1.4)
+    .strokeColor(BLUE)
+    .stroke();
+  doc.restore();
+  return cy + 14;
+}
+
+function drawInspectorStampVector(doc, inspector, x, y, width, height, sigBuf = null) {
+  const stampBg = "#f2f4f7";
+  doc.save();
+  doc.rect(x, y, width, height).fill(stampBg);
+  doc.lineWidth(1.6).strokeColor(BLUE_DARK);
+  doc.rect(x + 1.5, y + 1.5, width - 3, height - 3).stroke();
+  doc.lineWidth(0.55).strokeColor(BLUE);
+  doc.rect(x + 4.5, y + 4.5, width - 9, height - 9).stroke();
+  doc.restore();
+
+  const padX = 7;
+  const innerW = width - padX * 2;
+  const name = inspectorStampName(inspector);
+  const lic = String(inspector?.licenseNo || "").trim();
+  doc.fillColor(BLUE_DARK);
+  let ty = y + 5;
+  ty = pdfText(doc, name, x + padX, ty, innerW, { align: "center", fontSize: 9.8 }) + 1.5;
+  if (lic) {
+    ty = drawRtlHebrewLatinLine(doc, "חשמלאי ראשי מ.ר.", lic, x + padX, ty, innerW, { fontSize: 6.4 }) + 0.5;
+  } else {
+    ty = pdfText(doc, "חשמלאי ראשי", x + padX, ty, innerW, { align: "center", fontSize: 6.4 }) + 0.5;
+  }
+  drawRtlHebrewLatinLine(doc, "טלפון:", formatIsraelPhone(inspector?.phone), x + padX, ty, innerW, {
+    fontSize: 6.4,
+  });
+
+  if (sigBuf) {
+    const sigPadX = 4;
+    const sigW = width - sigPadX * 2;
+    const sigTop = y + height * 0.3;
+    const sigH = height * 0.68;
+    try {
+      doc.image(sigBuf, x + sigPadX, sigTop, { fit: [sigW, sigH], align: "center", valign: "center" });
+    } catch {
+      /* skip */
+    }
+  }
+}
+
 function safeExtra(certificate) {
   const e = certificate?.extra;
   return e && typeof e === "object" ? e : {};
@@ -354,7 +462,9 @@ function drawGreyMetaPanel(doc, left, contentW, y, lines, fontSize = 9) {
 }
 
 function drawCertificateHeader(doc, { left, contentW, y, inspector, mainTitle, legalSubtitle, logoBuf, skipLetterhead, blankMode }) {
-  if (blankMode) return y;
+  if (blankMode) {
+    return drawBlankDocumentTitle(doc, left, contentW, y, mainTitle, legalSubtitle);
+  }
 
   const logoW = 52;
   const logoH = 52;
@@ -1251,6 +1361,15 @@ function drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bot
   pdfText(doc, "הצהרת החשמלאי", midX + 2, y, declColW - 2, { align: "right", fontSize: titleFs });
   pdfText(doc, "חתימה וחותמת החשמלאי", left, y, sigColW - 2, { align: "right", fontSize: titleFs });
 
+  const sigLineY = y + (compact ? 12 : 15);
+  doc.save();
+  doc.moveTo(left + 10, sigLineY)
+    .lineTo(left + sigColW - 10, sigLineY)
+    .lineWidth(0.6)
+    .strokeColor("#94a3b8")
+    .stroke();
+  doc.restore();
+
   doc.fontSize(declFs).fillColor("#334155");
   const declEndY = pdfText(doc, declText, midX + 2, bodyY, declColW - 4, declOpts);
 
@@ -1259,30 +1378,45 @@ function drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bot
   const mmToPtLocal = 2.83465;
   const offX = Number(inspector?.stampOffsetXmm || 0) * mmToPtLocal;
   const offY = Number(inspector?.stampOffsetYmm || 0) * mmToPtLocal;
-  const sigW = compact ? 96 : 130;
-  const sigH = compact ? 38 : 52;
-  if (sigBuf) {
+
+  const stampW = compact ? 136 : 162;
+  const stampH = compact ? 46 : 54;
+  const stampX = left + Math.max(0, (sigColW - stampW) / 2);
+  const stampY = sigLineY + 7;
+  const hasInspectorStampInfo = Boolean(
+    inspectorStampName(inspector) !== "—" ||
+      String(inspector?.licenseNo || "").trim() ||
+      String(inspector?.phone || "").trim()
+  );
+
+  if (hasInspectorStampInfo) {
+    drawInspectorStampVector(doc, inspector, stampX + offX, stampY + offY, stampW, stampH, sigBuf);
+  } else if (stampBuf) {
     try {
-      doc.image(sigBuf, left + 6, bodyY, { width: sigW, height: sigH, fit: [sigW, sigH] });
+      doc.image(stampBuf, stampX + offX, stampY + offY, { fit: [stampW, stampH], align: "left", valign: "top" });
+      if (sigBuf) {
+        const sigW = stampW * 0.9;
+        const sigH = stampH * 0.65;
+        doc.image(sigBuf, stampX + offX + (stampW - sigW) / 2, stampY + offY + stampH * 0.28, {
+          fit: [sigW, sigH],
+          align: "center",
+          valign: "center",
+        });
+      }
     } catch {
       /* skip */
     }
-  }
-  if (stampBuf) {
+  } else if (sigBuf) {
     try {
-      doc.image(stampBuf, left + sigColW - 76 - offX, bodyY + offY, {
-        width: compact ? 68 : 92,
-        height: compact ? 52 : 72,
-        fit: [compact ? 68 : 92, compact ? 52 : 72],
-      });
+      doc.image(sigBuf, left + 6, bodyY, { width: compact ? 96 : 130, height: compact ? 38 : 52, fit: [compact ? 96 : 130, compact ? 38 : 52] });
     } catch {
       /* skip */
     }
   }
   if (!compact) {
     doc.fontSize(7).fillColor("#94a3b8");
-    pdfText(doc, "חתימה דיגיטלית / סריקה", left + 8, bodyY + 56, 130, { align: "center" });
+    pdfText(doc, "חתימה דיגיטלית / סריקה", left + 8, stampY + stampH + 4, stampW, { align: "center" });
   }
 
-  return compact ? bottomSafe - 2 : Math.max(declEndY, bodyY + 78) + 12;
+  return compact ? bottomSafe - 2 : Math.max(declEndY, stampY + stampH + 14) + 12;
 }
