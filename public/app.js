@@ -1812,6 +1812,43 @@ function syncSettingsFormFromState() {
   }
   setInputValue("setPrivacyText", sx.privacyText || "");
   setChecked("setContactFormEnabled", sx.contactFormEnabled !== false);
+  syncSettingsMediaPreview();
+}
+
+function syncSettingsMediaPreview() {
+  const stampHint = $("stampHint");
+  const stampPreview = $("stampPreviewImg");
+  const stampWrap = $("stampPreviewWrap");
+  if (settings.stampData) {
+    if (stampHint) stampHint.textContent = "חותמת שמורה במערכת — ניתן להחליף בקובץ חדש";
+    if (stampPreview) stampPreview.src = settings.stampData;
+    if (stampWrap) stampWrap.style.display = "block";
+  } else {
+    if (stampHint) stampHint.textContent = "PNG/JPG — מוצגת במסמך; מיקום למטה";
+    if (stampPreview) stampPreview.removeAttribute("src");
+    if (stampWrap) stampWrap.style.display = "none";
+  }
+  const logoHint = $("logoHint");
+  const logoPreview = $("logoPreviewImg");
+  const logoWrap = $("logoPreviewWrap");
+  if (settings.logoData) {
+    if (logoHint) logoHint.textContent = "לוגו שמור במערכת — ניתן להחליף בקובץ חדש";
+    if (logoPreview) logoPreview.src = settings.logoData;
+    if (logoWrap) logoWrap.style.display = "block";
+  } else {
+    if (logoHint) logoHint.textContent = "PNG/JPG עד 2MB";
+    if (logoPreview) logoPreview.removeAttribute("src");
+    if (logoWrap) logoWrap.style.display = "none";
+  }
+}
+
+async function ingestSettingsMediaFromInputs() {
+  const logoFile = $("setLogoInput")?.files?.[0];
+  if (logoFile) settings.logoData = await readImageFile(logoFile);
+  const stampFile = $("setStampInput")?.files?.[0];
+  if (stampFile) settings.stampData = await readImageFile(stampFile);
+  const blankFile = $("setBlankTemplateInput")?.files?.[0];
+  if (blankFile) settings.blankTemplateData = await readImageFile(blankFile, 1240, 1754, 0.82);
 }
 
 async function loadSettings() {
@@ -1829,6 +1866,7 @@ async function bindSettingsForm() {
       const f = e.target.files?.[0];
       if (!f) return;
       settings.logoData = await readImageFile(f);
+      syncSettingsMediaPreview();
     });
   }
   const stampIn = $("setStampInput");
@@ -1836,7 +1874,14 @@ async function bindSettingsForm() {
     stampIn.addEventListener("change", async (e) => {
       const f = e.target.files?.[0];
       if (!f) return;
-      settings.stampData = await readImageFile(f);
+      const hint = $("stampHint");
+      if (hint) hint.textContent = "טוען חותמת…";
+      try {
+        settings.stampData = await readImageFile(f);
+        syncSettingsMediaPreview();
+      } catch {
+        if (hint) hint.textContent = "שגיאה בטעינת החותמת — נסה קובץ אחר";
+      }
     });
   }
   const blankIn = $("setBlankTemplateInput");
@@ -1851,6 +1896,8 @@ async function bindSettingsForm() {
   if (!saveBtn) return;
   saveBtn.onclick = async () => {
     try {
+      saveBtn.disabled = true;
+      await ingestSettingsMediaFromInputs();
       settings.name = inputTrim("setName");
       settings.licenseNo = inputTrim("setLicense");
       settings.phone = inputTrim("setPhone");
@@ -1915,11 +1962,14 @@ async function bindSettingsForm() {
       });
       mergeServerSettings(await api("/api/settings", { method: "PUT", body: settings }));
       siteSettingsHydrated = true;
+      syncSettingsFormFromState();
       renderHomeFromSettings();
       certsV2Ui?.refreshUi?.();
       showMsg("settingsMsg", "הגדרות נשמרו בהצלחה", true);
     } catch (e) {
       showMsg("settingsMsg", e.message, false);
+    } finally {
+      saveBtn.disabled = false;
     }
   };
 }
