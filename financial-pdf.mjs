@@ -2,6 +2,7 @@ import PDFDocument from "pdfkit";
 import path from "path";
 import { fileURLToPath } from "url";
 import bidiFactory from "bidi-js";
+import { formatHebrewDateFull } from "./lib/hebrew-date.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const HEBREW_FONT = path.join(__dirname, "public", "fonts", "NotoSansHebrew-Regular.ttf");
@@ -83,6 +84,7 @@ export function buildFinancialPdfBuffer({ doc, inspector }) {
       doc.docNo ? `מספר מסמך: ${doc.docNo}` : null,
       isInvoice && doc.allocationNo ? `הקצאה: ${doc.allocationNo}` : null,
       doc.issueDate ? `תאריך הנפקה: ${fmtDate(doc.issueDate)}` : null,
+      doc.issueDate ? `תאריך עברי: ${formatHebrewDateFull(doc.issueDate)}` : null,
       doc.dueDate ? `תאריך יעד: ${fmtDate(doc.dueDate)}` : null,
     ]
       .filter(Boolean)
