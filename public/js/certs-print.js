@@ -150,15 +150,25 @@ export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } 
         ? STR.statusDraft
         : "";
   const typeBody = printDocTypeBody(doc);
+  const photoCount = (doc.photos || []).filter((p) => p?.data).length;
   const photosHtml = (doc.photos || [])
     .map(
-      (p) =>
-        `<div class="rounded-lg overflow-hidden border border-slate-200 shadow-sm"><img src="${p.data}" class="w-full h-44 md:h-52 object-cover" alt="" /></div>`
+      (p, i) =>
+        `<figure class="print-photo-card"><img src="${p.data}" alt="" /><figcaption>תמונה ${i + 1}${p.name ? ` — ${escapeHtml(p.name)}` : ""}</figcaption></figure>`
     )
     .join("");
-  const photosBlock = photosHtml
-    ? `<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">${photosHtml}</div>`
-    : "";
+  const photosNotice =
+    photoCount > 0
+      ? `<div class="print-photos-notice">צורפו ${photoCount} תמונות מהשטח — ראו נספח תיעוד ויזואלי בעמוד הבא.</div>`
+      : "";
+  const photosAppendix =
+    photoCount > 0 && photosHtml
+      ? `<section class="print-photos-appendix" aria-label="נספח תמונות"><h2 class="print-photos-appendix__title">נספח — תיעוד ויזואלי מהשטח</h2><p class="print-photos-appendix__meta">${escapeHtml(doc.facilityName || "")}${docNoStr ? ` · מס' אישור ${escapeHtml(docNoStr)}` : ""} · ${photoCount} תמונות</p><div class="print-photos-appendix__grid">${photosHtml}</div></section>`
+      : "";
+  const photosBlock =
+    !settings.useBlankTemplate && photosHtml
+      ? `<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">${photosHtml}</div>`
+      : "";
   const signatureFooter = buildSignatureFooterHtml(settings, doc);
   const standardLayout = `<div class="max-w-[210mm] mx-auto p-8 text-right">
     <div class="flex flex-row-reverse justify-between items-start border-b-4 border-blue-800 pb-4 mb-6 gap-4">
@@ -210,10 +220,11 @@ export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } 
         </div>
         <div class="mb-4 print-type-body bg-white/90">${typeBody}</div>
         <div class="mb-4 bg-white/90 border rounded p-2 min-h-[40px] whitespace-pre-wrap"><b>${STR.printNotes}:</b> ${escapeHtml(doc.notes || "")}</div>
-        ${photosBlock}
+        ${photosNotice}
         ${signatureFooter}
       </div>
-    </div>`;
+    </div>
+    ${photosAppendix}`;
   const printScript = autoPrint ? `<script>window.onload=()=>{window.print()};<\/script>` : "";
   return `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><link rel="stylesheet" href="/tw-built.css" />
   <style>
@@ -237,6 +248,14 @@ export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } 
     .sig-line{border-top:1px solid #94a3b8;margin:0.35rem 0 0.5rem}
     .sig-stamp-img{display:block;max-width:188px;max-height:64px;margin:0 auto;transform-origin:top center}
     .sig-stamp-empty{min-height:64px}
+    .print-photos-notice{margin:0.5rem 0 0.75rem;padding:0.55rem 0.75rem;border:1px solid #1a56b4;border-radius:0.35rem;background:#eff6ff;color:#0d3d82;font-size:0.85rem;font-weight:700}
+    .print-photos-appendix{page-break-before:always;max-width:210mm;margin:0 auto;padding:12mm}
+    .print-photos-appendix__title{text-align:center;font-size:1.15rem;font-weight:800;color:#0d3d82;margin:0 0 0.35rem}
+    .print-photos-appendix__meta{text-align:center;font-size:0.85rem;color:#475569;margin:0 0 1rem}
+    .print-photos-appendix__grid{display:grid;grid-template-columns:1fr;gap:1rem}
+    .print-photo-card{margin:0;border:1px solid #cbd5e1;border-radius:0.5rem;overflow:hidden;background:#f8fafc}
+    .print-photo-card img{display:block;width:100%;max-height:280px;object-fit:contain;background:#fff}
+    .print-photo-card figcaption{padding:0.45rem 0.65rem;font-size:0.8rem;color:#64748b;text-align:right}
   </style>
   </head><body>
   ${settings.useBlankTemplate && settings.blankTemplateData ? blankLayout : standardLayout}
