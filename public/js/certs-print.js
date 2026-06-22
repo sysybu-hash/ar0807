@@ -125,6 +125,22 @@ export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } 
   const title = certTypeLabel(doc.docType);
   const ex = doc.extra && typeof doc.extra === "object" ? doc.extra : {};
   const docNoStr = ex.docNo ? String(ex.docNo) : "";
+  const approvalNo = docNoStr || (doc.id != null ? String(doc.id) : "");
+  const issueDateFmt = (() => {
+    const v = ex.issueDate;
+    if (v && /^\d{4}-\d{2}-\d{2}$/.test(String(v).trim())) {
+      try {
+        return new Date(`${String(v).trim()}T12:00:00`).toLocaleDateString("he-IL");
+      } catch {
+        return String(v).trim();
+      }
+    }
+    try {
+      return new Date(doc.updatedAt || doc.createdAt || Date.now()).toLocaleDateString("he-IL");
+    } catch {
+      return "";
+    }
+  })();
   const wfStr =
     ex.workflowStatus === "final"
       ? STR.statusFinal
@@ -171,6 +187,11 @@ export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } 
   const blankLayout = `
     <div class="blank-sheet">
       ${settings.blankTemplateData ? `<img src="${settings.blankTemplateData}" class="blank-bg" alt="">` : ""}
+      <div class="blank-meta" aria-hidden="true">
+        <span class="blank-meta-issue">${issueDateFmt ? `תאריך הנפקה: ${escapeHtml(issueDateFmt)}` : ""}</span>
+        <span class="blank-meta-approval">${approvalNo ? `מס' אישור: ${escapeHtml(approvalNo)}` : ""}</span>
+        <span class="blank-meta-bsd">בס"ד</span>
+      </div>
       <div class="blank-content">
         <div class="grid grid-cols-2 gap-2 text-sm border rounded p-3 bg-white/90 mb-4">
           <div><b>${STR.printDocType}:</b> ${escapeHtml(title)}</div>
@@ -191,6 +212,10 @@ export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } 
   <style>
     .blank-sheet{position:relative;max-width:210mm;min-height:287mm;margin:0 auto;padding:12mm}
     .blank-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:0;transform:translate(${Number(settings.blankOffsetXmm || 0)}mm, ${Number(settings.blankOffsetYmm || 0)}mm) scale(${blankScale});transform-origin:top right}
+    .blank-meta{position:absolute;top:11mm;left:14mm;right:14mm;z-index:2;display:flex;align-items:center;font-size:0.72rem;color:#475569;line-height:1.2}
+    .blank-meta-issue{flex:1;text-align:left}
+    .blank-meta-approval{flex:1;text-align:center}
+    .blank-meta-bsd{flex:1;text-align:right}
     .blank-content{position:relative;z-index:1;padding-top:72mm;padding-left:14mm;padding-right:14mm;padding-bottom:28mm}
     .print-table{width:100%;border-collapse:collapse;margin:0.75rem 0;font-size:0.85rem}
     .print-table th,.print-table td{border:1px solid #cbd5e1;padding:0.35rem 0.5rem;text-align:right}
