@@ -257,6 +257,66 @@ function dataUrlToBuffer(dataUrl) {
   }
 }
 
+function formatIsraelPhone(phone) {
+  const digits = String(phone || "").replace(/\D/g, "");
+  if (digits.length === 10 && digits.startsWith("05")) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  if (digits.length === 9 && digits.startsWith("0")) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+  const trimmed = String(phone || "").trim();
+  return trimmed || "—";
+}
+
+function inspectorStampName(inspector) {
+  const full = String(inspector?.name || "").trim();
+  if (!full) return "—";
+  const short = full.split(/\s*[-–—]\s*/)[0]?.trim();
+  return short || full;
+}
+
+function drawBlankDocumentTitle(doc, left, contentW, y, mainTitle, legalSubtitle) {
+  const titleFs = String(mainTitle).length > 30 ? 10.5 : 12;
+  doc.fontSize(titleFs).fillColor(BLUE_DARK);
+  let cy = pdfText(doc, mainTitle, left, y, contentW, { align: "center", fontSize: titleFs, lineGap: 0.5 });
+  if (legalSubtitle) {
+    doc.fontSize(7).fillColor("#64748b");
+    cy = pdfText(doc, legalSubtitle, left, cy + 3, contentW, {
+      align: "center",
+      fontSize: 7,
+      lineGap: 0.5,
+    });
+  }
+  doc.save();
+  doc.moveTo(left + contentW * 0.12, cy + 6)
+    .lineTo(left + contentW * 0.88, cy + 6)
+    .lineWidth(1.4)
+    .strokeColor(BLUE)
+    .stroke();
+  doc.restore();
+  return cy + 14;
+}
+
+function drawInspectorStampVector(doc, inspector, x, y, width, height) {
+  doc.save();
+  doc.rect(x, y, width, height).fill("#ffffff");
+  doc.lineWidth(1.1).strokeColor(BLUE);
+  doc.rect(x + 2, y + 2, width - 4, height - 4).stroke();
+  doc.lineWidth(0.55);
+  doc.rect(x + 5, y + 5, width - 10, height - 10).stroke();
+  doc.restore();
+
+  const padX = 6;
+  const innerW = width - padX * 2;
+  const name = inspectorStampName(inspector);
+  const lic = String(inspector?.licenseNo || "").trim();
+  const licLine = lic ? `חשמלאי ראשי מ.ר. ${lic}` : "חשמלאי ראשי";
+  const phoneLine = `טלפון: ${formatIsraelPhone(inspector?.phone)}`;
+
+  doc.fillColor(BLUE);
+  let ty = y + 5;
+  ty = pdfText(doc, name, x + padX, ty, innerW, { align: "center", fontSize: 8.5 }) + 1;
+  ty = pdfText(doc, licLine, x + padX, ty, innerW, { align: "center", fontSize: 6.3 }) + 0.5;
+  pdfText(doc, phoneLine, x + padX, ty, innerW, { align: "center", fontSize: 6.3 });
+}
+
 function safeExtra(certificate) {
   const e = certificate?.extra;
   return e && typeof e === "object" ? e : {};
@@ -354,7 +414,9 @@ function drawGreyMetaPanel(doc, left, contentW, y, lines, fontSize = 9) {
 }
 
 function drawCertificateHeader(doc, { left, contentW, y, inspector, mainTitle, legalSubtitle, logoBuf, skipLetterhead, blankMode }) {
-  if (blankMode) return y;
+  if (blankMode) {
+    return drawBlankDocumentTitle(doc, left, contentW, y, mainTitle, legalSubtitle);
+  }
 
   const logoW = 52;
   const logoH = 52;
@@ -1268,13 +1330,22 @@ function drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bot
       /* skip */
     }
   }
-  if (stampBuf) {
+
+  const stampW = compact ? 124 : 150;
+  const stampH = compact ? 40 : 48;
+  const stampX = left + 4;
+  const stampY = bodyY + (sigBuf ? sigH + 5 : 0);
+  const hasInspectorStampInfo = Boolean(
+    inspectorStampName(inspector) !== "—" ||
+      String(inspector?.licenseNo || "").trim() ||
+      String(inspector?.phone || "").trim()
+  );
+
+  if (hasInspectorStampInfo) {
+    drawInspectorStampVector(doc, inspector, stampX + offX, stampY + offY, stampW, stampH);
+  } else if (stampBuf) {
     try {
-      doc.image(stampBuf, left + sigColW - 76 - offX, bodyY + offY, {
-        width: compact ? 68 : 92,
-        height: compact ? 52 : 72,
-        fit: [compact ? 68 : 92, compact ? 52 : 72],
-      });
+      doc.image(stampBuf, stampX + offX, stampY + offY, { fit: [stampW, stampH], align: "left", valign: "top" });
     } catch {
       /* skip */
     }
