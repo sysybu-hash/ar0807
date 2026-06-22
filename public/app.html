@@ -24,6 +24,7 @@
   <!-- Signature Pad -->
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles/certs-v2.css" />
 </head>
 <body>
 
@@ -451,6 +452,11 @@
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" width="13" height="13"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                 מסמכים
               </button>
+              <button class="wizard-step-btn" data-portal-tab="documents-v2" type="button"
+                      role="tab" aria-selected="false" aria-controls="portal-documents-v2" id="tab-documents-v2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" width="13" height="13"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                אישורים <span class="wizard-beta-tag">בטא</span>
+              </button>
               <button class="wizard-step-btn" data-portal-tab="invoices" type="button"
                       role="tab" aria-selected="false" aria-controls="portal-invoices" id="tab-invoices">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" width="13" height="13"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
@@ -627,13 +633,13 @@
             <div class="cert-page">
               <header class="cert-page__header">
                 <h2 class="cert-page__title">אישורי תקינות</h2>
-                <p class="cert-page__subtitle">הנפקה, עריכה, הדפסה ושיתוף — מתקן חשמל, ציוד מיטלטל ועמדת טעינה</p>
+                <p class="cert-page__subtitle">הנפקה, עריכה, הדפסה ושיתוף — מתקן חשמל, צרכנים מטלטלים ועמדת טעינה</p>
               </header>
 
               <div class="filter-bar cert-page__filters" role="search" aria-label="סינון מסמכים">
                 <div><label for="docsSearchInput" class="lbl">חיפוש</label><input id="docsSearchInput" class="inp" placeholder="שם מתקן / כתובת / מספר" aria-label="חיפוש מסמכים" /></div>
                 <div><label for="docsStatusFilter" class="lbl">סטטוס</label><select id="docsStatusFilter" class="inp" aria-label="סינון לפי סטטוס"><option value="">כל הסטטוסים</option><option value="draft">טיוטה</option><option value="final">סופי</option></select></div>
-                <div><label for="docsTypeFilter" class="lbl">סוג</label><select id="docsTypeFilter" class="inp select" aria-label="סינון לפי סוג"><option value="">כל הסוגים</option><option value="installation">אישור תקינות מתקן</option><option value="portable">אישור תקינות צרכנים מיטלטלים</option><option value="ev_charging">אישור תקינות עמדת טעינה</option></select></div>
+                <div><label for="docsTypeFilter" class="lbl">סוג</label><select id="docsTypeFilter" class="inp select" aria-label="סינון לפי סוג"><option value="">כל הסוגים</option><option value="installation">אישור תקינות מתקן</option><option value="portable">אישור תקינות צרכנים מטלטלים</option><option value="ev_charging">אישור תקינות עמדת טעינה</option></select></div>
               </div>
 
               <div class="cert-page__layout">
@@ -650,7 +656,7 @@
                           <label for="docType" class="lbl">סוג אישור</label>
                           <select id="docType" class="inp select">
                             <option value="installation">אישור תקינות מתקן</option>
-                            <option value="portable">אישור תקינות צרכנים מיטלטלים</option>
+                            <option value="portable">אישור תקינות צרכנים מטלטלים</option>
                             <option value="ev_charging">אישור תקינות עמדת טעינה</option>
                           </select>
                         </div>
@@ -713,7 +719,7 @@
                     </fieldset>
 
                     <fieldset id="docFieldsPortable" class="cert-fieldset doc-type-block hidden">
-                      <legend>אישור תקינות צרכנים מיטלטלים (PAT)</legend>
+                      <legend>אישור תקינות צרכנים מטלטלים (PAT)</legend>
                       <div class="form-grid">
                         <div><label for="docPortableEmployer" class="lbl">שם מזמין</label><input id="docPortableEmployer" class="inp" /></div>
                         <div><label for="docPortableMarking" class="lbl">שיטת סימון</label><input id="docPortableMarking" class="inp" placeholder="מדבקה עם תאריך בדיקה" /></div>
@@ -823,6 +829,240 @@
               </div>
             </div>
           </div>
+
+                    <div id="portal-documents-v2" class="wizard-body portal-panel hidden certs-v2" role="tabpanel" aria-labelledby="tab-documents-v2">
+            <header class="certs-v2__header">
+              <div>
+                <div class="certs-v2__title-row">
+                  <h2 class="certs-v2__title">אישורי תקינות</h2>
+                  <span class="certs-v2__beta">בטא</span>
+                </div>
+                <p class="certs-v2__subtitle">הנפקה, עריכה, הדפסה ושיתוף — מתקן חשמל, צרכנים מטלטלים ועמדת טעינה</p>
+              </div>
+              <p id="v2CertStats" class="certs-v2__stats" aria-live="polite"></p>
+            </header>
+            <div id="v2BlankBanner" class="certs-v2__blank-banner hidden" role="status">
+              <span>הדפסה על דף בלאנק פעילה</span>
+              <button type="button" id="v2BlankSettingsBtn" class="btn-portal-secondary btn-sm">הגדרות הדפסה</button>
+            </div>
+
+            <div class="certs-v2">
+              <div class="filter-bar certs-v2__filters" role="search" aria-label="סינון מסמכים">
+                <button type="button" id="v2ListToggle" class="btn-portal-secondary btn-sm certs-v2__mobile-list-btn">רשימת מסמכים</button>
+                <div><label for="v2DocsSearchInput" class="lbl">חיפוש</label><input id="v2DocsSearchInput" class="inp" placeholder="שם מתקן / כתובת / מספר" aria-label="חיפוש מסמכים" /></div>
+                <div><label for="v2DocsStatusFilter" class="lbl">סטטוס</label><select id="v2DocsStatusFilter" class="inp" aria-label="סינון לפי סטטוס"><option value="">כל הסטטוסים</option><option value="draft">טיוטה</option><option value="final">סופי</option></select></div>
+                <div><label for="v2DocsTypeFilter" class="lbl">סוג</label><select id="v2DocsTypeFilter" class="inp select" aria-label="סינון לפי סוג"><option value="">כל הסוגים</option><option value="installation">אישור תקינות מתקן</option><option value="portable">אישור תקינות צרכנים מטלטלים</option><option value="ev_charging">אישור תקינות עמדת טעינה</option></select></div>
+              </div>
+
+              <div class="certs-v2__layout">
+                <section class="certs-v2__editor">
+                  
+                <nav class="certs-v2__steps" aria-label="שלבי הטופס">
+                  <button type="button" class="certs-v2__step-btn is-active" data-step="0">כללי</button>
+                  <button type="button" class="certs-v2__step-btn" data-step="1">פרטי אישור</button>
+                  <button type="button" class="certs-v2__step-btn" data-step="2">בדיקות</button>
+                  <button type="button" class="certs-v2__step-btn" data-step="3">חתימה וקבצים</button>
+                </nav><form id="v2DocForm" class="certs-v2__card" aria-label="טופס אישור תקינות" novalidate>
+                    <h3 class="certs-v2__card__title" id="v2DocEditorTitle">מסמך חדש</h3>
+
+                    <div class="certs-v2__step-panel" data-step-panel="general">
+                <div class="certs-v2__type-cards" role="group" aria-label="סוג אישור">
+                  <button type="button" class="certs-v2__type-card" data-cert-type-card="installation"><strong>תקינות מתקן</strong><span>מתקן חשמל קבוע</span></button>
+                  <button type="button" class="certs-v2__type-card" data-cert-type-card="portable"><strong>צרכנים מטלטלים</strong><span>בדיקת PAT</span></button>
+                  <button type="button" class="certs-v2__type-card" data-cert-type-card="ev_charging"><strong>עמדת טעינה</strong><span>IEC 60364-7-722</span></button>
+                </div><fieldset class="certs-v2__fieldset">
+                      <legend>פרטים כלליים</legend>
+                      <div class="form-grid">
+                        <input type="hidden" id="v2DocId" />
+                        <div><label for="v2DocNo" class="lbl">מספר מסמך</label><input id="v2DocNo" class="inp" placeholder="אוטומטי אם ריק" /></div>
+                        <div>
+                          <label for="v2DocType" class="lbl">סוג אישור</label>
+                          <select id="v2DocType" class="inp select">
+                            <option value="installation">אישור תקינות מתקן</option>
+                            <option value="portable">אישור תקינות צרכנים מטלטלים</option>
+                            <option value="ev_charging">אישור תקינות עמדת טעינה</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label for="v2DocWorkflowStatus" class="lbl">סטטוס</label>
+                          <select id="v2DocWorkflowStatus" class="inp select"><option value="draft">טיוטה</option><option value="final">סופי</option></select>
+                        </div>
+                        <div><label for="v2DocFacilityName" class="lbl">שם מתקן / אתר *</label><input id="v2DocFacilityName" class="inp" aria-required="true" /></div>
+                        <div><label for="v2DocAddress" class="lbl">כתובת</label><input id="v2DocAddress" class="inp" /></div>
+                        <div><label for="v2DocInspectionDate" class="lbl">תאריך בדיקה</label><input id="v2DocInspectionDate" type="date" class="inp" /></div>
+                        <div class="col-span-2"><label for="v2DocNotes" class="lbl">מסקנות והערות</label><textarea id="v2DocNotes" class="inp" rows="3"></textarea></div>
+                      </div>
+                    </fieldset>
+
+                    </div><div class="certs-v2__step-panel hidden" data-step-panel="details"><fieldset id="v2DocFieldsInstallation" class="certs-v2__fieldset doc-type-block">
+                      <legend>אישור תקינות מתקן חשמל</legend>
+                      <div class="form-grid">
+                        <div><label for="v2DocClientName" class="lbl">שם לקוח (בדוח)</label><input id="v2DocClientName" class="inp" /></div>
+                        <div><label for="v2DocInstallationType" class="lbl">סוג מתקן</label><input id="v2DocInstallationType" class="inp" placeholder="מגורים / מסחרי / ציבורי" /></div>
+                        <div><label for="v2DocInspectionPurpose" class="lbl">מטרת בדיקה</label>
+                          <select id="v2DocInspectionPurpose" class="inp select">
+                            <option value="מתקן חדש">מתקן חדש</option>
+                            <option value="הגדלת חיבור">הגדלת חיבור</option>
+                            <option value="בדיקה חוזרת">בדיקה חוזרת</option>
+                            <option value="שינוי במתקן">שינוי במתקן</option>
+                            <option value="חידוש אספקה">חידוש אספקה</option>
+                          </select>
+                        </div>
+                        <div><label for="v2DocConnection" class="lbl">גודל חיבור קיים</label><input id="v2DocConnection" class="inp" placeholder="למשל 3×25A" /></div>
+                        <div><label for="v2DocConnectionRequested" class="lbl">גודל חיבור מבוקש</label><input id="v2DocConnectionRequested" class="inp" /></div>
+                        <div><label for="v2DocGrounding" class="lbl">שיטת הגנה / הארקה</label><input id="v2DocGrounding" class="inp" /></div>
+                        <div><label for="v2DocInsulation" class="lbl">בידוד</label><input id="v2DocInsulation" class="inp" /></div>
+                        <div><label for="v2DocPanelMeterNo" class="lbl">מספר לוח / מונה</label><input id="v2DocPanelMeterNo" class="inp" /></div>
+                        <div class="col-span-2"><label for="v2DocFinalStatus" class="lbl">טקסט באנר סיום</label><input id="v2DocFinalStatus" class="inp" placeholder="תקין — המתקן מאושר לשימוש" /></div>
+                        </div><div class="certs-v2__step-panel hidden" data-step-panel="checks"><div class="col-span-2">
+                          <div class="doc-section-head">
+                            <span class="lbl doc-section-head__label">בדיקות טכניות</span>
+                            <button type="button" id="v2DocTechAddRow" class="btn-portal-secondary btn-sm">+ הוסף שורה</button>
+                          </div>
+                          <div class="table-wrap">
+                            <table class="table table-compact" aria-label="בדיקות טכניות">
+                              <thead><tr><th>תיאור הבדיקה</th><th>תוצאה</th><th></th></tr></thead>
+                              <tbody id="v2DocTechRows"></tbody>
+                            </table>
+                          </div>
+                        </div>
+                        <div class="col-span-2">
+                          <div class="doc-section-head">
+                            <span class="lbl doc-section-head__label">בדיקה ויזואלית</span>
+                            <button type="button" id="v2DocVisualAddRow" class="btn-portal-secondary btn-sm">+ הוסף פריט</button>
+                          </div>
+                          <div class="table-wrap">
+                            <table class="table table-compact" aria-label="בדיקה ויזואלית">
+                              <thead><tr><th>פריט לבדיקה</th><th></th></tr></thead>
+                              <tbody id="v2DocVisualRows"></tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </fieldset>
+
+                    <fieldset id="v2DocFieldsPortable" class="certs-v2__fieldset doc-type-block hidden">
+                      <legend>אישור תקינות צרכנים מטלטלים (PAT)</legend>
+                      <div class="form-grid">
+                        <div><label for="v2DocPortableEmployer" class="lbl">שם מזמין</label><input id="v2DocPortableEmployer" class="inp" /></div>
+                        <div><label for="v2DocPortableMarking" class="lbl">שיטת סימון</label><input id="v2DocPortableMarking" class="inp" placeholder="מדבקה עם תאריך בדיקה" /></div>
+                        <div class="col-span-2"><label for="v2DocPortableSummary" class="lbl">מסקנה כללית</label><textarea id="v2DocPortableSummary" class="inp" rows="2"></textarea></div>
+                        <div class="col-span-2">
+                          <div class="doc-section-head">
+                            <span class="lbl doc-section-head__label">טבלת מכשירים</span>
+                            <button type="button" id="v2DocPortableAddRow" class="btn-portal-secondary btn-sm">+ הוסף שורה</button>
+                          </div>
+                          <div class="table-wrap">
+                            <table class="table table-compact" aria-label="טבלת מכשירים">
+                              <thead><tr>
+                                <th>מס׳ נכס</th><th>תיאור</th><th>מיקום</th><th>חזותי</th><th>הארקה</th><th>בידוד</th><th>זליגה</th><th>תוצאה</th><th>בדיקה הבאה</th><th></th>
+                              </tr></thead>
+                              <tbody id="v2DocPortableAppliances"></tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </fieldset>
+
+                    <fieldset id="v2DocFieldsEvCharging" class="certs-v2__fieldset doc-type-block hidden">
+                      <legend>אישור תקינות עמדת טעינה (IEC 60364-7-722)</legend>
+                      <div class="form-grid">
+                        <div><label for="v2DocEvOwner" class="lbl">שם בעלים</label><input id="v2DocEvOwner" class="inp" /></div>
+                        <div><label for="v2DocEvSiteKind" class="lbl">סוג אתר</label>
+                          <select id="v2DocEvSiteKind" class="inp select"><option value="פרטי">פרטי</option><option value="משותף">משותף</option><option value="ציבורי">ציבורי</option><option value="מסחרי">מסחרי</option></select>
+                        </div>
+                        <div><label for="v2DocEvManufacturer" class="lbl">יצרן עמדה</label><input id="v2DocEvManufacturer" class="inp" /></div>
+                        <div><label for="v2DocEvModel" class="lbl">דגם</label><input id="v2DocEvModel" class="inp" /></div>
+                        <div><label for="v2DocEvSerial" class="lbl">מס׳ סידורי</label><input id="v2DocEvSerial" class="inp" dir="ltr" /></div>
+                        <div><label for="v2DocEvPowerKw" class="lbl">הספק (kW)</label><input id="v2DocEvPowerKw" class="inp" dir="ltr" /></div>
+                        <div><label for="v2DocEvChargeType" class="lbl">AC / DC</label>
+                          <select id="v2DocEvChargeType" class="inp select"><option value="AC">AC</option><option value="DC">DC</option><option value="AC/DC">AC/DC</option></select>
+                        </div>
+                        <div><label for="v2DocEvConnector" class="lbl">סוג מחבר</label><input id="v2DocEvConnector" class="inp" placeholder="Type 2 / CCS" /></div>
+                        <div><label for="v2DocEvImporterRef" class="lbl">הצהרת יבואן — מס׳ אסמכתא</label><input id="v2DocEvImporterRef" class="inp" /></div>
+                        <div><label for="v2DocEvImporterDate" class="lbl">תאריך הצהרה</label><input id="v2DocEvImporterDate" type="date" class="inp" /></div>
+                        <div><label for="v2DocEvInstallerName" class="lbl">שם מתקין</label><input id="v2DocEvInstallerName" class="inp" /></div>
+                        <div><label for="v2DocEvInstallerLicense" class="lbl">רישיון מתקין</label><input id="v2DocEvInstallerLicense" class="inp" /></div>
+                        <div><label for="v2DocEvGrounding" class="lbl">הארקה / הגנה</label><input id="v2DocEvGrounding" class="inp" /></div>
+                        <div class="col-span-2"><label for="v2DocEvGridBanner" class="lbl">הצהרת חיבור לרשת</label><input id="v2DocEvGridBanner" class="inp" placeholder="מאושר לחיבור לרשת לפני הפעלה ראשונה" /></div>
+                        <div class="col-span-2">
+                          <span class="lbl">בדיקות עמדה</span>
+                          <div id="v2DocEvChecks" class="ev-checks-grid"></div>
+                        </div>
+                        <div class="col-span-2">
+                          <span class="lbl">טבלת תדירויות בדיקה</span>
+                          <div class="table-wrap">
+                            <table class="table table-compact" aria-label="תדירויות בדיקה">
+                              <thead><tr><th>בדיקה</th><th>תדירות</th><th>תאריך אחרון</th><th>תוצאה</th></tr></thead>
+                              <tbody id="v2DocEvPeriodic"></tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </fieldset>
+
+                    </div><div class="certs-v2__step-panel hidden" data-step-panel="signature"><fieldset class="certs-v2__fieldset">
+                      <legend>חתימה, תמונות וקבצים</legend>
+                      <div class="form-grid">
+                        <div class="col-span-2"><label for="v2DocPhotosInput" class="lbl">תמונות מהשטח</label><input id="v2DocPhotosInput" class="inp" type="file" accept="image/*" multiple /></div>
+                      </div>
+                      <div id="v2DocPhotosPreview" class="photo-thumb-grid" aria-label="תצוגה מקדימה של תמונות"></div>
+                      <div class="sig-wrap">
+                        <label class="lbl" for="v2DocSignaturePad">חתימת בודק</label>
+                        <div class="sig-box">
+                          <canvas id="v2DocSignaturePad" class="sig" aria-label="שטח חתימה" role="img" tabindex="0"></canvas>
+                          <button id="v2DocClearSig" type="button" class="sig-clear" aria-label="נקה חתימה">נקה</button>
+                        </div>
+                      </div>
+                    </fieldset>
+
+                    <div class="certs-v2__actions">
+                      <div class="certs-v2__actions__primary">
+                        <button id="v2SaveDocBtn" type="button" class="btn-portal-primary">שמירת מסמך</button>
+                        <button id="v2FinalizeDocBtn" type="button" class="btn-portal-secondary">סמן כסופי</button>
+                        <button id="v2NewDocBtn" type="button" class="btn-portal-secondary">מסמך חדש</button>
+                      </div>
+                      <div class="certs-v2__actions__secondary">
+                        <button id="v2PreviewDocBtn" type="button" class="btn-portal-secondary" aria-label="תצוגה מקדימה">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                          תצוגה מקדימה
+                        </button>
+                        <button id="v2PrintDocBtn" type="button" class="btn-portal-secondary">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                          הדפסה / PDF
+                        </button>
+                        <button id="v2DownloadPdfBtn" type="button" class="btn-portal-secondary">הורד PDF</button>
+                        <button id="v2ShareDocBtn" type="button" class="btn-portal-secondary">שיתוף ללקוח</button>
+                      </div>
+                    </div>
+                  </form>
+                </section>
+
+                <aside class="certs-v2__list-panel">
+                  <div class="certs-v2__list-head"><h3>מסמכים שמורים</h3></div>
+                  <div id="v2DocsList" class="certs-v2__list-scroll" aria-label="רשימת מסמכים"></div>
+                </aside>
+              </div>
+            </div>
+            <div id="v2ListBackdrop" class="certs-v2__list-backdrop" aria-hidden="true"></div>
+            <div id="v2ListDrawer" class="certs-v2__list-drawer" aria-hidden="true">
+              <div class="certs-v2__list-drawer-head">
+                <span>מסמכים שמורים</span>
+                <button type="button" id="v2ListClose" class="btn-portal-secondary btn-sm">סגור</button>
+              </div>
+              <div class="certs-v2__list-drawer-body">
+                <div id="v2DocsListMobile" class="certs-v2__list-scroll"></div>
+              </div>
+            </div>
+            <div class="certs-v2__sticky-bar no-print">
+              <button type="button" class="btn-portal-primary" onclick="document.getElementById('v2SaveDocBtn')?.click()">שמור</button>
+              <button type="button" class="btn-portal-secondary" onclick="document.getElementById('v2PreviewDocBtn')?.click()">תצוגה</button>
+              <button type="button" class="btn-portal-secondary" onclick="document.getElementById('v2PrintDocBtn')?.click()">הדפסה</button>
+            </div>
+          </div>
+
+          <!-- ======================================================
+               PANEL: INVOICES
 
           <!-- ======================================================
                PANEL: INVOICES
@@ -959,9 +1199,9 @@
                 </div>
                 <div class="form-grid">
                   <div class="col-span-2"><label for="setBlankTemplateInput" class="lbl">תמונת בלאנק (אופציונלי)</label><input id="setBlankTemplateInput" type="file" accept="image/*" class="inp" /></div>
-                  <div><label for="setBlankOffsetX" class="lbl">הזזה אופקית (מ"מ)</label><input id="setBlankOffsetX" type="number" step="0.5" class="inp" value="0" /></div>
-                  <div><label for="setBlankOffsetY" class="lbl">הזזה אנכית (מ"מ)</label><input id="setBlankOffsetY" type="number" step="0.5" class="inp" value="0" /></div>
-                  <div><label for="setBlankScale" class="lbl">סקייל (0.8–1.2)</label><input id="setBlankScale" type="number" step="0.01" min="0.8" max="1.2" class="inp" value="1" /></div>
+                  <div><label for="setBlankOffsetX" class="lbl">הזזה אופקית (מ״מ)</label><input id="setBlankOffsetX" type="number" step="0.5" class="inp" value="0" /></div>
+                  <div><label for="setBlankOffsetY" class="lbl">הזזה אנכית (מ״מ)</label><input id="setBlankOffsetY" type="number" step="0.5" class="inp" value="0" /></div>
+                  <div><label for="setBlankScale" class="lbl">קנה מידה (0.8–1.2)</label><input id="setBlankScale" type="number" step="0.01" min="0.8" max="1.2" class="inp" value="1" /></div>
                 </div>
               </div>
 

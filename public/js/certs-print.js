@@ -1,0 +1,202 @@
+/** הדפסת HTML לאישורי תקינות — תוכן מלא תואם PDF */
+
+import { certTypeLabel } from "./cert-types.js";
+import { STR } from "./cert-strings.js";
+
+export function escapeHtml(s) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function tableHtml(headers, rows, emptyColspan) {
+  const head = `<thead><tr>${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}</tr></thead>`;
+  const body =
+    rows.length > 0
+      ? `<tbody>${rows.map((cells) => `<tr>${cells.map((c) => `<td>${escapeHtml(c)}</td>`).join("")}</tr>`).join("")}</tbody>`
+      : `<tbody><tr><td colspan="${emptyColspan}">—</td></tr></tbody>`;
+  return `<table class="print-table">${head}${body}</table>`;
+}
+
+export function printDocTypeBody(doc) {
+  const ex = doc.extra && typeof doc.extra === "object" ? doc.extra : {};
+  const t = doc.docType || "installation";
+
+  if (t === "portable") {
+    const rows = (ex.appliances || []).map((a) => [
+      a.assetId || "",
+      a.description || "",
+      a.location || "",
+      a.visualOk || "",
+      a.earthContinuity || "",
+      a.insulation || "",
+      a.leakage || "",
+      a.result || "",
+      a.nextTestDate || "",
+    ]);
+    return `
+      <p><b>מזמין:</b> ${escapeHtml(ex.employerName || doc.facilityName || "")}</p>
+      <p><b>שיטת סימון:</b> ${escapeHtml(ex.markingMethod || STR.defaultMarking)}</p>
+      <h4 class="print-section">${STR.appliancesSection}</h4>
+      ${tableHtml(
+        [
+          STR.colAsset,
+          STR.colDescription,
+          STR.colLocation,
+          STR.colVisual,
+          STR.colEarth,
+          STR.colInsulation,
+          STR.colLeakage,
+          STR.colResult,
+          STR.colNextTest,
+        ],
+        rows,
+        9
+      )}
+      <p class="print-summary"><b>מסקנה:</b> ${escapeHtml(ex.summary || doc.notes || "")}</p>`;
+  }
+
+  if (t === "ev_charging") {
+    const checkRows = (ex.checks || []).map((c) => [c.item || "", c.result || ""]);
+    const periodicRows = (ex.periodicTests || []).map((p) => [
+      p.test || "",
+      p.frequency || "",
+      p.lastDate || "",
+      p.result || "",
+    ]);
+    return `
+      <p><b>בעלים:</b> ${escapeHtml(ex.ownerName || doc.facilityName || "")} · <b>סוג אתר:</b> ${escapeHtml(ex.siteKind || "")}</p>
+      <p><b>עמדה:</b> ${escapeHtml(ex.stationManufacturer || "")} ${escapeHtml(ex.stationModel || "")} · ${escapeHtml(ex.stationPowerKw || "")} kW · ${escapeHtml(ex.chargeType || "")}</p>
+      <p><b>מחבר:</b> ${escapeHtml(ex.connectorType || "")} · <b>סידורי:</b> ${escapeHtml(ex.stationSerial || "")}</p>
+      <p><b>הצהרת יבואן:</b> ${escapeHtml(ex.importerDeclarationRef || "")}${ex.importerDeclarationDate ? ` (${escapeHtml(ex.importerDeclarationDate)})` : ""}</p>
+      <p><b>מתקין:</b> ${escapeHtml(ex.installerName || "")} · רישיון ${escapeHtml(ex.installerLicense || "")}</p>
+      <p><b>הארקה / הגנה:</b> ${escapeHtml(doc.groundingValue || "")}</p>
+      <h4 class="print-section">${STR.evChecksSection}</h4>
+      ${tableHtml([STR.colItem, STR.colResult], checkRows, 2)}
+      <h4 class="print-section">${STR.evPeriodicSection}</h4>
+      ${tableHtml([STR.colCheck, STR.colFrequency, STR.colLastDate, STR.colResult], periodicRows, 4)}
+      <p class="print-banner">${escapeHtml(ex.gridApprovalBanner || STR.defaultGridBanner)}</p>`;
+  }
+
+  const techRows = (ex.techInspection || []).map((r) => [r.description || "", r.result || "—"]);
+  const visualRows = (ex.visualChecklist || []).map((s) => [typeof s === "string" ? s : String(s)]);
+  return `
+    <p><b>לקוח:</b> ${escapeHtml(ex.clientName || "")} · <b>מטרת בדיקה:</b> ${escapeHtml(ex.inspectionPurpose || "")}</p>
+    <p><b>סוג מתקן:</b> ${escapeHtml(ex.installationType || "")}</p>
+    <p><b>גודל חיבור קיים:</b> ${escapeHtml(doc.connectionSize || ex.connectionExisting || "")} · <b>מבוקש:</b> ${escapeHtml(ex.connectionRequested || "")}</p>
+    <p><b>מספר לוח / מונה:</b> ${escapeHtml(ex.panelMeterNo || "")}</p>
+    <p><b>הארקה:</b> ${escapeHtml(doc.groundingValue || "")} · <b>בידוד:</b> ${escapeHtml(doc.insulation || "")}</p>
+    <h4 class="print-section">${STR.techSection}</h4>
+    ${tableHtml([STR.colTechDesc, STR.colResult], techRows, 2)}
+    <h4 class="print-section">${STR.visualSection}</h4>
+    ${tableHtml([STR.colItem], visualRows, 1)}
+    <p class="print-banner">${escapeHtml(ex.finalStatusBanner || STR.defaultFinalBanner)}</p>`;
+}
+
+export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } = {}) {
+  const when = fmtDate(doc.updatedAt || doc.createdAt || new Date().toISOString());
+  const title = certTypeLabel(doc.docType);
+  const ex = doc.extra && typeof doc.extra === "object" ? doc.extra : {};
+  const docNoStr = ex.docNo ? String(ex.docNo) : "";
+  const wfStr =
+    ex.workflowStatus === "final"
+      ? STR.statusFinal
+      : ex.workflowStatus === "draft"
+        ? STR.statusDraft
+        : "";
+  const typeBody = printDocTypeBody(doc);
+  const photosHtml = (doc.photos || [])
+    .map(
+      (p) =>
+        `<div class="rounded-lg overflow-hidden border border-slate-200 shadow-sm"><img src="${p.data}" class="w-full h-44 md:h-52 object-cover" alt="" /></div>`
+    )
+    .join("");
+  const photosBlock = photosHtml
+    ? `<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">${photosHtml}</div>`
+    : "";
+  const decl = String(settings.inspectorDeclarationText || "").trim();
+  const declBlock = decl
+    ? `<div class="mb-4 text-sm border rounded-lg p-3 bg-slate-50 whitespace-pre-wrap leading-relaxed">${escapeHtml(decl)}</div>`
+    : "";
+  const sx = Number(settings.stampOffsetXmm || 0);
+  const sy = Number(settings.stampOffsetYmm || 0);
+  const stampBlock = settings.stampData
+    ? `<div class="relative inline-block" style="width:8rem;height:6rem"><img src="${settings.stampData}" alt="" style="position:absolute;right:0;top:0;max-width:120px;max-height:96px;transform:translate(${sx}mm,${sy}mm);transform-origin:top right" /></div>`
+    : "";
+  const standardLayout = `<div class="max-w-[210mm] mx-auto p-8 text-right">
+    <div class="flex flex-row-reverse justify-between items-start border-b-4 border-blue-800 pb-4 mb-6 gap-4">
+      <div class="flex flex-row-reverse items-start gap-4">
+        ${settings.logoData ? `<img src="${settings.logoData}" style="max-height:70px" alt="">` : ""}
+        <div><h1 class="text-2xl font-bold text-blue-900">${escapeHtml(title)}</h1><p class="text-sm text-slate-600">נערך בהתאם לתקנות החשמל והתקן IEC</p>
+        ${docNoStr || wfStr ? `<p class="text-xs text-slate-500 mt-1">${docNoStr ? `${STR.printDocNo}: ${escapeHtml(docNoStr)}` : ""}${docNoStr && wfStr ? " · " : ""}${wfStr ? `${STR.printStatus}: ${escapeHtml(wfStr)}` : ""}</p>` : ""}
+        </div>
+      </div>
+      <div class="text-sm shrink-0">
+        <div class="font-bold">${escapeHtml(settings.name)}</div>
+        <div>רישיון: ${escapeHtml(settings.licenseNo || "—")}</div>
+        <div>טלפון: ${escapeHtml(settings.phone || "—")}</div>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-2 text-sm border rounded p-3 bg-slate-50 mb-4">
+      <div><b>${STR.printFacility}:</b> ${escapeHtml(doc.facilityName)}</div>
+      <div><b>${STR.printDate}:</b> ${escapeHtml(when)}</div>
+      <div><b>${STR.printAddress}:</b> ${escapeHtml(doc.address || "")}</div>
+      <div><b>${STR.printInspectionDate}:</b> ${escapeHtml(ex.inspectionDate || "")}</div>
+    </div>
+    <div class="mb-4 print-type-body">${typeBody}</div>
+    <div class="mb-4"><h3 class="font-bold">${STR.printNotes}</h3><div class="border rounded p-2 min-h-[40px] whitespace-pre-wrap">${escapeHtml(doc.notes || "")}</div></div>
+    ${photosBlock}
+    ${declBlock}
+    <div class="flex justify-between items-end mt-8 gap-4">
+      <div>${stampBlock}</div>
+      <div class="text-center shrink-0">
+        ${doc.signatureData ? `<img src="${doc.signatureData}" style="height:80px">` : `<div style="height:80px"></div>`}
+        <div class="border-t pt-1 text-sm">${STR.printSignature}</div>
+      </div>
+    </div>
+  </div>`;
+  const blankScale = Math.min(1.2, Math.max(0.8, Number(settings.blankScale || 1)));
+  const blankLayout = `
+    <div class="blank-sheet">
+      ${settings.blankTemplateData ? `<img src="${settings.blankTemplateData}" class="blank-bg" alt="">` : ""}
+      <div class="blank-content">
+        <div class="grid grid-cols-2 gap-2 text-sm border rounded p-3 bg-white/90 mb-4">
+          <div><b>${STR.printDocType}:</b> ${escapeHtml(title)}</div>
+          <div><b>${STR.printDate}:</b> ${escapeHtml(when)}</div>
+          <div><b>${STR.printFacility}:</b> ${escapeHtml(doc.facilityName)}</div>
+          <div><b>${STR.printAddress}:</b> ${escapeHtml(doc.address || "")}</div>
+          <div><b>${STR.printInspectionDate}:</b> ${escapeHtml(ex.inspectionDate || "")}</div>
+          <div><b>${STR.printInspector}:</b> ${escapeHtml(settings.name || "")}</div>
+        </div>
+        <div class="mb-4 print-type-body bg-white/90">${typeBody}</div>
+        <div class="mb-4 bg-white/90 border rounded p-2 min-h-[40px] whitespace-pre-wrap"><b>${STR.printNotes}:</b> ${escapeHtml(doc.notes || "")}</div>
+        ${photosBlock}
+        ${declBlock}
+        <div class="flex justify-between items-end mt-8 gap-4">
+          <div>${stampBlock}</div>
+          <div class="text-center shrink-0">
+            ${doc.signatureData ? `<img src="${doc.signatureData}" style="height:80px">` : `<div style="height:80px"></div>`}
+            <div class="border-t pt-1 text-sm">${STR.printSignature}</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  const printScript = autoPrint ? `<script>window.onload=()=>{window.print()};<\/script>` : "";
+  return `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><link rel="stylesheet" href="/tw-built.css" />
+  <style>
+    .blank-sheet{position:relative;max-width:210mm;min-height:287mm;margin:0 auto;padding:12mm}
+    .blank-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:0;transform:translate(${Number(settings.blankOffsetXmm || 0)}mm, ${Number(settings.blankOffsetYmm || 0)}mm) scale(${blankScale});transform-origin:top right}
+    .blank-content{position:relative;z-index:1;padding-top:38mm}
+    .print-table{width:100%;border-collapse:collapse;margin:0.75rem 0;font-size:0.85rem}
+    .print-table th,.print-table td{border:1px solid #cbd5e1;padding:0.35rem 0.5rem;text-align:right}
+    .print-table th{background:#eef1f6}
+    .print-banner{background:#1a56b4;color:#fff;padding:0.5rem 1rem;text-align:center;border-radius:0.25rem;font-weight:700;margin:0.75rem 0}
+    .print-type-body{font-size:0.9rem;line-height:1.6}
+    .print-section{margin:0.75rem 0 0.25rem;font-weight:700;font-size:0.95rem}
+  </style>
+  </head><body>
+  ${settings.useBlankTemplate && settings.blankTemplateData ? blankLayout : standardLayout}
+  ${printScript}</body></html>`;
+}
