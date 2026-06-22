@@ -19,3 +19,10 @@ test("formatHebrewDateFull uses fallback iso", () => {
   const s = formatHebrewDateFull("", "2026-06-22T10:00:00Z");
   assert.ok(s.length > 8);
 });
+
+test("browser Hebrew date year is not repeated tav letters", async () => {
+  const { formatHebrewDateFull: browserFormat } = await import("../public/js/hebrew-date.js");
+  const s = browserFormat("2026-06-22");
+  assert.match(s, /תשפ/);
+  assert.doesNotMatch(s, /ת{3,}/);
+});
