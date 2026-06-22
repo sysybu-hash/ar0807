@@ -306,35 +306,41 @@ function drawRtlHebrewLatinLine(doc, hebrewText, latinText, x, y, width, opts = 
   return y + lineHeight(doc, fontSize, opts);
 }
 
-/** Top corners on blank letterhead — does not overlap content band (starts at contentTopMm). */
-function drawPageMetaBar(doc, layout, { issueDate, approvalNo, useBlank }) {
+/** בס"ד only — top-right corner, above letterhead artwork. */
+function drawPageBsd(doc, layout, useBlank) {
   const pageW = doc.page.width;
   const side = useBlank ? mmToPt(BLANK_LETTERHEAD.sideMm) : layout.left;
   const y = mmToPt(useBlank ? BLANK_LETTERHEAD.metaTopMm : 16);
   const bandW = pageW - side * 2;
-  const colW = bandW / 3;
   const metaFs = 7.8;
   const metaColor = "#475569";
-
   doc.fontSize(metaFs).fillColor(metaColor);
-
-  const issueText = issueDate ? `תאריך הנפקה: ${issueDate}` : "";
-  if (issueText) {
-    pdfText(doc, issueText, side, y, colW, { align: "left", fontSize: metaFs });
-  }
-
-  const approvalText = approvalNo ? `מס' אישור: ${approvalNo}` : "";
-  if (approvalText) {
-    pdfText(doc, approvalText, side + colW, y, colW, { align: "center", fontSize: metaFs });
-  }
-
-  pdfText(doc, 'בס"ד', side + colW * 2, y, colW, { align: "right", fontSize: metaFs });
+  pdfText(doc, 'בס"ד', side, y, bandW, { align: "right", fontSize: metaFs });
 }
 
-function drawBlankDocumentTitle(doc, left, contentW, y, mainTitle, legalSubtitle) {
+/** Issue date (left) and approval number (right) — below document title. */
+function drawDocMetaRow(doc, left, contentW, y, { issueDate, approvalNo }) {
+  const metaFs = 9.2;
+  const metaColor = "#475569";
+  const halfW = contentW / 2;
+  if (!issueDate && !approvalNo) return y;
+
+  doc.fontSize(metaFs).fillColor(metaColor);
+  const rowY = y + 5;
+  if (issueDate) {
+    pdfText(doc, `תאריך הנפקה: ${issueDate}`, left, rowY, halfW, { align: "left", fontSize: metaFs });
+  }
+  if (approvalNo) {
+    pdfText(doc, `מס' אישור: ${approvalNo}`, left + halfW, rowY, halfW, { align: "right", fontSize: metaFs });
+  }
+  return rowY + lineHeight(doc, metaFs) + 6;
+}
+
+function drawBlankDocumentTitle(doc, left, contentW, y, mainTitle, legalSubtitle, docMeta = {}) {
   const titleFs = String(mainTitle).length > 30 ? 10.5 : 12;
   doc.fontSize(titleFs).fillColor(BLUE_DARK);
   let cy = pdfText(doc, mainTitle, left, y, contentW, { align: "center", fontSize: titleFs, lineGap: 0.5 });
+  cy = drawDocMetaRow(doc, left, contentW, cy, docMeta);
   if (legalSubtitle) {
     doc.fontSize(7).fillColor("#64748b");
     cy = pdfText(doc, legalSubtitle, left, cy + 3, contentW, {
@@ -488,9 +494,9 @@ function drawGreyMetaPanel(doc, left, contentW, y, lines, fontSize = 9) {
   return y + boxH + 12;
 }
 
-function drawCertificateHeader(doc, { left, contentW, y, inspector, mainTitle, legalSubtitle, logoBuf, skipLetterhead, blankMode }) {
+function drawCertificateHeader(doc, { left, contentW, y, inspector, mainTitle, legalSubtitle, logoBuf, skipLetterhead, blankMode, docMeta }) {
   if (blankMode) {
-    return drawBlankDocumentTitle(doc, left, contentW, y, mainTitle, legalSubtitle);
+    return drawBlankDocumentTitle(doc, left, contentW, y, mainTitle, legalSubtitle, docMeta || {});
   }
 
   const logoW = 52;
@@ -522,6 +528,7 @@ function drawCertificateHeader(doc, { left, contentW, y, inspector, mainTitle, l
   doc.fontSize(titleFs).fillColor(BLUE);
   rtlBlock(doc, mainTitle, left, cursorY, contentW, { lineGap: 1 });
   cursorY = doc.y + 6;
+  cursorY = drawDocMetaRow(doc, left, contentW, cursorY, docMeta || {});
 
   doc.fontSize(8.2).fillColor("#475569");
   rtlBlock(doc, legalSubtitle, left, cursorY, contentW, { lineGap: 1.5 });
@@ -630,7 +637,7 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
     );
     const workflow = String(extra.workflowStatus || "").trim();
 
-    drawPageMetaBar(doc, layout, { issueDate, approvalNo, useBlank });
+    drawPageBsd(doc, layout, useBlank);
 
     const clientName = String(extra.clientName || "").trim() || "—";
     const installationType = String(extra.installationType || "").trim() || "—";
@@ -655,6 +662,7 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
       logoBuf,
       skipLetterhead: useBlank,
       blankMode: useBlank,
+      docMeta: { issueDate, approvalNo },
     });
 
     if (docType === "portable") {
