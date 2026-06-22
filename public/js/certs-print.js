@@ -1,6 +1,6 @@
 /** הדפסת HTML לאישורי תקינות — תוכן מלא תואם PDF */
 
-import { certTypeLabel, CERT_TYPES, normalizeDocType } from "./cert-types.js";
+import { certTypeLabel, CERT_TYPES, normalizeDocType, filterEvChecksForOutput } from "./cert-types.js";
 import { formatHebrewDateFull } from "./hebrew-date.js";
 import { STR } from "./cert-strings.js";
 
@@ -60,24 +60,14 @@ export function printDocTypeBody(doc) {
   }
 
   if (t === "ev_charging") {
-    const checkRows = (ex.checks || []).map((c) => [c.item || "", c.result || ""]);
-    const periodicRows = (ex.periodicTests || []).map((p) => [
-      p.test || "",
-      p.frequency || "",
-      p.lastDate || "",
-      p.result || "",
-    ]);
+    const checkRows = filterEvChecksForOutput(ex.checks).map((c) => [c.item || "", c.result || ""]);
     return `
       <p><b>בעלים:</b> ${escapeHtml(ex.ownerName || doc.facilityName || "")} · <b>סוג אתר:</b> ${escapeHtml(ex.siteKind || "")}</p>
       <p><b>עמדה:</b> ${escapeHtml(ex.stationManufacturer || "")} ${escapeHtml(ex.stationModel || "")} · ${escapeHtml(ex.stationPowerKw || "")} kW · ${escapeHtml(ex.chargeType || "")}</p>
       <p><b>מחבר:</b> ${escapeHtml(ex.connectorType || "")} · <b>סידורי:</b> ${escapeHtml(ex.stationSerial || "")}</p>
-      <p><b>הצהרת יבואן:</b> ${escapeHtml(ex.importerDeclarationRef || "")}${ex.importerDeclarationDate ? ` (${escapeHtml(ex.importerDeclarationDate)})` : ""}</p>
-      <p><b>מתקין:</b> ${escapeHtml(ex.installerName || "")} · רישיון ${escapeHtml(ex.installerLicense || "")}</p>
       <p><b>הארקה / הגנה:</b> ${escapeHtml(doc.groundingValue || "")}</p>
       <h4 class="print-section">${STR.evChecksSection}</h4>
       ${tableHtml([STR.colItem, STR.colResult], checkRows, 2)}
-      <h4 class="print-section">${STR.evPeriodicSection}</h4>
-      ${tableHtml([STR.colCheck, STR.colFrequency, STR.colLastDate, STR.colResult], periodicRows, 4)}
       <p class="print-banner">${escapeHtml(ex.gridApprovalBanner || STR.defaultGridBanner)}</p>`;
   }
 

@@ -7,6 +7,7 @@ import {
   normalizeDocType,
   defaultVisualChecklist,
   defaultTechRows,
+  filterEvChecksForOutput,
 } from "./lib/cert-types.mjs";
 import { formatHebrewDateFull } from "./lib/hebrew-date.mjs";
 
@@ -887,15 +888,12 @@ function renderEvChargingBodyCompact(doc, certificate, inspector, extra, left, c
       contentW
     ) + gap;
 
-  const importerVal = `${extra.importerDeclarationRef || "—"}${extra.importerDeclarationDate ? ` (${extra.importerDeclarationDate})` : ""}`;
   y = drawCompactKeyValue(doc, left, contentW, y, [
-    ["הצהרת יבואן/יצרן", importerVal],
-    ["מתקין", `${extra.installerName || "—"} · רישיון ${extra.installerLicense || "—"}`],
     ["תקן", extra.iec61851Ref || "IEC 61851-1"],
     ["הארקה / הגנה", certificate.groundingValue || "—"],
   ]);
 
-  const checks = Array.isArray(extra.checks) ? extra.checks : [];
+  const checks = filterEvChecksForOutput(extra.checks);
   const checkRows = checks.map((c) => [String(c.item || "—"), String(c.result || "—")]);
   y = drawMultiColumnTable(
     doc,
@@ -910,32 +908,6 @@ function renderEvChargingBodyCompact(doc, certificate, inspector, extra, left, c
       { label: "תוצאה", key: 1, w: 0.35 },
     ],
     checkRows.length ? checkRows : [["—", "—"]],
-    true,
-    { compact: true }
-  );
-
-  const periodic = Array.isArray(extra.periodicTests) ? extra.periodicTests : [];
-  const pRows = periodic.map((p) => [
-    String(p.test || "—"),
-    String(p.frequency || "—"),
-    String(p.lastDate || "—"),
-    String(p.result || "—"),
-  ]);
-  y = drawMultiColumnTable(
-    doc,
-    left,
-    contentW,
-    y,
-    bodyBottom,
-    layout,
-    "תדירויות בדיקה",
-    [
-      { label: "בדיקה", key: 0, w: 0.42 },
-      { label: "תדירות", key: 1, w: 0.18 },
-      { label: "אחרון", key: 2, w: 0.18 },
-      { label: "תוצאה", key: 3, w: 0.22 },
-    ],
-    pRows.length ? pRows : [["—", "—", "—", "—"]],
     true,
     { compact: true }
   );
@@ -975,15 +947,12 @@ function renderEvChargingBody(doc, certificate, inspector, extra, left, contentW
     `${extra.stationPowerKw || "—"} kW · ${extra.chargeType || "AC"} · ${extra.connectorType || "—"}`,
   ]);
 
-  const importerVal = `${extra.importerDeclarationRef || "—"}${extra.importerDeclarationDate ? ` (${extra.importerDeclarationDate})` : ""}`;
-  y = drawKeyValueTable(doc, left, contentW, y, bottomSafe, layout, "פרטי עמדה ומתקין", [
-    ["הצהרת יבואן/יצרן", importerVal],
-    ["מתקין", `${extra.installerName || "—"} · רישיון ${extra.installerLicense || "—"}`],
+  y = drawKeyValueTable(doc, left, contentW, y, bottomSafe, layout, "פרטי עמדה", [
     ["תקן", extra.iec61851Ref || "IEC 61851-1 / IEC 60364-7-722"],
     ["הארקה / הגנה", certificate.groundingValue || "—"],
   ]);
 
-  const checks = Array.isArray(extra.checks) ? extra.checks : [];
+  const checks = filterEvChecksForOutput(extra.checks);
   const checkRows = checks.map((c) => [String(c.item || "—"), String(c.result || "—")]);
   y = drawMultiColumnTable(
     doc,
@@ -998,31 +967,6 @@ function renderEvChargingBody(doc, certificate, inspector, extra, left, contentW
       { label: "תוצאה", key: 1, w: 0.35 },
     ],
     checkRows.length ? checkRows : [["—", "—"]],
-    true
-  );
-
-  const periodic = Array.isArray(extra.periodicTests) ? extra.periodicTests : [];
-  const pRows = periodic.map((p) => [
-    String(p.test || "—"),
-    String(p.frequency || "—"),
-    String(p.lastDate || "—"),
-    String(p.result || "—"),
-  ]);
-  y = drawMultiColumnTable(
-    doc,
-    left,
-    contentW,
-    y,
-    bottomSafe,
-    layout,
-    "טבלת תדירויות בדיקה",
-    [
-      { label: "בדיקה", key: 0, w: 0.4 },
-      { label: "תדירות", key: 1, w: 0.2 },
-      { label: "תאריך אחרון", key: 2, w: 0.2 },
-      { label: "תוצאה", key: 3, w: 0.2 },
-    ],
-    pRows.length ? pRows : [["—", "—", "—", "—"]],
     true
   );
 
