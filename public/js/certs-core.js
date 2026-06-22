@@ -6,11 +6,12 @@
 import {
   certTypeLabel,
   certTypeShortLabel,
-  defaultPortableApplianceRow,
   defaultEvChecks,
   defaultEvPeriodicTests,
+  defaultPortableApplianceRow,
   defaultTechRows,
   defaultVisualChecklist,
+  filterEvChecksForOutput,
 } from "./cert-types.js";
 import { buildPrintDocHtml, escapeHtml } from "./certs-print.js";
 import { STR } from "./cert-strings.js";
@@ -329,10 +330,12 @@ export class CertWorkspace {
     this.setInputValue("docEvGridBanner", ex.gridApprovalBanner || "");
     this.evChecksState =
       Array.isArray(ex.checks) && ex.checks.length
-        ? ex.checks.map((c, i) => ({
-            ...(defaultEvChecks()[i] || { item: c.item, result: "תקין" }),
-            ...c,
-          }))
+        ? filterEvChecksForOutput(
+            ex.checks.map((c, i) => ({
+              ...(defaultEvChecks()[i] || { item: c.item, result: "תקין" }),
+              ...c,
+            }))
+          )
         : defaultEvChecks();
     this.evPeriodicState =
       Array.isArray(ex.periodicTests) && ex.periodicTests.length

@@ -1,5 +1,6 @@
 import {
   certTypeLabel,
+  filterEvChecksForOutput,
 } from "./cert-types.js";
 
 function escapeHtml(s) {
@@ -38,13 +39,12 @@ function renderShareBody(c) {
       <div class="table-wrap" style="margin:0.75rem 0"><table class="table table-compact"><thead><tr><th>נכס</th><th>תיאור</th><th>מיקום</th><th>תוצאה</th></tr></thead><tbody>${rows || "<tr><td colspan='4'>—</td></tr>"}</tbody></table></div>
       <p><strong>מסקנה:</strong> ${escapeHtml(ex.summary || c.notes || "")}</p>`;
   } else if (t === "ev_charging") {
-    const checks = (ex.checks || [])
+    const checks = filterEvChecksForOutput(ex.checks || [])
       .map((ch) => `<tr><td>${escapeHtml(ch.item || "")}</td><td>${escapeHtml(ch.result || "")}</td></tr>`)
       .join("");
     extraHtml = `
       <p><strong>בעלים:</strong> ${escapeHtml(ex.ownerName || c.facilityName || "")} · <strong>סוג אתר:</strong> ${escapeHtml(ex.siteKind || "")}</p>
       <p><strong>עמדה:</strong> ${escapeHtml(ex.stationManufacturer || "")} ${escapeHtml(ex.stationModel || "")} · ${escapeHtml(ex.stationPowerKw || "")} kW</p>
-      <p><strong>מתקין:</strong> ${escapeHtml(ex.installerName || "")} · רישיון ${escapeHtml(ex.installerLicense || "")}</p>
       <div class="table-wrap" style="margin:0.75rem 0"><table class="table table-compact"><thead><tr><th>בדיקה</th><th>תוצאה</th></tr></thead><tbody>${checks}</tbody></table></div>
       <p class="share-banner">${escapeHtml(ex.gridApprovalBanner || "מאושר לחיבור לרשת לפני הפעלה ראשונה")}</p>`;
   } else {
