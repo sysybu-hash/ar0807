@@ -119,6 +119,43 @@ test("ev_charging certificate PDF with Hebrew fields builds", async () => {
   assert.equal(buf.slice(0, 4).toString(), "%PDF");
 });
 
+test("blank EV certificate renders on a single page", async () => {
+  const blankPng =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  const buf = await buildCertificatePdfBuffer({
+    certificate: {
+      ...baseCert,
+      docType: "ev_charging",
+      notes: "תקין",
+      extra: {
+        ...defaultExtraForType("ev_charging"),
+        ownerName: "ישראל ישראלי",
+        installerName: "אברהם",
+        installerLicense: "123123",
+        stationManufacturer: "100",
+        stationModel: "500",
+        stationSerial: "123123",
+        stationPowerKw: "20",
+        chargeType: "AC/DC",
+        connectorType: "CCS",
+        inspectionDate: "2026-06-22",
+        importerDeclarationRef: "123456",
+        importerDeclarationDate: "2026-06-14",
+      },
+    },
+    inspector: {
+      ...inspector,
+      useBlankTemplate: true,
+      blankTemplateData: blankPng,
+      blankOffsetXmm: 0,
+      blankOffsetYmm: 0,
+      blankScale: 1,
+    },
+  });
+  const raw = buf.toString("latin1");
+  assert.ok(!raw.includes("\u05DE\u05EA\u05D5\u05DA 2"), "blank EV PDF should not span 2 pages");
+});
+
 test("certificate PDF with blank letterhead builds", async () => {
   const blankPng =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
