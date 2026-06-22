@@ -283,6 +283,7 @@ export class CertWorkspace {
     this.setInputValue("docType", doc?.docType || "installation");
     const ex = doc?.extra && typeof doc.extra === "object" ? doc.extra : {};
     this.setInputValue("docNo", ex.docNo || doc?.docNo || "");
+    this.setInputValue("docIssueDate", ex.issueDate || (doc ? "" : new Date().toISOString().slice(0, 10)));
     this.setInputValue("docWorkflowStatus", ex.workflowStatus || "draft");
     this.setInputValue("docFacilityName", doc?.facilityName || "");
     this.setInputValue("docAddress", doc?.address || "");
@@ -359,6 +360,7 @@ export class CertWorkspace {
     const docType = this.inputRaw("docType") || "installation";
     const extra = {
       docNo: this.inputTrim("docNo"),
+      issueDate: this.inputRaw("docIssueDate"),
       workflowStatus: this.inputRaw("docWorkflowStatus") || "draft",
       inspectionDate: this.inputRaw("docInspectionDate"),
     };

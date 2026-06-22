@@ -24,6 +24,8 @@ const MM_TO_PT = 72 / 25.4;
 
 /** Content box on Rubinstein A4 letterhead (mm from page edges). */
 const BLANK_LETTERHEAD = {
+  /** Corner meta row (בס"ד, תאריך הנפקה, מס' אישור) — above letterhead artwork */
+  metaTopMm: 11,
   contentTopMm: 72,
   contentBottomMm: 28,
   sideMm: 14,
@@ -302,6 +304,31 @@ function drawRtlHebrewLatinLine(doc, hebrewText, latinText, x, y, width, opts = 
   });
   doc.font("Hebrew");
   return y + lineHeight(doc, fontSize, opts);
+}
+
+/** Top corners on blank letterhead — does not overlap content band (starts at contentTopMm). */
+function drawPageMetaBar(doc, layout, { issueDate, approvalNo, useBlank }) {
+  const pageW = doc.page.width;
+  const side = useBlank ? mmToPt(BLANK_LETTERHEAD.sideMm) : layout.left;
+  const y = mmToPt(useBlank ? BLANK_LETTERHEAD.metaTopMm : 16);
+  const bandW = pageW - side * 2;
+  const colW = bandW / 3;
+  const metaFs = 7.8;
+  const metaColor = "#475569";
+
+  doc.fontSize(metaFs).fillColor(metaColor);
+
+  const issueText = issueDate ? `תאריך הנפקה: ${issueDate}` : "";
+  if (issueText) {
+    pdfText(doc, issueText, side, y, colW, { align: "left", fontSize: metaFs });
+  }
+
+  const approvalText = approvalNo ? `מס' אישור: ${approvalNo}` : "";
+  if (approvalText) {
+    pdfText(doc, approvalText, side + colW, y, colW, { align: "center", fontSize: metaFs });
+  }
+
+  pdfText(doc, 'בס"ד', side + colW * 2, y, colW, { align: "right", fontSize: metaFs });
 }
 
 function drawBlankDocumentTitle(doc, left, contentW, y, mainTitle, legalSubtitle) {
@@ -596,7 +623,14 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
 
     const extra = mergeExtraForType(docType, safeExtra(certificate));
     const docNo = String(extra.docNo || "").trim();
+    const approvalNo = docNo || (certificate.id != null ? String(certificate.id) : "");
+    const issueDate = fmtDateOnly(
+      extra.issueDate,
+      certificate.updatedAt || certificate.createdAt
+    );
     const workflow = String(extra.workflowStatus || "").trim();
+
+    drawPageMetaBar(doc, layout, { issueDate, approvalNo, useBlank });
 
     const clientName = String(extra.clientName || "").trim() || "—";
     const installationType = String(extra.installationType || "").trim() || "—";

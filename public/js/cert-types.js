@@ -48,6 +48,7 @@ export function defaultExtraForType(docType) {
     docNo: "",
     workflowStatus: "draft",
     inspectionDate: "",
+    issueDate: "",
     legalSubtitle: "",
   };
   if (t === "installation") {
