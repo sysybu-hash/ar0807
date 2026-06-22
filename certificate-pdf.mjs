@@ -268,8 +268,40 @@ function formatIsraelPhone(phone) {
 function inspectorStampName(inspector) {
   const full = String(inspector?.name || "").trim();
   if (!full) return "—";
-  const short = full.split(/\s*[-–—]\s*/)[0]?.trim();
-  return short || full;
+  const parts = full.split(/\s*[-–—]\s*/).map((p) => p.trim()).filter(Boolean);
+  if (parts.length > 1) {
+    const personal = parts.find((p) => !/חשמל|בע[\"']?מ|electric/i.test(p));
+    if (personal) return personal;
+  }
+  return parts[0] || full;
+}
+
+/** Center a Hebrew label with a Latin value for RTL stamp lines (phone, license no.). */
+function drawRtlHebrewLatinLine(doc, hebrewText, latinText, x, y, width, opts = {}) {
+  const fontSize = opts.fontSize ?? 6.4;
+  const fillColor = opts.fillColor ?? BLUE_DARK;
+  const gap = 4;
+  const latin = String(latinText || "").trim() || "—";
+  doc.fontSize(fontSize).fillColor(fillColor);
+  doc.font("Hebrew");
+  const hebW = doc.widthOfString(hebrewText, { features: ["rtla"] });
+  doc.font("Latin");
+  const latW = doc.widthOfString(latin);
+  const total = hebW + gap + latW;
+  const blockRight = x + (width + total) / 2;
+  doc.font("Hebrew").fillColor(fillColor);
+  doc.text(hebrewText, blockRight - hebW, y, {
+    lineBreak: false,
+    width: Math.max(hebW, 1),
+    features: ["rtla"],
+  });
+  doc.font("Latin").fillColor(fillColor);
+  doc.text(latin, blockRight - hebW - gap - latW, y, {
+    lineBreak: false,
+    width: Math.max(latW, 1),
+  });
+  doc.font("Hebrew");
+  return y + lineHeight(doc, fontSize, opts);
 }
 
 function drawBlankDocumentTitle(doc, left, contentW, y, mainTitle, legalSubtitle) {
@@ -308,14 +340,17 @@ function drawInspectorStampVector(doc, inspector, x, y, width, height, sigBuf = 
   const innerW = width - padX * 2;
   const name = inspectorStampName(inspector);
   const lic = String(inspector?.licenseNo || "").trim();
-  const licLine = lic ? `חשמלאי ראשי מ.ר. ${lic}` : "חשמלאי ראשי";
-  const phoneLine = `טלפון: ${formatIsraelPhone(inspector?.phone)}`;
-
   doc.fillColor(BLUE_DARK);
   let ty = y + 5;
   ty = pdfText(doc, name, x + padX, ty, innerW, { align: "center", fontSize: 9.8 }) + 1.5;
-  ty = pdfText(doc, licLine, x + padX, ty, innerW, { align: "center", fontSize: 6.4 }) + 0.5;
-  pdfText(doc, phoneLine, x + padX, ty, innerW, { align: "center", fontSize: 6.4 });
+  if (lic) {
+    ty = drawRtlHebrewLatinLine(doc, "חשמלאי ראשי מ.ר.", lic, x + padX, ty, innerW, { fontSize: 6.4 }) + 0.5;
+  } else {
+    ty = pdfText(doc, "חשמלאי ראשי", x + padX, ty, innerW, { align: "center", fontSize: 6.4 }) + 0.5;
+  }
+  drawRtlHebrewLatinLine(doc, "טלפון:", formatIsraelPhone(inspector?.phone), x + padX, ty, innerW, {
+    fontSize: 6.4,
+  });
 
   if (sigBuf) {
     const sigPadX = 4;
@@ -1326,6 +1361,15 @@ function drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bot
   pdfText(doc, "הצהרת החשמלאי", midX + 2, y, declColW - 2, { align: "right", fontSize: titleFs });
   pdfText(doc, "חתימה וחותמת החשמלאי", left, y, sigColW - 2, { align: "right", fontSize: titleFs });
 
+  const sigLineY = y + (compact ? 12 : 15);
+  doc.save();
+  doc.moveTo(left + 10, sigLineY)
+    .lineTo(left + sigColW - 10, sigLineY)
+    .lineWidth(0.6)
+    .strokeColor("#94a3b8")
+    .stroke();
+  doc.restore();
+
   doc.fontSize(declFs).fillColor("#334155");
   const declEndY = pdfText(doc, declText, midX + 2, bodyY, declColW - 4, declOpts);
 
@@ -1337,8 +1381,8 @@ function drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bot
 
   const stampW = compact ? 136 : 162;
   const stampH = compact ? 46 : 54;
-  const stampX = left + 4;
-  const stampY = bodyY;
+  const stampX = left + Math.max(0, (sigColW - stampW) / 2);
+  const stampY = sigLineY + 7;
   const hasInspectorStampInfo = Boolean(
     inspectorStampName(inspector) !== "—" ||
       String(inspector?.licenseNo || "").trim() ||
