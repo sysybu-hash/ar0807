@@ -1,6 +1,7 @@
 import PDFDocument from "pdfkit";
 import path from "path";
 import { fileURLToPath } from "url";
+import bidiFactory from "bidi-js";
 import {
   CERT_TYPES,
   mergeExtraForType,
@@ -12,6 +13,8 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const HEBREW_FONT = path.join(__dirname, "public", "fonts", "NotoSansHebrew-Regular.ttf");
 const LATIN_FONT = path.join(__dirname, "public", "fonts", "NotoSans-Regular.ttf");
+
+const bidi = bidiFactory();
 
 /** Brand blue — aligned with formal inspection reports */
 const BLUE = "#1a56b4";
@@ -36,75 +39,18 @@ function normalizePdfText(s) {
     .replace(/[\u201C\u201D]/g, '"');
 }
 
-function isHebrewChar(ch) {
-  return /[\u0590-\u05FF]/.test(ch);
-}
-
-function splitScriptRuns(text) {
-  const runs = [];
-  let buf = "";
-  let kind = null;
-  for (const ch of text) {
-    const k = isHebrewChar(ch) ? "hebrew" : "latin";
-    if (kind !== null && k !== kind && buf) {
-      runs.push({ kind, text: buf });
-      buf = "";
-    }
-    kind = k;
-    buf += ch;
-  }
-  if (buf) runs.push({ kind, text: buf });
-  return runs;
-}
-
-/** PDFKit is LTR — keep logical Hebrew order; Hebrew runs use OpenType rtla shaping. */
-function buildLogicalRuns(text) {
-  return splitScriptRuns(normalizePdfText(text)).map((run) => ({
-    kind: run.kind,
-    font: run.kind === "hebrew" ? "Hebrew" : "Latin",
-    text: run.text,
-  }));
-}
-
-function runTextOpts(run) {
-  return run.kind === "hebrew" ? { features: ["rtla"] } : {};
-}
-
-function measureRunWidth(doc, run, fontSize) {
-  doc.font(run.font).fontSize(fontSize);
-  return doc.widthOfString(run.text, runTextOpts(run));
-}
-
-function drawLogicalRtlLine(doc, text, x, y, width, opts = {}) {
-  if (!text) return y;
-  const fontSize = resolveFontSize(doc, opts);
-  const fillColor = resolveFillColor(doc, opts);
+/** Reorder logical Hebrew/mixed text to visual order for PDFKit's LTR renderer. */
+function toVisualText(text) {
   const normalized = normalizePdfText(text);
-  doc.fontSize(fontSize).fillColor(fillColor);
-
-  const runs = buildLogicalRuns(normalized);
-  const sized = runs.map((run) => ({
-    ...run,
-    w: measureRunWidth(doc, run, fontSize),
-  }));
-  const total = sized.reduce((sum, run) => sum + run.w, 0);
-  let px =
-    opts.align === "center" ? x + Math.max(0, (width - total) / 2) : x + Math.max(0, width - total);
-  for (const run of sized) {
-    doc.font(run.font).fontSize(fontSize).fillColor(fillColor);
-    doc.text(run.text, px, y, {
-      lineBreak: false,
-      width: Math.max(run.w, 1),
-      ...runTextOpts(run),
-    });
-    px += run.w;
-  }
-  return y + lineHeight(doc, fontSize, opts);
+  if (!normalized) return "";
+  const emb = bidi.getEmbeddingLevels(normalized);
+  return bidi.getReorderedString(normalized, emb);
 }
 
-function measureLogicalLine(doc, text, opts = {}) {
+function measureVisualLine(doc, text, opts = {}) {
   const fontSize = resolveFontSize(doc, opts);
-  return buildLogicalRuns(text).reduce((sum, run) => sum + measureRunWidth(doc, run, fontSize), 0);
+  doc.font("Hebrew").fontSize(fontSize);
+  return doc.widthOfString(toVisualText(text));
 }
 
 /** Break a single paragraph into lines that fit within `width`. */
@@ -112,7 +58,7 @@ function wrapLogicalLines(doc, text, width, opts = {}) {
   const normalized = normalizePdfText(text);
   if (!normalized) return [""];
   if (!width || width <= 0) return [normalized];
-  if (measureLogicalLine(doc, normalized, opts) <= width) return [normalized];
+  if (measureVisualLine(doc, normalized, opts) <= width) return [normalized];
 
   const tokens = normalized.split(/(\s+)/).filter((t) => t.length > 0);
   const lines = [];
@@ -123,7 +69,7 @@ function wrapLogicalLines(doc, text, width, opts = {}) {
       continue;
     }
     const trial = current ? `${current}${token}` : token;
-    if (current.trim() && measureLogicalLine(doc, trial, opts) > width) {
+    if (current.trim() && measureVisualLine(doc, trial, opts) > width) {
       lines.push(current.trim());
       current = token.trim() ? token : "";
     } else {
@@ -259,11 +205,16 @@ function measureRtl(doc, text, width, opts = {}) {
 }
 
 function pdfText(doc, text, x, y, width, opts = {}) {
-  const { lineGap = 0, wrap = true, ...rest } = opts;
+  const { lineGap = 0, wrap = true, align = "right", ...rest } = opts;
+  const fontSize = resolveFontSize(doc, rest);
+  const fillColor = resolveFillColor(doc, rest);
   const lines = expandWrappedLines(doc, text, width, { ...rest, wrap });
   let cy = y;
   for (let i = 0; i < lines.length; i++) {
-    cy = drawLogicalRtlLine(doc, lines[i], x, cy, width, rest);
+    const visual = toVisualText(lines[i]);
+    doc.font("Hebrew").fontSize(fontSize).fillColor(fillColor);
+    doc.text(visual, x, cy, { width, align, lineBreak: false });
+    cy += lineHeight(doc, fontSize, rest);
     if (i < lines.length - 1) cy += lineGap;
   }
   doc.y = cy;
@@ -750,11 +701,11 @@ function renderInstallationBody(doc, certificate, inspector, extra, left, conten
     const b = rightCol[i];
     if (a) {
       doc.fontSize(8.6).fillColor("#1e293b");
-      pdfText(doc, `+  ${a}`, left + innerW + colGap, yv, innerW, { align: "right" });
+      pdfText(doc, `${a}  +`, left + innerW + colGap, yv, innerW, { align: "right" });
     }
     if (b) {
       doc.fontSize(8.6).fillColor("#1e293b");
-      pdfText(doc, `+  ${b}`, left, yv, innerW, { align: "right" });
+      pdfText(doc, `${b}  +`, left, yv, innerW, { align: "right" });
     }
     yv += rowH;
   }

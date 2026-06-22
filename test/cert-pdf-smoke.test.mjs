@@ -102,6 +102,24 @@ test("ev_charging certificate PDF builds", async () => {
   assert.equal(buf.slice(0, 4).toString(), "%PDF");
 });
 
+test("certificate PDF does not use OpenType rtla feature", async () => {
+  const buf = await buildCertificatePdfBuffer({
+    certificate: {
+      ...baseCert,
+      docType: "ev_charging",
+      extra: {
+        ...defaultExtraForType("ev_charging"),
+        ownerName: "ישראל ישראלי",
+        inspectionDate: "2026-06-22",
+      },
+    },
+    inspector,
+  });
+  const raw = buf.toString("latin1");
+  assert.ok(!raw.includes("rtla"), "PDF should not use OpenType rtla");
+  assert.ok(buf.length > 2000);
+});
+
 test("certificate PDF with blank letterhead builds", async () => {
   const blankPng =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
