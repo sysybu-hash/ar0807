@@ -188,13 +188,13 @@ export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } 
   const blankLayout = `
     <div class="blank-sheet">
       ${settings.blankTemplateData ? `<img src="${settings.blankTemplateData}" class="blank-bg" alt="">` : ""}
-      <div class="blank-meta-bsd" aria-hidden="true">בס"ד</div>
+      <div class="blank-meta-top" aria-hidden="true">
+        <span class="blank-meta-issue">${issueDateFmt ? `תאריך הנפקה: ${escapeHtml(issueDateFmt)}` : ""}</span>
+        <span class="blank-meta-bsd">בס"ד</span>
+      </div>
       <div class="blank-content">
         <h1 class="blank-doc-title">${escapeHtml(pdfTitle)}</h1>
-        <div class="blank-doc-meta">
-          <span class="blank-doc-meta-issue">${issueDateFmt ? `תאריך הנפקה: ${escapeHtml(issueDateFmt)}` : ""}</span>
-          <span class="blank-doc-meta-approval">${approvalNo ? `מס' אישור: ${escapeHtml(approvalNo)}` : ""}</span>
-        </div>
+        <div class="blank-doc-approval">${approvalNo ? `מס' אישור: ${escapeHtml(approvalNo)}` : ""}</div>
         <div class="grid grid-cols-2 gap-2 text-sm border rounded p-3 bg-white/90 mb-4">
           <div><b>${STR.printDocType}:</b> ${escapeHtml(title)}</div>
           <div><b>${STR.printDate}:</b> ${escapeHtml(when)}</div>
@@ -214,11 +214,11 @@ export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } 
   <style>
     .blank-sheet{position:relative;max-width:210mm;min-height:287mm;margin:0 auto;padding:12mm}
     .blank-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:0;transform:translate(${Number(settings.blankOffsetXmm || 0)}mm, ${Number(settings.blankOffsetYmm || 0)}mm) scale(${blankScale});transform-origin:top right}
-    .blank-meta-bsd{position:absolute;top:11mm;right:14mm;z-index:2;font-size:0.72rem;color:#475569}
+    .blank-meta-top{position:absolute;top:11mm;left:14mm;right:14mm;z-index:2;display:flex;justify-content:space-between;align-items:flex-start;font-size:0.8rem;color:#475569;line-height:1.2}
+    .blank-meta-issue{text-align:left;max-width:58%}
+    .blank-meta-bsd{text-align:right}
     .blank-doc-title{text-align:center;font-size:1.05rem;font-weight:700;color:#0d3d82;margin:0 0 0.35rem}
-    .blank-doc-meta{display:flex;justify-content:space-between;align-items:center;font-size:0.82rem;color:#475569;margin-bottom:0.75rem;padding-bottom:0.35rem;border-bottom:2px solid #1a56b4}
-    .blank-doc-meta-issue{text-align:left}
-    .blank-doc-meta-approval{text-align:right}
+    .blank-doc-approval{text-align:center;font-size:0.95rem;font-weight:600;color:#475569;margin-bottom:0.65rem}
     .blank-content{position:relative;z-index:1;padding-top:72mm;padding-left:14mm;padding-right:14mm;padding-bottom:28mm}
     .print-table{width:100%;border-collapse:collapse;margin:0.75rem 0;font-size:0.85rem}
     .print-table th,.print-table td{border:1px solid #cbd5e1;padding:0.35rem 0.5rem;text-align:right}
