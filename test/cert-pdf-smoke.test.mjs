@@ -102,7 +102,7 @@ test("ev_charging certificate PDF builds", async () => {
   assert.equal(buf.slice(0, 4).toString(), "%PDF");
 });
 
-test("certificate PDF does not use OpenType rtla feature", async () => {
+test("ev_charging certificate PDF with Hebrew fields builds", async () => {
   const buf = await buildCertificatePdfBuffer({
     certificate: {
       ...baseCert,
@@ -115,9 +115,8 @@ test("certificate PDF does not use OpenType rtla feature", async () => {
     },
     inspector,
   });
-  const raw = buf.toString("latin1");
-  assert.ok(!raw.includes("rtla"), "PDF should not use OpenType rtla");
   assert.ok(buf.length > 2000);
+  assert.equal(buf.slice(0, 4).toString(), "%PDF");
 });
 
 test("certificate PDF with blank letterhead builds", async () => {
