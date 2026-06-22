@@ -188,7 +188,7 @@ export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } 
   <style>
     .blank-sheet{position:relative;max-width:210mm;min-height:287mm;margin:0 auto;padding:12mm}
     .blank-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:0;transform:translate(${Number(settings.blankOffsetXmm || 0)}mm, ${Number(settings.blankOffsetYmm || 0)}mm) scale(${blankScale});transform-origin:top right}
-    .blank-content{position:relative;z-index:1;padding-top:38mm}
+    .blank-content{position:relative;z-index:1;padding-top:72mm;padding-left:14mm;padding-right:14mm;padding-bottom:28mm}
     .print-table{width:100%;border-collapse:collapse;margin:0.75rem 0;font-size:0.85rem}
     .print-table th,.print-table td{border:1px solid #cbd5e1;padding:0.35rem 0.5rem;text-align:right}
     .print-table th{background:#eef1f6}
