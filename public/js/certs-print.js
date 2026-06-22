@@ -95,6 +95,31 @@ export function printDocTypeBody(doc) {
     <p class="print-banner">${escapeHtml(ex.finalStatusBanner || STR.defaultFinalBanner)}</p>`;
 }
 
+export function buildSignatureFooterHtml(settings, doc) {
+  const sx = Number(settings.stampOffsetXmm || 0);
+  const sy = Number(settings.stampOffsetYmm || 0);
+  const decl = String(settings.inspectorDeclarationText || "").trim();
+  const declHtml = decl ? `<div class="sig-decl-text">${escapeHtml(decl)}</div>` : "";
+  let stampInner = `<div class="sig-stamp-empty"></div>`;
+  if (settings.stampData) {
+    stampInner = `<img src="${settings.stampData}" alt="" class="sig-stamp-img" style="transform:translate(${sx}mm,${sy}mm)" />`;
+  } else if (doc.signatureData) {
+    stampInner = `<img src="${doc.signatureData}" alt="" class="sig-stamp-img" />`;
+  }
+  return `
+    <div class="sig-footer">
+      <div class="sig-footer-col sig-footer-decl">
+        <div class="sig-footer-title">הצהרת החשמלאי</div>
+        ${declHtml}
+      </div>
+      <div class="sig-footer-col sig-footer-stamp">
+        <div class="sig-footer-title">חתימה וחותמת החשמלאי</div>
+        <div class="sig-line"></div>
+        ${stampInner}
+      </div>
+    </div>`;
+}
+
 export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } = {}) {
   const when = fmtDate(doc.updatedAt || doc.createdAt || new Date().toISOString());
   const title = certTypeLabel(doc.docType);
@@ -116,15 +141,7 @@ export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } 
   const photosBlock = photosHtml
     ? `<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">${photosHtml}</div>`
     : "";
-  const decl = String(settings.inspectorDeclarationText || "").trim();
-  const declBlock = decl
-    ? `<div class="mb-4 text-sm border rounded-lg p-3 bg-slate-50 whitespace-pre-wrap leading-relaxed">${escapeHtml(decl)}</div>`
-    : "";
-  const sx = Number(settings.stampOffsetXmm || 0);
-  const sy = Number(settings.stampOffsetYmm || 0);
-  const stampBlock = settings.stampData
-    ? `<div class="relative inline-block" style="width:8rem;height:6rem"><img src="${settings.stampData}" alt="" style="position:absolute;right:0;top:0;max-width:120px;max-height:96px;transform:translate(${sx}mm,${sy}mm);transform-origin:top right" /></div>`
-    : "";
+  const signatureFooter = buildSignatureFooterHtml(settings, doc);
   const standardLayout = `<div class="max-w-[210mm] mx-auto p-8 text-right">
     <div class="flex flex-row-reverse justify-between items-start border-b-4 border-blue-800 pb-4 mb-6 gap-4">
       <div class="flex flex-row-reverse items-start gap-4">
@@ -148,14 +165,7 @@ export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } 
     <div class="mb-4 print-type-body">${typeBody}</div>
     <div class="mb-4"><h3 class="font-bold">${STR.printNotes}</h3><div class="border rounded p-2 min-h-[40px] whitespace-pre-wrap">${escapeHtml(doc.notes || "")}</div></div>
     ${photosBlock}
-    ${declBlock}
-    <div class="flex justify-between items-end mt-8 gap-4">
-      <div>${stampBlock}</div>
-      <div class="text-center shrink-0">
-        ${doc.signatureData ? `<img src="${doc.signatureData}" style="height:80px">` : `<div style="height:80px"></div>`}
-        <div class="border-t pt-1 text-sm">${STR.printSignature}</div>
-      </div>
-    </div>
+    ${signatureFooter}
   </div>`;
   const blankScale = Math.min(1.2, Math.max(0.8, Number(settings.blankScale || 1)));
   const blankLayout = `
@@ -173,14 +183,7 @@ export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } 
         <div class="mb-4 print-type-body bg-white/90">${typeBody}</div>
         <div class="mb-4 bg-white/90 border rounded p-2 min-h-[40px] whitespace-pre-wrap"><b>${STR.printNotes}:</b> ${escapeHtml(doc.notes || "")}</div>
         ${photosBlock}
-        ${declBlock}
-        <div class="flex justify-between items-end mt-8 gap-4">
-          <div>${stampBlock}</div>
-          <div class="text-center shrink-0">
-            ${doc.signatureData ? `<img src="${doc.signatureData}" style="height:80px">` : `<div style="height:80px"></div>`}
-            <div class="border-t pt-1 text-sm">${STR.printSignature}</div>
-          </div>
-        </div>
+        ${signatureFooter}
       </div>
     </div>`;
   const printScript = autoPrint ? `<script>window.onload=()=>{window.print()};<\/script>` : "";
@@ -195,6 +198,12 @@ export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } 
     .print-banner{background:#1a56b4;color:#fff;padding:0.5rem 1rem;text-align:center;border-radius:0.25rem;font-weight:700;margin:0.75rem 0}
     .print-type-body{font-size:0.9rem;line-height:1.6}
     .print-section{margin:0.75rem 0 0.25rem;font-weight:700;font-size:0.95rem}
+    .sig-footer{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:2rem;align-items:start}
+    .sig-footer-title{font-size:0.82rem;font-weight:700;color:#0d3d82;margin-bottom:0.35rem}
+    .sig-decl-text{font-size:0.78rem;color:#334155;line-height:1.55;white-space:pre-wrap}
+    .sig-line{border-top:1px solid #94a3b8;margin:0.35rem 0 0.5rem}
+    .sig-stamp-img{display:block;max-width:188px;max-height:64px;margin:0 auto;transform-origin:top center}
+    .sig-stamp-empty{min-height:64px}
   </style>
   </head><body>
   ${settings.useBlankTemplate && settings.blankTemplateData ? blankLayout : standardLayout}

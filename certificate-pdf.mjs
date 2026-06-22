@@ -1379,8 +1379,8 @@ function drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bot
   const offX = Number(inspector?.stampOffsetXmm || 0) * mmToPtLocal;
   const offY = Number(inspector?.stampOffsetYmm || 0) * mmToPtLocal;
 
-  const stampW = compact ? 136 : 162;
-  const stampH = compact ? 46 : 54;
+  const stampW = compact ? 158 : 188;
+  const stampH = compact ? 54 : 64;
   const stampX = left + Math.max(0, (sigColW - stampW) / 2);
   const stampY = sigLineY + 7;
   const hasInspectorStampInfo = Boolean(
@@ -1389,26 +1389,27 @@ function drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bot
       String(inspector?.phone || "").trim()
   );
 
-  if (hasInspectorStampInfo) {
-    drawInspectorStampVector(doc, inspector, stampX + offX, stampY + offY, stampW, stampH, sigBuf);
-  } else if (stampBuf) {
+  if (stampBuf) {
     try {
-      doc.image(stampBuf, stampX + offX, stampY + offY, { fit: [stampW, stampH], align: "left", valign: "top" });
-      if (sigBuf) {
-        const sigW = stampW * 0.9;
-        const sigH = stampH * 0.65;
-        doc.image(sigBuf, stampX + offX + (stampW - sigW) / 2, stampY + offY + stampH * 0.28, {
-          fit: [sigW, sigH],
-          align: "center",
-          valign: "center",
-        });
-      }
+      doc.image(stampBuf, stampX + offX, stampY + offY, {
+        fit: [stampW, stampH],
+        align: "center",
+        valign: "top",
+      });
     } catch {
-      /* skip */
+      if (hasInspectorStampInfo) {
+        drawInspectorStampVector(doc, inspector, stampX + offX, stampY + offY, stampW, stampH, sigBuf);
+      }
     }
+  } else if (hasInspectorStampInfo) {
+    drawInspectorStampVector(doc, inspector, stampX + offX, stampY + offY, stampW, stampH, sigBuf);
   } else if (sigBuf) {
     try {
-      doc.image(sigBuf, left + 6, bodyY, { width: compact ? 96 : 130, height: compact ? 38 : 52, fit: [compact ? 96 : 130, compact ? 38 : 52] });
+      doc.image(sigBuf, stampX + offX, stampY + offY, {
+        width: stampW,
+        height: stampH * 0.7,
+        fit: [stampW, stampH * 0.7],
+      });
     } catch {
       /* skip */
     }

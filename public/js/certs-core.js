@@ -452,20 +452,16 @@ export class CertWorkspace {
   }
 
   async printDoc(doc) {
-    if (this.isMobile()) {
-      if (!doc?.id) {
-        this.showToast(STR.saveBeforePdf, "warn");
-        return;
-      }
-      try {
-        const blob = await this.apiBlob(`/api/certificates/${doc.id}/pdf`);
-        this.openBlobPdf(blob, `certificate-${doc.id}.pdf`);
-      } catch (e) {
-        this.showToast(e.message || "שגיאת הדפסה", "err");
-      }
+    if (!doc?.id) {
+      this.showToast(STR.saveBeforePdf, "warn");
       return;
     }
-    this.openPrintableHtml(this.buildPrintHtml(doc, true));
+    try {
+      const blob = await this.apiBlob(`/api/certificates/${doc.id}/pdf`);
+      this.openBlobPdf(blob, `certificate-${doc.id}.pdf`);
+    } catch (e) {
+      this.showToast(e.message || "שגיאת הדפסה", "err");
+    }
   }
 
   async previewCertificateDoc(doc) {
