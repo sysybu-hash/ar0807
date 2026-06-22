@@ -1,7 +1,10 @@
 import {
   certTypeLabel,
   filterEvChecksForOutput,
+  filterEvPeriodicTestsForOutput,
 } from "./cert-types.js";
+import { formatHebrewDateFull } from "./hebrew-date.js";
+import { STR } from "./cert-strings.js";
 
 function escapeHtml(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) =>
@@ -23,6 +26,31 @@ function fmtDate(iso) {
   }
 }
 
+function fmtIssueDate(ex, c) {
+  const v = ex.issueDate;
+  if (v && /^\d{4}-\d{2}-\d{2}$/.test(String(v).trim())) {
+    try {
+      return new Date(`${String(v).trim()}T12:00:00`).toLocaleDateString("he-IL");
+    } catch {
+      return String(v).trim();
+    }
+  }
+  try {
+    return new Date(c.updatedAt || c.createdAt || Date.now()).toLocaleDateString("he-IL");
+  } catch {
+    return "";
+  }
+}
+
+function shareTable(headers, rows, emptyColspan) {
+  const head = `<thead><tr>${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}</tr></thead>`;
+  const body =
+    rows.length > 0
+      ? `<tbody>${rows.map((cells) => `<tr>${cells.map((c) => `<td>${escapeHtml(c)}</td>`).join("")}</tr>`).join("")}</tbody>`
+      : `<tbody><tr><td colspan="${emptyColspan}">—</td></tr></tbody>`;
+  return `<div class="table-wrap" style="margin:0.75rem 0"><table class="table table-compact">${head}${body}</table></div>`;
+}
+
 function renderShareBody(c) {
   const ex = c.extra && typeof c.extra === "object" ? c.extra : {};
   const t = c.docType || "installation";
@@ -39,14 +67,26 @@ function renderShareBody(c) {
       <div class="table-wrap" style="margin:0.75rem 0"><table class="table table-compact"><thead><tr><th>נכס</th><th>תיאור</th><th>מיקום</th><th>תוצאה</th></tr></thead><tbody>${rows || "<tr><td colspan='4'>—</td></tr>"}</tbody></table></div>
       <p><strong>מסקנה:</strong> ${escapeHtml(ex.summary || c.notes || "")}</p>`;
   } else if (t === "ev_charging") {
-    const checks = filterEvChecksForOutput(ex.checks || [])
-      .map((ch) => `<tr><td>${escapeHtml(ch.item || "")}</td><td>${escapeHtml(ch.result || "")}</td></tr>`)
-      .join("");
+    const checkRows = filterEvChecksForOutput(ex.checks || []).map((ch) => [ch.item || "", ch.result || ""]);
+    const periodicRows = filterEvPeriodicTestsForOutput(ex.periodicTests || []).map((p) => [
+      p.test || "",
+      p.frequency || "",
+      p.lastDate || "",
+      p.result || "",
+    ]);
+    const importerLine = `${ex.importerDeclarationRef || "—"}${ex.importerDeclarationDate ? ` (${ex.importerDeclarationDate})` : ""}`;
     extraHtml = `
       <p><strong>בעלים:</strong> ${escapeHtml(ex.ownerName || c.facilityName || "")} · <strong>סוג אתר:</strong> ${escapeHtml(ex.siteKind || "")}</p>
-      <p><strong>עמדה:</strong> ${escapeHtml(ex.stationManufacturer || "")} ${escapeHtml(ex.stationModel || "")} · ${escapeHtml(ex.stationPowerKw || "")} kW</p>
-      <div class="table-wrap" style="margin:0.75rem 0"><table class="table table-compact"><thead><tr><th>בדיקה</th><th>תוצאה</th></tr></thead><tbody>${checks}</tbody></table></div>
-      <p class="share-banner">${escapeHtml(ex.gridApprovalBanner || "מאושר לחיבור לרשת לפני הפעלה ראשונה")}</p>`;
+      <p><strong>עמדה:</strong> ${escapeHtml(ex.stationManufacturer || "")} ${escapeHtml(ex.stationModel || "")} · ${escapeHtml(ex.stationPowerKw || "")} kW · ${escapeHtml(ex.chargeType || "")}</p>
+      <p><strong>מחבר:</strong> ${escapeHtml(ex.connectorType || "")} · <strong>סידורי:</strong> ${escapeHtml(ex.stationSerial || "")}</p>
+      <p><strong>יבואן/יצרן:</strong> ${escapeHtml(importerLine)}</p>
+      <p><strong>הארקה / הגנה:</strong> ${escapeHtml(c.groundingValue || ex.groundingValue || "")}</p>
+      <p><strong>תקן:</strong> ${escapeHtml(ex.iec61851Ref || "IEC 61851-1 / IEC 60364-7-722")}</p>
+      <h4 style="margin:0.75rem 0 0.35rem;font-size:1rem;color:var(--text-mid);">${escapeHtml(STR.evChecksSection)}</h4>
+      ${shareTable([STR.colItem, STR.colResult], checkRows, 2)}
+      <h4 style="margin:0.75rem 0 0.35rem;font-size:1rem;color:var(--text-mid);">${escapeHtml(STR.evPeriodicSection)}</h4>
+      ${shareTable([STR.colCheck, STR.colFrequency, STR.colLastDate, STR.colResult], periodicRows, 4)}
+      <p class="share-banner">${escapeHtml(ex.gridApprovalBanner || STR.defaultGridBanner)}</p>`;
   } else {
     extraHtml = `
       <p><strong>לקוח:</strong> ${escapeHtml(ex.clientName || "")}</p>
@@ -57,8 +97,15 @@ function renderShareBody(c) {
       <p><strong>בידוד:</strong> ${escapeHtml(c.insulation || "")}</p>`;
   }
   const wf = ex.workflowStatus === "final" ? "סופי" : "טיוטה";
+  const issueDateFmt = fmtIssueDate(ex, c);
+  const issueDateHebrew = formatHebrewDateFull(ex.issueDate, c.updatedAt || c.createdAt);
+  const issueDateBlock =
+    issueDateFmt || issueDateHebrew
+      ? `<p><strong>תאריך הנפקה:</strong> ${escapeHtml(issueDateFmt)}${issueDateFmt && issueDateHebrew ? "<br>" : ""}${issueDateHebrew ? escapeHtml(issueDateHebrew) : ""}</p>`
+      : "";
   return `
-    <p><strong>סטטוס:</strong> ${escapeHtml(wf)}${ex.docNo ? ` · <strong>מס׳ מסמך:</strong> ${escapeHtml(ex.docNo)}` : ""}</p>
+    <p><strong>סטטוס:</strong> ${escapeHtml(wf)}${ex.docNo ? ` · <strong>מס׳ אישור:</strong> ${escapeHtml(ex.docNo)}` : ""}</p>
+    ${issueDateBlock}
     <p><strong>תאריך בדיקה:</strong> ${escapeHtml(ex.inspectionDate || fmtDate(c.updatedAt))}</p>
     ${extraHtml}
     <p style="margin-top:0.75rem; white-space: pre-wrap;"><strong>הערות:</strong> ${escapeHtml(c.notes || "")}</p>`;
@@ -93,6 +140,7 @@ if (!token) {
           <strong style="display:block;margin-bottom:0.35rem;">בודק מוסמך</strong>
           <span style="font-weight:700">${escapeHtml(ins.name || "—")}</span>
           <div style="margin-top:0.35rem;font-size:1.05rem;font-weight:800;color:#b45309;">רישיון ${escapeHtml(ins.licenseNo || "—")}</div>
+          ${ins.phone ? `<div style="margin-top:0.35rem;font-size:0.95rem;">טלפון: ${escapeHtml(ins.phone)}</div>` : ""}
         </div>
         <p><strong>שם מתקן:</strong> ${escapeHtml(c.facilityName)}</p>
         <p><strong>כתובת:</strong> ${escapeHtml(c.address || "")}</p>
