@@ -294,27 +294,40 @@ function drawBlankDocumentTitle(doc, left, contentW, y, mainTitle, legalSubtitle
   return cy + 14;
 }
 
-function drawInspectorStampVector(doc, inspector, x, y, width, height) {
+function drawInspectorStampVector(doc, inspector, x, y, width, height, sigBuf = null) {
+  const stampBg = "#f2f4f7";
   doc.save();
-  doc.rect(x, y, width, height).fill("#ffffff");
-  doc.lineWidth(1.1).strokeColor(BLUE);
-  doc.rect(x + 2, y + 2, width - 4, height - 4).stroke();
-  doc.lineWidth(0.55);
-  doc.rect(x + 5, y + 5, width - 10, height - 10).stroke();
+  doc.rect(x, y, width, height).fill(stampBg);
+  doc.lineWidth(1.6).strokeColor(BLUE_DARK);
+  doc.rect(x + 1.5, y + 1.5, width - 3, height - 3).stroke();
+  doc.lineWidth(0.55).strokeColor(BLUE);
+  doc.rect(x + 4.5, y + 4.5, width - 9, height - 9).stroke();
   doc.restore();
 
-  const padX = 6;
+  const padX = 7;
   const innerW = width - padX * 2;
   const name = inspectorStampName(inspector);
   const lic = String(inspector?.licenseNo || "").trim();
   const licLine = lic ? `חשמלאי ראשי מ.ר. ${lic}` : "חשמלאי ראשי";
   const phoneLine = `טלפון: ${formatIsraelPhone(inspector?.phone)}`;
 
-  doc.fillColor(BLUE);
+  doc.fillColor(BLUE_DARK);
   let ty = y + 5;
-  ty = pdfText(doc, name, x + padX, ty, innerW, { align: "center", fontSize: 8.5 }) + 1;
-  ty = pdfText(doc, licLine, x + padX, ty, innerW, { align: "center", fontSize: 6.3 }) + 0.5;
-  pdfText(doc, phoneLine, x + padX, ty, innerW, { align: "center", fontSize: 6.3 });
+  ty = pdfText(doc, name, x + padX, ty, innerW, { align: "center", fontSize: 9.8 }) + 1.5;
+  ty = pdfText(doc, licLine, x + padX, ty, innerW, { align: "center", fontSize: 6.4 }) + 0.5;
+  pdfText(doc, phoneLine, x + padX, ty, innerW, { align: "center", fontSize: 6.4 });
+
+  if (sigBuf) {
+    const sigPadX = 4;
+    const sigW = width - sigPadX * 2;
+    const sigTop = y + height * 0.3;
+    const sigH = height * 0.68;
+    try {
+      doc.image(sigBuf, x + sigPadX, sigTop, { fit: [sigW, sigH], align: "center", valign: "center" });
+    } catch {
+      /* skip */
+    }
+  }
 }
 
 function safeExtra(certificate) {
@@ -1321,20 +1334,11 @@ function drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bot
   const mmToPtLocal = 2.83465;
   const offX = Number(inspector?.stampOffsetXmm || 0) * mmToPtLocal;
   const offY = Number(inspector?.stampOffsetYmm || 0) * mmToPtLocal;
-  const sigW = compact ? 96 : 130;
-  const sigH = compact ? 38 : 52;
-  if (sigBuf) {
-    try {
-      doc.image(sigBuf, left + 6, bodyY, { width: sigW, height: sigH, fit: [sigW, sigH] });
-    } catch {
-      /* skip */
-    }
-  }
 
-  const stampW = compact ? 124 : 150;
-  const stampH = compact ? 40 : 48;
+  const stampW = compact ? 136 : 162;
+  const stampH = compact ? 46 : 54;
   const stampX = left + 4;
-  const stampY = bodyY + (sigBuf ? sigH + 5 : 0);
+  const stampY = bodyY;
   const hasInspectorStampInfo = Boolean(
     inspectorStampName(inspector) !== "—" ||
       String(inspector?.licenseNo || "").trim() ||
@@ -1342,18 +1346,33 @@ function drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bot
   );
 
   if (hasInspectorStampInfo) {
-    drawInspectorStampVector(doc, inspector, stampX + offX, stampY + offY, stampW, stampH);
+    drawInspectorStampVector(doc, inspector, stampX + offX, stampY + offY, stampW, stampH, sigBuf);
   } else if (stampBuf) {
     try {
       doc.image(stampBuf, stampX + offX, stampY + offY, { fit: [stampW, stampH], align: "left", valign: "top" });
+      if (sigBuf) {
+        const sigW = stampW * 0.9;
+        const sigH = stampH * 0.65;
+        doc.image(sigBuf, stampX + offX + (stampW - sigW) / 2, stampY + offY + stampH * 0.28, {
+          fit: [sigW, sigH],
+          align: "center",
+          valign: "center",
+        });
+      }
+    } catch {
+      /* skip */
+    }
+  } else if (sigBuf) {
+    try {
+      doc.image(sigBuf, left + 6, bodyY, { width: compact ? 96 : 130, height: compact ? 38 : 52, fit: [compact ? 96 : 130, compact ? 38 : 52] });
     } catch {
       /* skip */
     }
   }
   if (!compact) {
     doc.fontSize(7).fillColor("#94a3b8");
-    pdfText(doc, "חתימה דיגיטלית / סריקה", left + 8, bodyY + 56, 130, { align: "center" });
+    pdfText(doc, "חתימה דיגיטלית / סריקה", left + 8, stampY + stampH + 4, stampW, { align: "center" });
   }
 
-  return compact ? bottomSafe - 2 : Math.max(declEndY, bodyY + 78) + 12;
+  return compact ? bottomSafe - 2 : Math.max(declEndY, stampY + stampH + 14) + 12;
 }
