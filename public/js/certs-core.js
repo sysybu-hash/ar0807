@@ -12,6 +12,7 @@ import {
   defaultTechRows,
   defaultVisualChecklist,
   filterEvChecksForOutput,
+  filterEvPeriodicTestsForOutput,
 } from "./cert-types.js";
 import { buildPrintDocHtml, escapeHtml } from "./certs-print.js";
 import { STR } from "./cert-strings.js";
@@ -339,7 +340,9 @@ export class CertWorkspace {
         : defaultEvChecks();
     this.evPeriodicState =
       Array.isArray(ex.periodicTests) && ex.periodicTests.length
-        ? ex.periodicTests.map((p, i) => ({ ...(defaultEvPeriodicTests()[i] || {}), ...p }))
+        ? filterEvPeriodicTestsForOutput(
+            ex.periodicTests.map((p, i) => ({ ...(defaultEvPeriodicTests()[i] || {}), ...p }))
+          )
         : defaultEvPeriodicTests();
     this.renderTechRowsTable();
     this.renderVisualChecklistTable();

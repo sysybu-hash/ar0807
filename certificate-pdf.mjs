@@ -8,6 +8,7 @@ import {
   defaultVisualChecklist,
   defaultTechRows,
   filterEvChecksForOutput,
+  filterEvPeriodicTestsForOutput,
 } from "./lib/cert-types.mjs";
 import { formatHebrewDateFull } from "./lib/hebrew-date.mjs";
 
@@ -859,6 +860,35 @@ function renderPortableBodyCompact(doc, certificate, inspector, extra, left, con
   return y;
 }
 
+function drawEvPeriodicTable(doc, left, contentW, y, bottomSafe, layout, periodicTests, { compact = false } = {}) {
+  const periodic = filterEvPeriodicTestsForOutput(periodicTests);
+  const pRows = periodic.map((p) => [
+    String(p.test || "—"),
+    String(p.frequency || "—"),
+    String(p.lastDate || "—"),
+    String(p.result || "—"),
+  ]);
+  if (!pRows.length) return y;
+  return drawMultiColumnTable(
+    doc,
+    left,
+    contentW,
+    y,
+    bottomSafe,
+    layout,
+    compact ? "תדירויות בדיקה" : "טבלת תדירויות בדיקה",
+    [
+      { label: "בדיקה", key: 0, w: compact ? 0.42 : 0.4 },
+      { label: "תדירות", key: 1, w: compact ? 0.18 : 0.2 },
+      { label: compact ? "אחרון" : "תאריך אחרון", key: 2, w: compact ? 0.18 : 0.2 },
+      { label: "תוצאה", key: 3, w: compact ? 0.22 : 0.2 },
+    ],
+    pRows,
+    true,
+    compact ? { compact: true } : undefined
+  );
+}
+
 function renderEvChargingBodyCompact(doc, certificate, inspector, extra, left, contentW, y, bottomSafe, layout, meta) {
   const bodyBottom = bottomSafe - layout.signatureReserve;
   const gap = 3;
@@ -888,7 +918,9 @@ function renderEvChargingBodyCompact(doc, certificate, inspector, extra, left, c
       contentW
     ) + gap;
 
+  const importerVal = `${extra.importerDeclarationRef || "—"}${extra.importerDeclarationDate ? ` (${extra.importerDeclarationDate})` : ""}`;
   y = drawCompactKeyValue(doc, left, contentW, y, [
+    ["יבואן/יצרן", importerVal],
     ["תקן", extra.iec61851Ref || "IEC 61851-1"],
     ["הארקה / הגנה", certificate.groundingValue || "—"],
   ]);
@@ -911,6 +943,8 @@ function renderEvChargingBodyCompact(doc, certificate, inspector, extra, left, c
     true,
     { compact: true }
   );
+
+  y = drawEvPeriodicTable(doc, left, contentW, y, bodyBottom, layout, extra.periodicTests, { compact: true });
 
   const notes = (certificate.notes || "").trim();
   if (notes && y < bodyBottom - 28) {
@@ -947,7 +981,9 @@ function renderEvChargingBody(doc, certificate, inspector, extra, left, contentW
     `${extra.stationPowerKw || "—"} kW · ${extra.chargeType || "AC"} · ${extra.connectorType || "—"}`,
   ]);
 
+  const importerVal = `${extra.importerDeclarationRef || "—"}${extra.importerDeclarationDate ? ` (${extra.importerDeclarationDate})` : ""}`;
   y = drawKeyValueTable(doc, left, contentW, y, bottomSafe, layout, "פרטי עמדה", [
+    ["יבואן/יצרן", importerVal],
     ["תקן", extra.iec61851Ref || "IEC 61851-1 / IEC 60364-7-722"],
     ["הארקה / הגנה", certificate.groundingValue || "—"],
   ]);
@@ -969,6 +1005,8 @@ function renderEvChargingBody(doc, certificate, inspector, extra, left, contentW
     checkRows.length ? checkRows : [["—", "—"]],
     true
   );
+
+  y = drawEvPeriodicTable(doc, left, contentW, y, bottomSafe, layout, extra.periodicTests);
 
   const notes = (certificate.notes || "").trim();
   if (notes) {
