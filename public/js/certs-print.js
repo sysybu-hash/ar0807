@@ -126,7 +126,9 @@ export function buildSignatureFooterHtml(settings, doc) {
   const declHtml = decl ? `<div class="sig-decl-text">${escapeHtml(decl)}</div>` : "";
   let stampInner = `<div class="sig-stamp-empty"></div>`;
   if (settings.stampData) {
-    stampInner = `<img src="${settings.stampData}" alt="" class="sig-stamp-img" style="transform:translate(${sx}mm,${sy}mm)" />`;
+    stampInner = `<div class="sig-stamp-stack" style="transform:translate(${sx}mm,${sy}mm)"><img src="${settings.stampData}" alt="" class="sig-stamp-img" />${
+      doc.signatureData ? `<img src="${doc.signatureData}" alt="" class="sig-stamp-sig" />` : ""
+    }</div>`;
   } else if (doc.signatureData) {
     stampInner = `<img src="${doc.signatureData}" alt="" class="sig-stamp-img" />`;
   }
@@ -272,6 +274,8 @@ export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } 
     .sig-decl-text{font-size:0.78rem;color:#334155;line-height:1.55;white-space:pre-wrap}
     .sig-line{border-top:1px solid #94a3b8;margin:0.35rem 0 0.5rem}
     .sig-stamp-img{display:block;max-width:188px;max-height:64px;margin:0 auto;transform-origin:top center}
+    .sig-stamp-stack{position:relative;width:max-content;margin:0 auto;transform-origin:top center}
+    .sig-stamp-sig{position:absolute;inset:15% 4px 0 4px;width:calc(100% - 8px);height:85%;object-fit:contain}
     .sig-stamp-empty{min-height:64px}
     .print-photos-notice{margin:0.5rem 0 0.75rem;padding:0.55rem 0.75rem;border:1px solid #1a56b4;border-radius:0.35rem;background:#eff6ff;color:#0d3d82;font-size:0.85rem;font-weight:700}
     .print-photos-appendix{page-break-before:always;max-width:210mm;margin:0 auto;padding:12mm}

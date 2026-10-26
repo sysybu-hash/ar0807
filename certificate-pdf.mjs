@@ -1714,6 +1714,18 @@ function drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bot
         align: "center",
         valign: "top",
       });
+      if (sigBuf) {
+        // Handwritten signature drawn over the uploaded stamp
+        try {
+          doc.image(sigBuf, stampX + offX + 4, stampY + offY + stampH * 0.15, {
+            fit: [stampW - 8, stampH * 0.85],
+            align: "center",
+            valign: "center",
+          });
+        } catch {
+          /* skip */
+        }
+      }
     } catch {
       if (hasInspectorStampInfo) {
         drawInspectorStampVector(doc, inspector, stampX + offX, stampY + offY, stampW, stampH, sigBuf);
