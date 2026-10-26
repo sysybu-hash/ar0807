@@ -1,6 +1,14 @@
 /** הדפסת HTML לאישורי תקינות — תוכן מלא תואם PDF */
 
-import { certTypeLabel, CERT_TYPES, normalizeDocType, filterEvChecksForOutput, filterEvPeriodicTestsForOutput } from "./cert-types.js";
+import {
+  certTypeLabel,
+  CERT_TYPES,
+  normalizeDocType,
+  filterEvChecksForOutput,
+  filterEvPeriodicTestsForOutput,
+  waterTempVerdict,
+  WATER_TEMP_LIMIT_C,
+} from "./cert-types.js";
 import { formatHebrewDateFull } from "./hebrew-date.js";
 import { STR } from "./cert-strings.js";
 
@@ -78,6 +86,21 @@ export function printDocTypeBody(doc) {
       <h4 class="print-section">${STR.evPeriodicSection}</h4>
       ${tableHtml([STR.colCheck, STR.colFrequency, STR.colLastDate, STR.colResult], periodicRows, 4)}
       <p class="print-banner">${escapeHtml(ex.gridApprovalBanner || STR.defaultGridBanner)}</p>`;
+  }
+
+  if (t === "water_heater") {
+    const verdict = waterTempVerdict(ex);
+    const measureRows = verdict.rows.map((r) => [r.point || "", r.temperature ? `${r.temperature}°C` : "—", r.result]);
+    const checkRows = (ex.checks || []).map((c) => [c.item || "", c.result || ""]);
+    return `
+      <p><b>מזמין:</b> ${escapeHtml(ex.clientName || doc.facilityName || "")}</p>
+      <p><b>דוד:</b> ${escapeHtml(ex.heaterType || "")} · ${escapeHtml(ex.heaterManufacturer || "")} ${escapeHtml(ex.heaterModel || "")}${ex.heaterCapacityLiters ? ` · ${escapeHtml(ex.heaterCapacityLiters)} ליטר` : ""}${ex.heaterPowerKw ? ` · ${escapeHtml(ex.heaterPowerKw)} kW` : ""}</p>
+      <p><b>אמצעי ויסות:</b> ${escapeHtml(ex.regulationMethod || "")}${ex.thermostatSetpoint ? ` · <b>כיוון תרמוסטט:</b> ${escapeHtml(ex.thermostatSetpoint)}°C` : ""} · <b>מרבית מותרת:</b> ${WATER_TEMP_LIMIT_C}°C</p>
+      <h4 class="print-section">${STR.whMeasurementsSection}</h4>
+      ${tableHtml([STR.colMeasurePoint, STR.colMeasuredTemp, STR.colResult], measureRows, 3)}
+      <h4 class="print-section">${STR.whChecksSection}</h4>
+      ${tableHtml([STR.colItem, STR.colResult], checkRows, 2)}
+      <p class="print-banner${verdict.status === "fail" ? " print-banner--fail" : ""}">${escapeHtml(verdict.banner)}</p>`;
   }
 
   const techRows = (ex.techInspection || []).map((r) => [r.description || "", r.result || "—"]);
@@ -240,6 +263,7 @@ export function buildPrintDocHtml(doc, settings, { autoPrint = false, fmtDate } 
     .print-table th,.print-table td{border:1px solid #cbd5e1;padding:0.35rem 0.5rem;text-align:right}
     .print-table th{background:#eef1f6}
     .print-banner{background:#1a56b4;color:#fff;padding:0.5rem 1rem;text-align:center;border-radius:0.25rem;font-weight:700;margin:0.75rem 0}
+    .print-banner--fail{background:#b91c1c}
     .print-type-body{font-size:0.9rem;line-height:1.6}
     .print-section{margin:0.75rem 0 0.25rem;font-weight:700;font-size:0.95rem}
     .sig-footer{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:2rem;align-items:start}

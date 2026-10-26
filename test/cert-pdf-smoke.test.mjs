@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildCertificatePdfBuffer } from "../certificate-pdf.mjs";
-import { defaultExtraForType } from "../lib/cert-types.mjs";
+import { defaultExtraForType, waterTempVerdict } from "../lib/cert-types.mjs";
 
 const inspector = {
   name: "אברהם רובינשטיין - רובינשטיין חשמל",
@@ -207,4 +207,44 @@ test("certificate PDF with blank letterhead builds", async () => {
   });
   assert.ok(buf.length > 2000);
   assert.equal(buf.slice(0, 4).toString(), "%PDF");
+});
+
+test("water_heater certificate PDF builds", async () => {
+  const buf = await buildCertificatePdfBuffer({
+    certificate: {
+      ...baseCert,
+      docType: "water_heater",
+      facilityName: "דירת מגורים",
+      extra: {
+        ...defaultExtraForType("water_heater"),
+        clientName: "משפחת כהן",
+        heaterManufacturer: "כרומגן",
+        heaterCapacityLiters: "150",
+        thermostatSetpoint: "45",
+        inspectionDate: "2026-10-26",
+        measurements: [
+          { point: "ברז מטבח", temperature: "44" },
+          { point: "מקלחת", temperature: "43.5" },
+        ],
+      },
+    },
+    inspector,
+  });
+  assert.ok(buf.length > 2000);
+  assert.equal(buf.slice(0, 4).toString(), "%PDF");
+});
+
+test("water_heater verdict fails above 45°C", () => {
+  const ok = waterTempVerdict({ measurements: [{ point: "מטבח", temperature: "45" }] });
+  assert.equal(ok.status, "ok");
+  const fail = waterTempVerdict({
+    measurements: [
+      { point: "מטבח", temperature: "44" },
+      { point: "מקלחת", temperature: "47,5°C" },
+    ],
+  });
+  assert.equal(fail.status, "fail");
+  assert.equal(fail.maxTemp, 47.5);
+  assert.equal(fail.rows[1].result, "לא תקין");
+  assert.equal(waterTempVerdict(defaultExtraForType("water_heater")).status, "pending");
 });

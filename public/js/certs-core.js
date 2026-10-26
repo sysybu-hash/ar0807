@@ -11,8 +11,13 @@ import {
   defaultPortableApplianceRow,
   defaultTechRows,
   defaultVisualChecklist,
+  defaultWaterHeaterChecks,
+  defaultWaterTempMeasurements,
+  evaluateWaterTemp,
   filterEvChecksForOutput,
   filterEvPeriodicTestsForOutput,
+  normalizeWaterTempMeasurements,
+  waterTempVerdict,
 } from "./cert-types.js";
 import { buildPrintDocHtml, escapeHtml } from "./certs-print.js";
 import { STR } from "./cert-strings.js";
@@ -71,6 +76,8 @@ export class CertWorkspace {
     this.visualChecklistState = defaultVisualChecklist().slice();
     this.evChecksState = defaultEvChecks();
     this.evPeriodicState = defaultEvPeriodicTests();
+    this.whMeasurementsState = defaultWaterTempMeasurements();
+    this.whChecksState = defaultWaterHeaterChecks();
   }
 
   fid(base) {
@@ -129,6 +136,8 @@ export class CertWorkspace {
       ["docFieldsPortableChecks", "portable"],
       ["docFieldsEvCharging", "ev_charging"],
       ["docFieldsEvChargingChecks", "ev_charging"],
+      ["docFieldsWaterHeater", "water_heater"],
+      ["docFieldsWaterHeaterChecks", "water_heater"],
     ];
     for (const [id, docType] of typeBlocks) {
       const el = this.$(id);
@@ -264,6 +273,75 @@ export class CertWorkspace {
     });
   }
 
+  renderWaterTempVerdict() {
+    const el = this.$("docWhVerdict");
+    if (!el) return;
+    const v = waterTempVerdict({
+      measurements: this.whMeasurementsState,
+      finalStatusBanner: this.inputTrim("docWhFinalBanner"),
+    });
+    el.textContent = v.banner;
+    el.dataset.status = v.status;
+  }
+
+  renderWaterTempTable() {
+    const tbody = this.$("docWhMeasurements");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    this.whMeasurementsState.forEach((row, idx) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><input class="inp inp-compact" data-wh-field="point" value="${escapeHtml(row.point || "")}" /></td>
+        <td><input class="inp inp-compact" data-wh-field="temperature" dir="ltr" inputmode="decimal" value="${escapeHtml(row.temperature || "")}" /></td>
+        <td><span class="wh-result" data-wh-result>${escapeHtml(row.result || "—")}</span></td>
+        <td><button type="button" class="tbl-btn tbl-btn-del" data-wh-del="${idx}" aria-label="מחק שורה">×</button></td>`;
+      const resultEl = tr.querySelector("[data-wh-result]");
+      const syncResult = () => {
+        const res = this.whMeasurementsState[idx].result;
+        resultEl.textContent = res;
+        resultEl.dataset.status = res === "לא תקין" ? "fail" : res === "תקין" ? "ok" : "";
+      };
+      syncResult();
+      tr.querySelectorAll("input[data-wh-field]").forEach((inp) => {
+        inp.addEventListener("input", () => {
+          const r = this.whMeasurementsState[idx];
+          if (!r) return;
+          r[inp.dataset.whField] = inp.value;
+          r.result = evaluateWaterTemp(r.temperature);
+          syncResult();
+          this.renderWaterTempVerdict();
+        });
+      });
+      tr.querySelector("[data-wh-del]")?.addEventListener("click", () => {
+        this.whMeasurementsState.splice(idx, 1);
+        this.renderWaterTempTable();
+      });
+      tbody.appendChild(tr);
+    });
+    this.renderWaterTempVerdict();
+  }
+
+  renderWaterHeaterChecksForm() {
+    const wrap = this.$("docWhChecks");
+    if (!wrap) return;
+    wrap.innerHTML = "";
+    this.whChecksState.forEach((c, idx) => {
+      const row = document.createElement("div");
+      row.className = "ev-check-row";
+      row.innerHTML = `
+        <span class="ev-check-row__label">${escapeHtml(c.item)}</span>
+        <select class="inp select inp-compact" data-wh-check="${idx}">
+          <option value="תקין" ${c.result === "תקין" ? "selected" : ""}>תקין</option>
+          <option value="לא תקין" ${c.result === "לא תקין" ? "selected" : ""}>לא תקין</option>
+          <option value="—" ${c.result === "—" ? "selected" : ""}>—</option>
+        </select>`;
+      row.querySelector("select")?.addEventListener("change", (e) => {
+        this.whChecksState[idx].result = e.target.value;
+      });
+      wrap.appendChild(row);
+    });
+  }
+
   renderDocPhotos() {
     const wrap = this.$("docPhotosPreview");
     if (!wrap) return;
@@ -350,11 +428,31 @@ export class CertWorkspace {
             ex.periodicTests.map((p, i) => ({ ...(defaultEvPeriodicTests()[i] || {}), ...p }))
           )
         : defaultEvPeriodicTests();
+    const isWh = doc?.docType === "water_heater";
+    this.setInputValue("docWhClient", isWh ? ex.clientName || "" : "");
+    this.setInputValue("docWhHeaterType", ex.heaterType || "חשמלי");
+    this.setInputValue("docWhManufacturer", ex.heaterManufacturer || "");
+    this.setInputValue("docWhModel", ex.heaterModel || "");
+    this.setInputValue("docWhCapacity", ex.heaterCapacityLiters || "");
+    this.setInputValue("docWhPowerKw", ex.heaterPowerKw || "");
+    this.setInputValue("docWhRegulation", ex.regulationMethod || "תרמוסטט בדוד");
+    this.setInputValue("docWhSetpoint", ex.thermostatSetpoint || "");
+    this.setInputValue("docWhFinalBanner", isWh ? ex.finalStatusBanner || "" : "");
+    this.whMeasurementsState =
+      Array.isArray(ex.measurements) && ex.measurements.length
+        ? normalizeWaterTempMeasurements(ex.measurements)
+        : defaultWaterTempMeasurements();
+    this.whChecksState =
+      isWh && Array.isArray(ex.checks) && ex.checks.length
+        ? ex.checks.map((c) => ({ item: c.item || "", result: c.result || "—" }))
+        : defaultWaterHeaterChecks();
     this.renderTechRowsTable();
     this.renderVisualChecklistTable();
     this.renderPortableAppliancesTable();
     this.renderEvChecksForm();
     this.renderEvPeriodicForm();
+    this.renderWaterTempTable();
+    this.renderWaterHeaterChecksForm();
     this.onDocTypeChange();
     this.docPhotos = doc?.photos ? doc.photos.slice() : [];
     this.renderDocPhotos();
@@ -416,9 +514,29 @@ export class CertWorkspace {
         checks: this.evChecksState.slice(),
         periodicTests: this.evPeriodicState.slice(),
       });
+    } else if (docType === "water_heater") {
+      Object.assign(extra, {
+        clientName: this.inputTrim("docWhClient"),
+        heaterType: this.inputRaw("docWhHeaterType"),
+        heaterManufacturer: this.inputTrim("docWhManufacturer"),
+        heaterModel: this.inputTrim("docWhModel"),
+        heaterCapacityLiters: this.inputTrim("docWhCapacity"),
+        heaterPowerKw: this.inputTrim("docWhPowerKw"),
+        regulationMethod: this.inputRaw("docWhRegulation"),
+        thermostatSetpoint: this.inputTrim("docWhSetpoint"),
+        finalStatusBanner: this.inputTrim("docWhFinalBanner"),
+        measurements: normalizeWaterTempMeasurements(
+          this.whMeasurementsState.filter((r) => String(r.point || "").trim() || String(r.temperature || "").trim())
+        ).slice(0, 30),
+        checks: this.whChecksState.map((c) => ({ ...c })),
+      });
     }
     const grounding =
-      docType === "ev_charging" ? this.inputTrim("docEvGrounding") : this.inputTrim("docGrounding");
+      docType === "ev_charging"
+        ? this.inputTrim("docEvGrounding")
+        : docType === "water_heater"
+          ? ""
+          : this.inputTrim("docGrounding");
     return {
       docType,
       facilityName: this.inputTrim("docFacilityName"),
@@ -733,6 +851,14 @@ export class CertWorkspace {
         this.renderTechRowsTable();
       };
     }
+    const addWhRow = this.$("docWhAddRow");
+    if (addWhRow) {
+      addWhRow.onclick = () => {
+        this.whMeasurementsState.push({ point: "", temperature: "", result: "—" });
+        this.renderWaterTempTable();
+      };
+    }
+    this.$("docWhFinalBanner")?.addEventListener("input", () => this.renderWaterTempVerdict());
     const addVisualRow = this.$("docVisualAddRow");
     if (addVisualRow) {
       addVisualRow.onclick = () => {
