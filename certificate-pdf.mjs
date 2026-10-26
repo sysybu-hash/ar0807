@@ -10,6 +10,7 @@ import {
   filterEvChecksForOutput,
   filterEvPeriodicTestsForOutput,
   waterTempVerdict,
+  filterWaterHeaterChecksForOutput,
   WATER_TEMP_LIMIT_C,
 } from "./lib/cert-types.mjs";
 import { formatHebrewDateFull } from "./lib/hebrew-date.mjs";
@@ -1080,7 +1081,7 @@ function renderWaterHeaterBodyCompact(doc, certificate, inspector, extra, left, 
     compact: true,
   });
 
-  const checkRows = (Array.isArray(extra.checks) ? extra.checks : []).map((c) => [String(c.item || "—"), String(c.result || "—")]);
+  const checkRows = filterWaterHeaterChecksForOutput(extra.checks).map((c) => [String(c.item || "—"), String(c.result || "—")]);
   if (checkRows.length) {
     y = drawMultiColumnTable(
       doc,
@@ -1145,7 +1146,7 @@ function renderWaterHeaterBody(doc, certificate, inspector, extra, left, content
     true
   );
 
-  const checkRows = (Array.isArray(extra.checks) ? extra.checks : []).map((c) => [String(c.item || "—"), String(c.result || "—")]);
+  const checkRows = filterWaterHeaterChecksForOutput(extra.checks).map((c) => [String(c.item || "—"), String(c.result || "—")]);
   if (checkRows.length) {
     y = drawMultiColumnTable(
       doc,

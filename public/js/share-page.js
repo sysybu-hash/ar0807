@@ -3,6 +3,7 @@ import {
   filterEvChecksForOutput,
   filterEvPeriodicTestsForOutput,
   waterTempVerdict,
+  filterWaterHeaterChecksForOutput,
   WATER_TEMP_LIMIT_C,
 } from "./cert-types.js";
 import { formatHebrewDateFull } from "./hebrew-date.js";
@@ -92,7 +93,7 @@ function renderShareBody(c) {
   } else if (t === "water_heater") {
     const verdict = waterTempVerdict(ex);
     const measureRows = verdict.rows.map((r) => [r.point || "", r.temperature ? `${r.temperature}°C` : "—", r.result]);
-    const checkRows = (ex.checks || []).map((ch) => [ch.item || "", ch.result || ""]);
+    const checkRows = filterWaterHeaterChecksForOutput(ex.checks).map((ch) => [ch.item || "", ch.result || ""]);
     extraHtml = `
       <p><strong>מזמין:</strong> ${escapeHtml(ex.clientName || c.facilityName || "")}</p>
       <p><strong>דוד:</strong> ${escapeHtml(ex.heaterType || "")} · ${escapeHtml(ex.heaterManufacturer || "")} ${escapeHtml(ex.heaterModel || "")}${ex.heaterCapacityLiters ? ` · ${escapeHtml(ex.heaterCapacityLiters)} ליטר` : ""}</p>
@@ -100,8 +101,8 @@ function renderShareBody(c) {
       <p><strong>טמפרטורה מרבית מותרת:</strong> ${WATER_TEMP_LIMIT_C}°C</p>
       <h4 style="margin:0.75rem 0 0.35rem;font-size:1rem;color:var(--text-mid);">${escapeHtml(STR.whMeasurementsSection)}</h4>
       ${shareTable([STR.colMeasurePoint, STR.colMeasuredTemp, STR.colResult], measureRows, 3)}
-      <h4 style="margin:0.75rem 0 0.35rem;font-size:1rem;color:var(--text-mid);">${escapeHtml(STR.whChecksSection)}</h4>
-      ${shareTable([STR.colItem, STR.colResult], checkRows, 2)}
+      ${checkRows.length ? `<h4 style="margin:0.75rem 0 0.35rem;font-size:1rem;color:var(--text-mid);">${escapeHtml(STR.whChecksSection)}</h4>
+      ${shareTable([STR.colItem, STR.colResult], checkRows, 2)}` : ""}
       <p class="share-banner${verdict.status === "fail" ? " share-banner--fail" : ""}">${escapeHtml(verdict.banner)}</p>`;
   } else {
     extraHtml = `

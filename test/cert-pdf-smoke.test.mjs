@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildCertificatePdfBuffer } from "../certificate-pdf.mjs";
-import { defaultExtraForType, waterTempVerdict } from "../lib/cert-types.mjs";
+import { defaultExtraForType, waterTempVerdict, filterWaterHeaterChecksForOutput } from "../lib/cert-types.mjs";
 
 const inspector = {
   name: "אברהם רובינשטיין - רובינשטיין חשמל",
@@ -247,4 +247,13 @@ test("water_heater verdict fails above 45°C", () => {
   assert.equal(fail.maxTemp, 47.5);
   assert.equal(fail.rows[1].result, "לא תקין");
   assert.equal(waterTempVerdict(defaultExtraForType("water_heater")).status, "pending");
+});
+
+test("water_heater untested checks are omitted from the report", () => {
+  assert.deepEqual(filterWaterHeaterChecksForOutput(defaultExtraForType("water_heater").checks), []);
+  const kept = filterWaterHeaterChecksForOutput([
+    { item: "הארקת גוף הדוד", result: "תקין" },
+    { item: "מערבל תרמוסטטי", result: "—" },
+  ]);
+  assert.deepEqual(kept.map((c) => c.item), ["הארקת גוף הדוד"]);
 });

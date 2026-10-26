@@ -7,6 +7,7 @@ import {
   filterEvChecksForOutput,
   filterEvPeriodicTestsForOutput,
   waterTempVerdict,
+  filterWaterHeaterChecksForOutput,
   WATER_TEMP_LIMIT_C,
 } from "./cert-types.js";
 import { formatHebrewDateFull } from "./hebrew-date.js";
@@ -91,15 +92,15 @@ export function printDocTypeBody(doc) {
   if (t === "water_heater") {
     const verdict = waterTempVerdict(ex);
     const measureRows = verdict.rows.map((r) => [r.point || "", r.temperature ? `${r.temperature}°C` : "—", r.result]);
-    const checkRows = (ex.checks || []).map((c) => [c.item || "", c.result || ""]);
+    const checkRows = filterWaterHeaterChecksForOutput(ex.checks).map((c) => [c.item || "", c.result || ""]);
     return `
       <p><b>מזמין:</b> ${escapeHtml(ex.clientName || doc.facilityName || "")}</p>
       <p><b>דוד:</b> ${escapeHtml(ex.heaterType || "")} · ${escapeHtml(ex.heaterManufacturer || "")} ${escapeHtml(ex.heaterModel || "")}${ex.heaterCapacityLiters ? ` · ${escapeHtml(ex.heaterCapacityLiters)} ליטר` : ""}${ex.heaterPowerKw ? ` · ${escapeHtml(ex.heaterPowerKw)} kW` : ""}</p>
       <p><b>אמצעי ויסות:</b> ${escapeHtml(ex.regulationMethod || "")}${ex.thermostatSetpoint ? ` · <b>כיוון תרמוסטט:</b> ${escapeHtml(ex.thermostatSetpoint)}°C` : ""} · <b>מרבית מותרת:</b> ${WATER_TEMP_LIMIT_C}°C</p>
       <h4 class="print-section">${STR.whMeasurementsSection}</h4>
       ${tableHtml([STR.colMeasurePoint, STR.colMeasuredTemp, STR.colResult], measureRows, 3)}
-      <h4 class="print-section">${STR.whChecksSection}</h4>
-      ${tableHtml([STR.colItem, STR.colResult], checkRows, 2)}
+      ${checkRows.length ? `<h4 class="print-section">${STR.whChecksSection}</h4>
+      ${tableHtml([STR.colItem, STR.colResult], checkRows, 2)}` : ""}
       <p class="print-banner${verdict.status === "fail" ? " print-banner--fail" : ""}">${escapeHtml(verdict.banner)}</p>`;
   }
 
