@@ -32,6 +32,7 @@ const typeCards = `
                   <button type="button" class="certs-v2__type-card" data-cert-type-card="installation"><strong>תקינות מתקן</strong><span>מתקן חשמל קבוע</span></button>
                   <button type="button" class="certs-v2__type-card" data-cert-type-card="portable"><strong>צרכנים מטלטלים</strong><span>בדיקת PAT</span></button>
                   <button type="button" class="certs-v2__type-card" data-cert-type-card="ev_charging"><strong>עמדת טעינה</strong><span>IEC 60364-7-722</span></button>
+                  <button type="button" class="certs-v2__type-card" data-cert-type-card="water_heater"><strong>ויסות מים חמים</strong><span>דוד — עד 45°C</span></button>
                 </div>`;
 
 const stepsNav = `

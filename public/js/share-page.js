@@ -2,6 +2,9 @@ import {
   certTypeLabel,
   filterEvChecksForOutput,
   filterEvPeriodicTestsForOutput,
+  waterTempVerdict,
+  filterWaterHeaterChecksForOutput,
+  WATER_TEMP_LIMIT_C,
 } from "./cert-types.js";
 import { formatHebrewDateFull } from "./hebrew-date.js";
 import { STR } from "./cert-strings.js";
@@ -87,6 +90,20 @@ function renderShareBody(c) {
       <h4 style="margin:0.75rem 0 0.35rem;font-size:1rem;color:var(--text-mid);">${escapeHtml(STR.evPeriodicSection)}</h4>
       ${shareTable([STR.colCheck, STR.colFrequency, STR.colLastDate, STR.colResult], periodicRows, 4)}
       <p class="share-banner">${escapeHtml(ex.gridApprovalBanner || STR.defaultGridBanner)}</p>`;
+  } else if (t === "water_heater") {
+    const verdict = waterTempVerdict(ex);
+    const measureRows = verdict.rows.map((r) => [r.point || "", r.temperature ? `${r.temperature}°C` : "—", r.result]);
+    const checkRows = filterWaterHeaterChecksForOutput(ex.checks).map((ch) => [ch.item || "", ch.result || ""]);
+    extraHtml = `
+      <p><strong>מזמין:</strong> ${escapeHtml(ex.clientName || c.facilityName || "")}</p>
+      <p><strong>דוד:</strong> ${escapeHtml(ex.heaterType || "")} · ${escapeHtml(ex.heaterManufacturer || "")} ${escapeHtml(ex.heaterModel || "")}${ex.heaterCapacityLiters ? ` · ${escapeHtml(ex.heaterCapacityLiters)} ליטר` : ""}</p>
+      <p><strong>אמצעי ויסות:</strong> ${escapeHtml(ex.regulationMethod || "")}${ex.thermostatSetpoint ? ` · <strong>כיוון תרמוסטט:</strong> ${escapeHtml(ex.thermostatSetpoint)}°C` : ""}</p>
+      <p><strong>טמפרטורה מרבית מותרת:</strong> ${WATER_TEMP_LIMIT_C}°C</p>
+      <h4 style="margin:0.75rem 0 0.35rem;font-size:1rem;color:var(--text-mid);">${escapeHtml(STR.whMeasurementsSection)}</h4>
+      ${shareTable([STR.colMeasurePoint, STR.colMeasuredTemp, STR.colResult], measureRows, 3)}
+      ${checkRows.length ? `<h4 style="margin:0.75rem 0 0.35rem;font-size:1rem;color:var(--text-mid);">${escapeHtml(STR.whChecksSection)}</h4>
+      ${shareTable([STR.colItem, STR.colResult], checkRows, 2)}` : ""}
+      <p class="share-banner${verdict.status === "fail" ? " share-banner--fail" : ""}">${escapeHtml(verdict.banner)}</p>`;
   } else {
     extraHtml = `
       <p><strong>לקוח:</strong> ${escapeHtml(ex.clientName || "")}</p>

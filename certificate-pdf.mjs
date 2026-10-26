@@ -9,6 +9,9 @@ import {
   defaultTechRows,
   filterEvChecksForOutput,
   filterEvPeriodicTestsForOutput,
+  waterTempVerdict,
+  filterWaterHeaterChecksForOutput,
+  WATER_TEMP_LIMIT_C,
 } from "./lib/cert-types.mjs";
 import { formatHebrewDateFull } from "./lib/hebrew-date.mjs";
 
@@ -22,6 +25,7 @@ const BLUE_DARK = "#0d3d82";
 const GREY_PANEL = "#eceff1";
 const GREY_TABLE_HEAD = "#dde3ea";
 const BROWN_ACCENT = "#92400e";
+const RED_FAIL = "#b91c1c";
 
 const MM_TO_PT = 72 / 25.4;
 
@@ -518,6 +522,7 @@ function drawGreyMetaPanel(doc, left, contentW, y, lines, fontSize = 9) {
   doc.save();
   doc.roundedRect(left, y, contentW, boxH, 3).fill(GREY_PANEL);
   doc.restore();
+  doc.fontSize(fontSize).fillColor("#334155");
   let by = y + pad;
   for (const line of lines) {
     by = rtlBlock(doc, line, left + pad, by, innerW) + 5;
@@ -707,6 +712,12 @@ export function buildCertificatePdfBuffer({ certificate, inspector }) {
       });
     } else if (docType === "ev_charging") {
       y = renderEvChargingBody(doc, certificate, inspector, extra, left, contentW, y, bottomSafe, layout, {
+        docNo,
+        workflow,
+        inspectionDate,
+      });
+    } else if (docType === "water_heater") {
+      y = renderWaterHeaterBody(doc, certificate, inspector, extra, left, contentW, y, bottomSafe, layout, {
         docNo,
         workflow,
         inspectionDate,
@@ -1014,6 +1025,163 @@ function renderEvChargingBody(doc, certificate, inspector, extra, left, contentW
   doc.restore();
   doc.fontSize(11.5).fillColor("#ffffff");
   pdfText(doc, gridBanner, left, y + 9, contentW, { align: "center" });
+  y += 40;
+
+  y = drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bottomSafe, layout, {
+    skipEnsureY: true,
+  });
+  return y;
+}
+
+function waterHeaterDetailLines(certificate, extra) {
+  const capacity = String(extra.heaterCapacityLiters || "").trim();
+  const power = String(extra.heaterPowerKw || "").trim();
+  const setpoint = String(extra.thermostatSetpoint || "").trim();
+  return {
+    client: `מזמין: ${extra.clientName || certificate.facilityName || "—"}    ·    כתובת: ${certificate.address || "—"}`,
+    heater: `דוד: ${extra.heaterType || "—"} · ${extra.heaterManufacturer || "—"} ${extra.heaterModel || ""}${capacity ? ` · ${capacity} ליטר` : ""}${power ? ` · ${power} kW` : ""}`,
+    regulation: `אמצעי ויסות: ${extra.regulationMethod || "—"}${setpoint ? `    ·    כיוון תרמוסטט: ${setpoint}°C` : ""}    ·    טמפרטורה מרבית מותרת: ${WATER_TEMP_LIMIT_C}°C`,
+  };
+}
+
+function waterTempTableRows(verdict) {
+  const rows = verdict.rows.map((r) => [
+    r.point || "—",
+    String(r.temperature || "").trim() ? `${String(r.temperature).replace(/\s*°?\s*C?\s*$/i, "")}°C` : "—",
+    r.result,
+  ]);
+  return rows.length ? rows : [["—", "—", "—"]];
+}
+
+const WATER_TEMP_COLS = [
+  { label: "נקודת מדידה", key: 0, w: 0.5 },
+  { label: "טמפרטורה שנמדדה", key: 1, w: 0.25 },
+  { label: `תוצאה (עד ${WATER_TEMP_LIMIT_C}°C)`, key: 2, w: 0.25 },
+];
+
+function renderWaterHeaterBodyCompact(doc, certificate, inspector, extra, left, contentW, y, bottomSafe, layout, meta) {
+  const bodyBottom = bottomSafe - layout.signatureReserve;
+  const gap = 3;
+  const lines = waterHeaterDetailLines(certificate, extra);
+  const verdict = waterTempVerdict(extra);
+  doc.fontSize(7.5).fillColor("#334155");
+  y =
+    rtlBlock(
+      doc,
+      `תאריך בדיקה: ${meta.inspectionDate || "—"} · מסמך: ${meta.docNo || "—"} · ${statusLabel(meta.workflow)}`,
+      left,
+      y,
+      contentW
+    ) + gap;
+  y = rtlBlock(doc, lines.client, left, y, contentW) + gap;
+  y = rtlBlock(doc, lines.heater, left, y, contentW) + gap;
+  y = rtlBlock(doc, lines.regulation, left, y, contentW) + gap;
+
+  y = drawMultiColumnTable(doc, left, contentW, y, bodyBottom, layout, "מדידות טמפרטורת מים חמים", WATER_TEMP_COLS, waterTempTableRows(verdict), true, {
+    compact: true,
+  });
+
+  const checkRows = filterWaterHeaterChecksForOutput(extra.checks).map((c) => [String(c.item || "—"), String(c.result || "—")]);
+  if (checkRows.length) {
+    y = drawMultiColumnTable(
+      doc,
+      left,
+      contentW,
+      y,
+      bodyBottom,
+      layout,
+      "בדיקות דוד ומעגל חשמלי",
+      [
+        { label: "פריט", key: 0, w: 0.65 },
+        { label: "תוצאה", key: 1, w: 0.35 },
+      ],
+      checkRows,
+      true,
+      { compact: true }
+    );
+  }
+
+  const notes = (certificate.notes || "").trim();
+  if (notes && y < bodyBottom - 28) {
+    doc.fontSize(7.2).fillColor("#334155");
+    y = rtlBlock(doc, `הערות: ${notes}`, left, y, contentW) + 2;
+  }
+
+  if (y < bodyBottom - 16) {
+    doc.fontSize(7.8).fillColor(verdict.status === "fail" ? RED_FAIL : BLUE_DARK);
+    y = rtlBlock(doc, verdict.banner, left, y, contentW) + 2;
+  }
+
+  y = drawSignatureFooter(doc, certificate, inspector, left, contentW, bodyBottom, bottomSafe, layout, {
+    compact: true,
+    fixedY: true,
+  });
+  return y;
+}
+
+function renderWaterHeaterBody(doc, certificate, inspector, extra, left, contentW, y, bottomSafe, layout, meta) {
+  if (layout.compact) {
+    return renderWaterHeaterBodyCompact(doc, certificate, inspector, extra, left, contentW, y, bottomSafe, layout, meta);
+  }
+  const lines = waterHeaterDetailLines(certificate, extra);
+  const verdict = waterTempVerdict(extra);
+  y = ensureY(doc, y, bottomSafe, 90, layout);
+  y = drawGreyMetaPanel(doc, left, contentW, y, [
+    `תאריך בדיקה: ${meta.inspectionDate || "—"}    ·    מסמך: ${meta.docNo || "—"}${meta.workflow ? `    ·    סטטוס: ${statusLabel(meta.workflow)}` : ""}`,
+    lines.client,
+    lines.heater,
+    lines.regulation,
+  ]);
+
+  y = drawMultiColumnTable(
+    doc,
+    left,
+    contentW,
+    y,
+    bottomSafe,
+    layout,
+    "מדידות טמפרטורת מים חמים בנקודות הצריכה",
+    WATER_TEMP_COLS,
+    waterTempTableRows(verdict),
+    true
+  );
+
+  const checkRows = filterWaterHeaterChecksForOutput(extra.checks).map((c) => [String(c.item || "—"), String(c.result || "—")]);
+  if (checkRows.length) {
+    y = drawMultiColumnTable(
+      doc,
+      left,
+      contentW,
+      y,
+      bottomSafe,
+      layout,
+      "בדיקות דוד ומעגל חשמלי",
+      [
+        { label: "פריט", key: 0, w: 0.65 },
+        { label: "תוצאה", key: 1, w: 0.35 },
+      ],
+      checkRows,
+      true
+    );
+  }
+
+  const notes = (certificate.notes || "").trim();
+  if (notes) {
+    y = ensureY(doc, y, bottomSafe, 50, layout);
+    doc.fontSize(10).fillColor(BLUE_DARK); pdfText(doc, "הערות", left, y, contentW, { align: "right" });
+    y += 12;
+    doc.fontSize(9).fillColor("#334155");
+    pdfText(doc, notes, left, y, contentW, { align: "right", lineGap: 2 });
+    y = doc.y + 12;
+  }
+
+  const closingH = 40 + estimateSignatureFooterHeight(doc, inspector, contentW);
+  y = ensureY(doc, y, bottomSafe, closingH, layout);
+  doc.save();
+  doc.rect(left, y, contentW, 32).fill(verdict.status === "fail" ? RED_FAIL : BLUE);
+  doc.restore();
+  doc.fontSize(11.5).fillColor("#ffffff");
+  pdfText(doc, verdict.banner, left, y + 9, contentW, { align: "center" });
   y += 40;
 
   y = drawSignatureFooter(doc, certificate, inspector, left, contentW, y, bottomSafe, layout, {

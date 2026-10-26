@@ -3,7 +3,7 @@
 export const STR = {
   pageTitle: "אישורי תקינות",
   pageSubtitle:
-    "הנפקה, עריכה, הדפסה ושיתוף — מתקן חשמל, צרכנים מטלטלים ועמדת טעינה",
+    "הנפקה, עריכה, הדפסה ושיתוף — מתקן חשמל, צרכנים מטלטלים, עמדת טעינה וויסות מים חמים",
   pageTitleBeta: "אישורי תקינות",
   betaTag: "בטא",
 
@@ -63,6 +63,8 @@ export const STR = {
   appliancesSection: "טבלת מכשירים",
   evChecksSection: "בדיקות עמדה",
   evPeriodicSection: "טבלת תדירויות בדיקה",
+  whMeasurementsSection: "מדידות טמפרטורת מים חמים בנקודות הצריכה",
+  whChecksSection: "בדיקות דוד ומעגל חשמלי",
 
   defaultFinalBanner: "תקין — המתקן מאושר לשימוש",
   defaultGridBanner: "מאושר לחיבור לרשת לפני הפעלה ראשונה",
@@ -82,6 +84,8 @@ export const STR = {
   colLastDate: "תאריך אחרון",
   colItem: "פריט",
   colTechDesc: "תיאור הבדיקה",
+  colMeasurePoint: "נקודת מדידה",
+  colMeasuredTemp: "טמפרטורה שנמדדה",
 
   addRow: "+ הוסף שורה",
   addItem: "+ הוסף פריט",

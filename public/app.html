@@ -682,13 +682,13 @@
             <div class="cert-page">
               <header class="cert-page__header">
                 <h2 class="cert-page__title">אישורי תקינות</h2>
-                <p class="cert-page__subtitle">הנפקה, עריכה, הדפסה ושיתוף — מתקן חשמל, צרכנים מטלטלים ועמדת טעינה</p>
+                <p class="cert-page__subtitle">הנפקה, עריכה, הדפסה ושיתוף — מתקן חשמל, צרכנים מטלטלים, עמדת טעינה וויסות מים חמים</p>
               </header>
 
               <div class="filter-bar cert-page__filters" role="search" aria-label="סינון מסמכים">
                 <div><label for="docsSearchInput" class="lbl">חיפוש</label><input id="docsSearchInput" class="inp" placeholder="שם מתקן / כתובת / מספר" aria-label="חיפוש מסמכים" /></div>
                 <div><label for="docsStatusFilter" class="lbl">סטטוס</label><select id="docsStatusFilter" class="inp" aria-label="סינון לפי סטטוס"><option value="">כל הסטטוסים</option><option value="draft">טיוטה</option><option value="final">סופי</option></select></div>
-                <div><label for="docsTypeFilter" class="lbl">סוג</label><select id="docsTypeFilter" class="inp select" aria-label="סינון לפי סוג"><option value="">כל הסוגים</option><option value="installation">אישור תקינות מתקן</option><option value="portable">אישור תקינות צרכנים מטלטלים</option><option value="ev_charging">אישור תקינות עמדת טעינה</option></select></div>
+                <div><label for="docsTypeFilter" class="lbl">סוג</label><select id="docsTypeFilter" class="inp select" aria-label="סינון לפי סוג"><option value="">כל הסוגים</option><option value="installation">אישור תקינות מתקן</option><option value="portable">אישור תקינות צרכנים מטלטלים</option><option value="ev_charging">אישור תקינות עמדת טעינה</option><option value="water_heater">אישור ויסות טמפרטורת מים חמים</option></select></div>
               </div>
 
               <div class="cert-page__layout">
@@ -708,6 +708,7 @@
                             <option value="installation">אישור תקינות מתקן</option>
                             <option value="portable">אישור תקינות צרכנים מטלטלים</option>
                             <option value="ev_charging">אישור תקינות עמדת טעינה</option>
+                            <option value="water_heater">אישור ויסות טמפרטורת מים חמים</option>
                           </select>
                         </div>
                         <div>
@@ -826,6 +827,42 @@
                       </div>
                     </fieldset>
 
+                    <fieldset id="docFieldsWaterHeater" class="cert-fieldset doc-type-block hidden">
+                      <legend>אישור ויסות טמפרטורת מים חמים בדוד (עד 45°C)</legend>
+                      <div class="form-grid">
+                        <div><label for="docWhClient" class="lbl">שם מזמין</label><input id="docWhClient" class="inp" /></div>
+                        <div><label for="docWhHeaterType" class="lbl">סוג דוד</label>
+                          <select id="docWhHeaterType" class="inp select"><option value="חשמלי">חשמלי</option><option value="סולארי">סולארי</option><option value="משאבת חום">משאבת חום</option><option value="גז">גז</option><option value="אחר">אחר</option></select>
+                        </div>
+                        <div><label for="docWhManufacturer" class="lbl">יצרן דוד</label><input id="docWhManufacturer" class="inp" /></div>
+                        <div><label for="docWhModel" class="lbl">דגם</label><input id="docWhModel" class="inp" /></div>
+                        <div><label for="docWhCapacity" class="lbl">נפח (ליטר)</label><input id="docWhCapacity" class="inp" dir="ltr" inputmode="numeric" /></div>
+                        <div><label for="docWhPowerKw" class="lbl">הספק גוף חימום (kW)</label><input id="docWhPowerKw" class="inp" dir="ltr" inputmode="decimal" /></div>
+                        <div><label for="docWhRegulation" class="lbl">אמצעי ויסות</label>
+                          <select id="docWhRegulation" class="inp select"><option value="תרמוסטט בדוד">תרמוסטט בדוד</option><option value="מערבל תרמוסטטי (TMV)">מערבל תרמוסטטי (TMV)</option><option value="בקר טמפרטורה דיגיטלי">בקר טמפרטורה דיגיטלי</option><option value="תרמוסטט ומערבל תרמוסטטי">תרמוסטט ומערבל תרמוסטטי</option></select>
+                        </div>
+                        <div><label for="docWhSetpoint" class="lbl">כיוון תרמוסטט (°C)</label><input id="docWhSetpoint" class="inp" dir="ltr" inputmode="decimal" placeholder="45" /></div>
+                        <div class="col-span-2"><label for="docWhFinalBanner" class="lbl">טקסט באנר סיום (כשהמדידות תקינות)</label><input id="docWhFinalBanner" class="inp" placeholder="תקין — טמפרטורת המים החמים אינה עולה על 45°C" /></div>
+                        <div class="col-span-2">
+                          <div class="doc-section-head">
+                            <span class="lbl doc-section-head__label">מדידות טמפרטורה בנקודות הצריכה (מותר עד 45°C)</span>
+                            <button type="button" id="docWhAddRow" class="btn-portal-secondary btn-sm">+ הוסף נקודה</button>
+                          </div>
+                          <div class="table-wrap">
+                            <table class="table table-compact table-form" aria-label="מדידות טמפרטורת מים חמים">
+                              <thead><tr><th>נקודת מדידה</th><th>טמפרטורה (°C)</th><th>תוצאה</th><th></th></tr></thead>
+                              <tbody id="docWhMeasurements"></tbody>
+                            </table>
+                          </div>
+                          <p id="docWhVerdict" class="wh-verdict" aria-live="polite"></p>
+                        </div>
+                        <div class="col-span-2">
+                          <span class="lbl">בדיקות דוד ומעגל חשמלי (לא חובה — סעיף שמסומן "—" לא יופיע בדוח)</span>
+                          <div id="docWhChecks" class="ev-checks-grid"></div>
+                        </div>
+                      </div>
+                    </fieldset>
+
                     <fieldset class="cert-fieldset">
                       <legend>חתימה, תמונות וקבצים</legend>
                       <div class="form-grid">
@@ -885,7 +922,7 @@
                   <h2 class="certs-v2__title">אישורי תקינות</h2>
                   <span class="certs-v2__beta">בטא</span>
                 </div>
-                <p class="certs-v2__subtitle">הנפקה, עריכה, הדפסה ושיתוף — מתקן חשמל, צרכנים מטלטלים ועמדת טעינה</p>
+                <p class="certs-v2__subtitle">הנפקה, עריכה, הדפסה ושיתוף — מתקן חשמל, צרכנים מטלטלים, עמדת טעינה וויסות מים חמים</p>
               </div>
               <p id="v2CertStats" class="certs-v2__stats" aria-live="polite"></p>
             </header>
@@ -899,7 +936,7 @@
                 <button type="button" id="v2ListToggle" class="btn-portal-secondary btn-sm certs-v2__mobile-list-btn">רשימת מסמכים</button>
                 <div><label for="v2DocsSearchInput" class="lbl">חיפוש</label><input id="v2DocsSearchInput" class="inp" placeholder="שם מתקן / כתובת / מספר" aria-label="חיפוש מסמכים" /></div>
                 <div><label for="v2DocsStatusFilter" class="lbl">סטטוס</label><select id="v2DocsStatusFilter" class="inp" aria-label="סינון לפי סטטוס"><option value="">כל הסטטוסים</option><option value="draft">טיוטה</option><option value="final">סופי</option></select></div>
-                <div><label for="v2DocsTypeFilter" class="lbl">סוג</label><select id="v2DocsTypeFilter" class="inp select" aria-label="סינון לפי סוג"><option value="">כל הסוגים</option><option value="installation">אישור תקינות מתקן</option><option value="portable">אישור תקינות צרכנים מטלטלים</option><option value="ev_charging">אישור תקינות עמדת טעינה</option></select></div>
+                <div><label for="v2DocsTypeFilter" class="lbl">סוג</label><select id="v2DocsTypeFilter" class="inp select" aria-label="סינון לפי סוג"><option value="">כל הסוגים</option><option value="installation">אישור תקינות מתקן</option><option value="portable">אישור תקינות צרכנים מטלטלים</option><option value="ev_charging">אישור תקינות עמדת טעינה</option><option value="water_heater">אישור ויסות טמפרטורת מים חמים</option></select></div>
               </div>
 
               <div class="certs-v2__layout">
@@ -918,6 +955,7 @@
                   <button type="button" class="certs-v2__type-card" data-cert-type-card="installation"><strong>תקינות מתקן</strong><span>מתקן חשמל קבוע</span></button>
                   <button type="button" class="certs-v2__type-card" data-cert-type-card="portable"><strong>צרכנים מטלטלים</strong><span>בדיקת PAT</span></button>
                   <button type="button" class="certs-v2__type-card" data-cert-type-card="ev_charging"><strong>עמדת טעינה</strong><span>IEC 60364-7-722</span></button>
+                  <button type="button" class="certs-v2__type-card" data-cert-type-card="water_heater"><strong>ויסות מים חמים</strong><span>דוד — עד 45°C</span></button>
                 </div><fieldset class="certs-v2__fieldset">
                       <legend>פרטים כלליים</legend>
                       <div class="form-grid">
@@ -930,6 +968,7 @@
                             <option value="installation">אישור תקינות מתקן</option>
                             <option value="portable">אישור תקינות צרכנים מטלטלים</option>
                             <option value="ev_charging">אישור תקינות עמדת טעינה</option>
+                            <option value="water_heater">אישור ויסות טמפרטורת מים חמים</option>
                           </select>
                         </div>
                         <div>
@@ -995,6 +1034,25 @@
                         <div><label for="v2DocEvImporterDate" class="lbl">תאריך</label><input id="v2DocEvImporterDate" type="date" class="inp" /></div>
                         <div><label for="v2DocEvGrounding" class="lbl">הארקה / הגנה</label><input id="v2DocEvGrounding" class="inp" /></div>
                         <div class="col-span-2"><label for="v2DocEvGridBanner" class="lbl">הצהרת חיבור לרשת</label><input id="v2DocEvGridBanner" class="inp" placeholder="מאושר לחיבור לרשת לפני הפעלה ראשונה" /></div>
+                      </div>
+                    </fieldset>
+
+                    <fieldset id="v2DocFieldsWaterHeater" class="certs-v2__fieldset doc-type-block hidden">
+                      <legend>פרטי דוד וויסות טמפרטורה</legend>
+                      <div class="form-grid">
+                        <div><label for="v2DocWhClient" class="lbl">שם מזמין</label><input id="v2DocWhClient" class="inp" /></div>
+                        <div><label for="v2DocWhHeaterType" class="lbl">סוג דוד</label>
+                          <select id="v2DocWhHeaterType" class="inp select"><option value="חשמלי">חשמלי</option><option value="סולארי">סולארי</option><option value="משאבת חום">משאבת חום</option><option value="גז">גז</option><option value="אחר">אחר</option></select>
+                        </div>
+                        <div><label for="v2DocWhManufacturer" class="lbl">יצרן דוד</label><input id="v2DocWhManufacturer" class="inp" /></div>
+                        <div><label for="v2DocWhModel" class="lbl">דגם</label><input id="v2DocWhModel" class="inp" /></div>
+                        <div><label for="v2DocWhCapacity" class="lbl">נפח (ליטר)</label><input id="v2DocWhCapacity" class="inp" dir="ltr" inputmode="numeric" /></div>
+                        <div><label for="v2DocWhPowerKw" class="lbl">הספק גוף חימום (kW)</label><input id="v2DocWhPowerKw" class="inp" dir="ltr" inputmode="decimal" /></div>
+                        <div><label for="v2DocWhRegulation" class="lbl">אמצעי ויסות</label>
+                          <select id="v2DocWhRegulation" class="inp select"><option value="תרמוסטט בדוד">תרמוסטט בדוד</option><option value="מערבל תרמוסטטי (TMV)">מערבל תרמוסטטי (TMV)</option><option value="בקר טמפרטורה דיגיטלי">בקר טמפרטורה דיגיטלי</option><option value="תרמוסטט ומערבל תרמוסטטי">תרמוסטט ומערבל תרמוסטטי</option></select>
+                        </div>
+                        <div><label for="v2DocWhSetpoint" class="lbl">כיוון תרמוסטט (°C)</label><input id="v2DocWhSetpoint" class="inp" dir="ltr" inputmode="decimal" placeholder="45" /></div>
+                        <div class="col-span-2"><label for="v2DocWhFinalBanner" class="lbl">טקסט באנר סיום (כשהמדידות תקינות)</label><input id="v2DocWhFinalBanner" class="inp" placeholder="תקין — טמפרטורת המים החמים אינה עולה על 45°C" /></div>
                       </div>
                     </fieldset>
                     </div>
@@ -1065,6 +1123,29 @@
                               <tbody id="v2DocEvPeriodic"></tbody>
                             </table>
                           </div>
+                        </div>
+                      </div>
+                    </fieldset>
+
+                    <fieldset id="v2DocFieldsWaterHeaterChecks" class="certs-v2__fieldset doc-type-block hidden">
+                      <legend>מדידות ובדיקות — ויסות מים חמים</legend>
+                      <div class="form-grid">
+                        <div class="col-span-2">
+                          <div class="doc-section-head">
+                            <span class="lbl doc-section-head__label">מדידות טמפרטורה בנקודות הצריכה (מותר עד 45°C)</span>
+                            <button type="button" id="v2DocWhAddRow" class="btn-portal-secondary btn-sm">+ הוסף נקודה</button>
+                          </div>
+                          <div class="table-wrap">
+                            <table class="table table-compact table-form" aria-label="מדידות טמפרטורת מים חמים">
+                              <thead><tr><th>נקודת מדידה</th><th>טמפרטורה (°C)</th><th>תוצאה</th><th></th></tr></thead>
+                              <tbody id="v2DocWhMeasurements"></tbody>
+                            </table>
+                          </div>
+                          <p id="v2DocWhVerdict" class="wh-verdict" aria-live="polite"></p>
+                        </div>
+                        <div class="col-span-2">
+                          <span class="lbl">בדיקות דוד ומעגל חשמלי (לא חובה — סעיף שמסומן "—" לא יופיע בדוח)</span>
+                          <div id="v2DocWhChecks" class="ev-checks-grid"></div>
                         </div>
                       </div>
                     </fieldset>
